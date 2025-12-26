@@ -1,0 +1,4 @@
+watchdog==3.0.0
+gensim>=4.3.3
+numpy>=1.24.0
+
