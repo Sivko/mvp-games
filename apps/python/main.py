@@ -6,7 +6,11 @@ import os
 import sys
 import pickle
 import io
+from typing import Optional
 from gensim.models import KeyedVectors
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 # Устанавливаем правильную кодировку для ввода/вывода
 if sys.stdin.encoding != 'utf-8':
@@ -17,7 +21,7 @@ if sys.stderr.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # Статическое исходное слово
-sourceWord = "машина"
+sourceWord = "машинка"
 
 # Путь к модели
 # Пробуем разные варианты путей
@@ -32,6 +36,30 @@ MODEL_PATH_TXT_DOCKER = os.path.join('/app', 'data', 'model.txt')
 CACHE_DIR = os.path.join(BASE_DIR, '.cache')
 CACHE_FILE = os.path.join(CACHE_DIR, 'model_cache.pkl')
 CACHE_META_FILE = os.path.join(CACHE_DIR, 'model_cache_meta.txt')
+
+# Глобальная переменная для модели (загружается один раз)
+_model: Optional[KeyedVectors] = None
+
+# FastAPI приложение
+app = FastAPI(title="Word Similarity API", description="API for calculating word similarity using vector embeddings")
+
+
+class SimilarityRequest(BaseModel):
+    """Модель запроса для вычисления сходства."""
+    sourceWord: str
+    word: str
+
+
+class SimilarityResponse(BaseModel):
+    """Модель успешного ответа."""
+    status: int
+    similarity: float
+
+
+class ErrorResponse(BaseModel):
+    """Модель ответа с ошибкой."""
+    status: int
+    error: str
 
 
 def get_model_source_path():
@@ -219,6 +247,59 @@ def calculate_similarity(model, word1, word2):
         return None, word
 
 
+def get_model():
+    """Получает загруженную модель, загружает если необходимо."""
+    global _model
+    if _model is None:
+        _model = load_model()
+    return _model
+
+
+@app.post("/similarity")
+async def calculate_word_similarity(request: SimilarityRequest):
+    """
+    Вычисляет сходство между двумя словами.
+    
+    Принимает JSON с полями:
+    - sourceWord: исходное слово
+    - word: слово для сравнения
+    
+    Возвращает JSON с полями:
+    - status: код статуса (200 при успехе, 500 при ошибке)
+    - similarity: значение сходства (0.0 - 1.0) при успехе
+    - error: сообщение об ошибке при ошибке
+    """
+    try:
+        model = get_model()
+        
+        # Ищем слова в модели
+        found_source_word = find_word_in_model(model, request.sourceWord)
+        if found_source_word is None:
+            return JSONResponse(
+                status_code=500,
+                content=ErrorResponse(status=500, error=f"Слово '{request.sourceWord}' не найдено в словаре модели").dict()
+            )
+        
+        found_word = find_word_in_model(model, request.word)
+        if found_word is None:
+            return JSONResponse(
+                status_code=500,
+                content=ErrorResponse(status=500, error=f"Слово '{request.word}' не найдено в словаре модели").dict()
+            )
+        
+        # Вычисляем сходство
+        similarity = model.similarity(found_source_word, found_word)
+        
+        return SimilarityResponse(status=200, similarity=float(similarity))
+        
+    except Exception as e:
+        # Прочие ошибки
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(status=500, error=str(e)).dict()
+        )
+
+
 def main():
     """Основная функция приложения."""
     global sourceWord
@@ -317,4 +398,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Если запускается как скрипт, проверяем аргументы командной строки
+    if len(sys.argv) > 1 and sys.argv[1] == 'api':
+        # Запуск FastAPI сервера
+        import uvicorn
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    else:
+        # Запуск CLI интерфейса
+        main()
