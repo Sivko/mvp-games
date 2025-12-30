@@ -225,9 +225,9 @@ const getStatusText = (status) => {
 }
 
 const selectedSimilarityClass = (similarity) => {
-  if (similarity < 0.3) {
+  if (similarity < 0.5) {
     return 'bg-red-100 border border-red-300 rounded-lg p-3'
-  } else if (similarity < 0.6) {
+  } else if (similarity < 0.8) {
     return 'bg-yellow-100 border border-yellow-300 rounded-lg p-3'
   } else {
     return 'bg-green-100 border border-green-300 rounded-lg p-3'
