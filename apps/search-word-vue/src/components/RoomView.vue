@@ -51,16 +51,16 @@
               Пока нет связанных слов
             </div>
             <div v-else class="space-y-2 max-h-96 overflow-y-auto">
-              <div v-for="(wordData, word) in room.linkingWords" :key="word"
-                class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div v-for="item in sortedLinkingWords" :key="item.word"
+                :class="selectedSimilarityClass(item.similarity)">
                 <div class="flex justify-between items-center">
                   <div>
-                    <span class="font-semibold text-lg">{{ word }}</span>
+                    <span class="font-semibold text-lg">{{ item.word }}</span>
                     <span class="ml-4 text-sm text-gray-600">
-                      Сходство: {{ (wordData.similarity * 100).toFixed(2) }}%
+                      Сходство: {{ (item.similarity * 100).toFixed(2) }}%
                     </span>
                   </div>
-                  <span class="text-xs text-gray-500">{{ wordData.user?.name || 'Неизвестный' }}</span>
+                  <span class="text-xs text-gray-500">{{ item.user?.name || 'Неизвестный' }}</span>
                 </div>
               </div>
             </div>
@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { roomApi } from '../api/roomApi'
 import { io } from 'socket.io-client'
 
@@ -223,6 +223,30 @@ const getStatusText = (status) => {
   }
   return statusMap[status] || status
 }
+
+const selectedSimilarityClass = (similarity) => {
+  if (similarity < 0.3) {
+    return 'bg-red-100 border border-red-300 rounded-lg p-3'
+  } else if (similarity < 0.6) {
+    return 'bg-yellow-100 border border-yellow-300 rounded-lg p-3'
+  } else {
+    return 'bg-green-100 border border-green-300 rounded-lg p-3'
+  }
+}
+
+const sortedLinkingWords = computed(() => {
+  if (!room.value || !room.value.linkingWords || typeof room.value.linkingWords !== 'object') {
+    return []
+  }
+  
+  // Преобразуем объект в массив и сортируем по similarity (от большего к меньшему)
+  return Object.entries(room.value.linkingWords)
+    .map(([word, wordData]) => ({
+      word,
+      ...wordData
+    }))
+    .sort((a, b) => b.similarity - a.similarity)
+})
 
 watch(() => props.roomId, () => {
   if (props.roomId) {
