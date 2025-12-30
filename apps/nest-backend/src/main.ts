@@ -16,9 +16,9 @@ async function bootstrap() {
   // Настраиваем статическую раздачу файлов для тестового HTML
   app.useStaticAssets(join(__dirname, '..', 'public'));
   
-  await app.listen(3000);
-  console.log('Application is running on: http://localhost:3000');
-  console.log('WebSocket server is ready');
-  console.log('Test WebSocket client: http://localhost:3000/test-websocket.html');
+  await app.listen(process.env.NEST_PORT);
+  console.log(`Application is running on: http://localhost:${process.env.NEST_PORT}`);
+  console.log(`WebSocket server is ready`);
+  console.log(`Test WebSocket client: http://localhost:${process.env.NEST_PORT}/test-websocket.html`);
 }
 bootstrap();

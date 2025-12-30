@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug NestJS (dev mode)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:debug"],
+      "cwd": "${workspaceFolder}/apps/nest-backend",
+      "console": "integratedTerminal",
+      "restart": true,
+      "protocol": "inspector",
+      "sourceMaps": true,
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Debug NestJS (compiled)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/nest-backend/dist/main.js",
+      "cwd": "${workspaceFolder}/apps/nest-backend",
+      "console": "integratedTerminal",
+      "restart": false,
+      "protocol": "inspector",
+      "sourceMaps": true,
+      "preLaunchTask": "build",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "skipFiles": ["<node_internals>/**"],
+      "outFiles": ["${workspaceFolder}/apps/nest-backend/dist/**/*.js"]
+    },
+    {
+      "name": "Debug NestJS (attach)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "protocol": "inspector",
+      "sourceMaps": true,
+      "localRoot": "${workspaceFolder}/apps/nest-backend",
+      "remoteRoot": "${workspaceFolder}/apps/nest-backend",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
+
