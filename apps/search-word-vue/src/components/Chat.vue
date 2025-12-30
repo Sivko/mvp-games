@@ -1,17 +1,6 @@
 <template>
-  <div class="flex flex-col h-screen max-w-4xl mx-auto p-4">
-    <div class="bg-white rounded-lg shadow-lg flex flex-col h-full">
-      <!-- Заголовок чата -->
-      <div class="bg-blue-600 text-white p-4 rounded-t-lg">
-        <h2 class="text-xl font-bold">WebSocket Chat</h2>
-        <div class="text-sm mt-1">
-          <span :class="isConnected ? 'text-green-200' : 'text-red-200'">
-            {{ isConnected ? '● Подключено' : '○ Отключено' }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Область сообщений -->
+  <div class="flex flex-col h-full max-w-4xl mx-auto p-4">
+    <div class="bg-white rounded-lg shadow-lg flex flex-col h-full">      <!-- Область сообщений -->
       <div
         ref="messagesContainer"
         class="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-2"

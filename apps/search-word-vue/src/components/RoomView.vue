@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+  <div class="">
     <div class="max-w-4xl mx-auto">
       <div class="bg-white rounded-lg shadow-xl p-8">
         <div class="flex justify-between items-center mb-6">
@@ -7,10 +7,8 @@
             <h1 class="text-3xl font-bold text-gray-800">Комната #{{ room?.roomNumber }}</h1>
             <p class="text-gray-600 mt-1">Исходное слово: <span class="font-semibold">{{ room?.sourceWord }}</span></p>
           </div>
-          <button
-            @click="$emit('back-to-list')"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors"
-          >
+          <button @click="$emit('back-to-list')"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors">
             ← Назад к списку
           </button>
         </div>
@@ -26,8 +24,10 @@
           {{ error }}
         </div>
 
+
+
         <!-- Контент комнаты -->
-        <div v-else-if="room" class="space-y-6">
+        <div v-else-if="room" class="space-y-6 flex flex-col">
           <!-- Статистика -->
           <div class="grid grid-cols-3 gap-4">
             <div class="bg-blue-50 rounded-lg p-4 text-center">
@@ -47,15 +47,12 @@
           <!-- Связанные слова -->
           <div>
             <h2 class="text-xl font-bold text-gray-800 mb-4">Связанные слова</h2>
-            <div v-if="getLinkingWordsCount(room) === 0" class="text-center py-8 text-gray-500">
+            <div v-if="getLinkingWordsCount(room) === 0" class="py-8 text-gray-500 text-center">
               Пока нет связанных слов
             </div>
-            <div v-else class="space-y-2">
-              <div
-                v-for="(wordData, word) in room.linkingWords"
-                :key="word"
-                class="bg-gray-50 rounded-lg p-4 border border-gray-200"
-              >
+            <div v-else class="space-y-2 max-h-96 overflow-y-auto">
+              <div v-for="(wordData, word) in room.linkingWords" :key="word"
+                class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div class="flex justify-between items-center">
                   <div>
                     <span class="font-semibold text-lg">{{ word }}</span>
@@ -69,28 +66,42 @@
             </div>
           </div>
 
-          <!-- Черный список -->
-          <div v-if="room.blackListWord && room.blackListWord.length > 0">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Черный список слов</h2>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="word in room.blackListWord"
-                :key="word"
-                class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm"
-              >
-                {{ word }}
-              </span>
-            </div>
+          <!-- Добавление слова -->
+          <div class="flex gap-2 items-center">
+            <input 
+              type="text" 
+              v-model="newWord" 
+              @keypress.enter="addWord"
+              placeholder="Введите новое слово"
+              :disabled="!isConnected"
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" 
+            />
+            <button 
+              @click="addWord"
+              :disabled="!isConnected || !newWord.trim()"
+              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-semibold"
+            >
+              Добавить слово
+            </button>
+          </div>
+          
+          <!-- Статус подключения -->
+          <div class="text-sm text-center">
+            <span :class="isConnected ? 'text-green-600' : 'text-red-600'" class="font-semibold">
+              {{ isConnected ? '● Подключено к серверу' : '○ Отключено от сервера' }}
+            </span>
           </div>
         </div>
+
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { roomApi } from '../api/roomApi'
+import { io } from 'socket.io-client'
 
 const props = defineProps({
   roomId: {
@@ -104,6 +115,9 @@ const emit = defineEmits(['back-to-list'])
 const room = ref(null)
 const loading = ref(true)
 const error = ref(null)
+const newWord = ref('')
+const socket = ref(null)
+const isConnected = ref(false)
 
 const fetchRoom = async () => {
   loading.value = true
@@ -115,6 +129,82 @@ const fetchRoom = async () => {
     console.error('Error fetching room:', err)
   } finally {
     loading.value = false
+  }
+}
+
+const connectWebSocket = () => {
+  socket.value = io('http://localhost:3000', {
+    transports: ['websocket']
+  })
+
+  socket.value.on('connect', () => {
+    isConnected.value = true
+    console.log('WebSocket connected:', socket.value.id)
+    
+    // Присоединяемся к комнате
+    if (props.roomId) {
+      socket.value.emit('join-room', { roomId: props.roomId })
+    }
+  })
+
+  socket.value.on('disconnect', () => {
+    isConnected.value = false
+    console.log('WebSocket disconnected')
+  })
+
+  socket.value.on('room-updated', (data) => {
+    // Обновляем данные комнаты при получении обновлений
+    if (data.room) {
+      room.value = data.room
+    }
+  })
+
+  socket.value.on('word-added', (data) => {
+    // Обновляем список связанных слов
+    if (room.value && data.word && data.similarity !== undefined) {
+      if (!room.value.linkingWords) {
+        room.value.linkingWords = {}
+      }
+      room.value.linkingWords[data.word] = {
+        similarity: data.similarity,
+        user: data.user || { name: 'Неизвестный' }
+      }
+    }
+  })
+
+  socket.value.on('connect_error', (err) => {
+    console.error('WebSocket connection error:', err)
+    isConnected.value = false
+  })
+}
+
+const disconnectWebSocket = () => {
+  if (socket.value) {
+    socket.value.disconnect()
+    socket.value = null
+    isConnected.value = false
+  }
+}
+
+const addWord = async () => {
+  if (!newWord.value.trim() || !isConnected.value) {
+    return
+  }
+
+  const word = newWord.value.trim()
+  
+  try {
+    // Отправляем слово через WebSocket
+    socket.value.emit('add-word', {
+      roomId: props.roomId,
+      word: word,
+      user: { id: 'user-1', name: 'User' } // Временное значение, можно заменить на реального пользователя
+    })
+    
+    newWord.value = ''
+  } catch (err) {
+    console.error('Error adding word:', err)
+    error.value = 'Ошибка при добавлении слова'
   }
 }
 
@@ -137,13 +227,21 @@ const getStatusText = (status) => {
 watch(() => props.roomId, () => {
   if (props.roomId) {
     fetchRoom()
+    // Переподключаемся к новой комнате
+    if (socket.value && isConnected.value) {
+      socket.value.emit('join-room', { roomId: props.roomId })
+    }
   }
 })
 
 onMounted(() => {
   if (props.roomId) {
     fetchRoom()
+    connectWebSocket()
   }
 })
-</script>
 
+onUnmounted(() => {
+  disconnectWebSocket()
+})
+</script>

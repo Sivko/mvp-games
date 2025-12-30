@@ -48,7 +48,7 @@ const handleBackToList = () => {
 </script>
 
 <template>
-  <div id="app">
+  <div id="app" class="mx-auto">
     <RoomList v-if="!currentRoomId" @enter-room="handleEnterRoom" />
     <RoomView v-else :room-id="currentRoomId" @back-to-list="handleBackToList" />
   </div>

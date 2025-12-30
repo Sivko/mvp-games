@@ -31,4 +31,25 @@ export class RoomService {
   async delete(roomNumber: number): Promise<RoomDocument | null> {
     return this.roomModel.findOneAndDelete({ roomNumber }).exec();
   }
+
+  async addWordToRoom(roomId: string, word: string, similarity: number, user: any): Promise<RoomDocument | null> {
+    const room = await this.roomModel.findById(roomId).exec();
+    if (!room) {
+      return null;
+    }
+
+    // Инициализируем Map, если его нет
+    if (!room.linkingWords) {
+      room.linkingWords = new Map();
+    }
+
+    // Добавляем новое слово в Map
+    room.linkingWords.set(word, {
+      similarity,
+      user,
+    });
+
+    // Сохраняем комнату
+    return room.save();
+  }
 }
