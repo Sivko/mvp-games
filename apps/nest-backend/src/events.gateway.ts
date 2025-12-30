@@ -9,6 +9,9 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
 import { RoomService } from './room/room.service';
 
 @WebSocketGateway({
@@ -21,7 +24,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly roomService: RoomService) {}
+  constructor(
+    private readonly roomService: RoomService,
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {}
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -62,9 +69,28 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // Здесь должна быть логика вычисления similarity через Python API
-      // Пока используем заглушку
-      const similarity = 0.5; // TODO: Вычислить через Python API
+      // Вычисляем similarity через Python API
+      let similarity: number;
+      try {
+        const pythonApiUrl = this.configService.get<string>('PYTHON_API_URL', 'http://localhost:8000');
+        const response = await firstValueFrom(
+          this.httpService.post(`${pythonApiUrl}/similarity`, {
+            sourceWord: room.sourceWord,
+            word: word,
+          }),
+        );
+        
+        if (response.data.status === 200 && typeof response.data.similarity === 'number') {
+          similarity = response.data.similarity;
+        } else {
+          console.error('Invalid response from Python API:', response.data);
+          similarity = 0;
+        }
+      } catch (error) {
+        console.error('Error calling Python API:', error);
+        // В случае ошибки используем значение по умолчанию
+        similarity = 0;
+      }
 
       // Добавляем слово в комнату
       const updatedRoom = await this.roomService.addWordToRoom(
@@ -87,9 +113,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       // Отправляем полное обновление комнаты
-      this.server.to(`room:${roomId}`).emit('room-updated', {
-        room: updatedRoom.toObject(),
-      });
+      // this.server.to(`room:${roomId}`).emit('room-updated', {
+      //   room: updatedRoom.toObject(),
+      // });
     } catch (error) {
       console.error('Error adding word:', error);
       client.emit('error', { message: 'Error adding word' });

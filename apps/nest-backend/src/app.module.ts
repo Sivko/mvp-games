@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { EventsGateway } from './events.gateway';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { HttpModule } from '@nestjs/axios';
 import { join } from 'path';
 import { RoomModule } from './room/room.module';
 
@@ -24,6 +25,7 @@ import { RoomModule } from './room/room.module';
       }),
       inject: [ConfigService],
     }),
+    HttpModule,
     RoomModule,
   ],
   controllers: [AppController],

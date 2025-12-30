@@ -3,25 +3,12 @@
 """Word similarity application using vector embeddings."""
 
 import os
-import sys
 import pickle
-import io
 from typing import Optional
 from gensim.models import KeyedVectors
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
-# Устанавливаем правильную кодировку для ввода/вывода
-if sys.stdin.encoding != 'utf-8':
-    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-
-# Статическое исходное слово
-sourceWord = "машинка"
 
 # Путь к модели
 # Пробуем разные варианты путей
@@ -237,16 +224,6 @@ def find_word_in_model(model, word):
     return None
 
 
-def calculate_similarity(model, word1, word2):
-    """Вычисляет косинусное сходство между двумя словами."""
-    try:
-        similarity = model.similarity(word1, word2)
-        return similarity
-    except KeyError as e:
-        word = str(e).strip("'")
-        return None, word
-
-
 def get_model():
     """Получает загруженную модель, загружает если необходимо."""
     global _model
@@ -300,109 +277,6 @@ async def calculate_word_similarity(request: SimilarityRequest):
         )
 
 
-def main():
-    """Основная функция приложения."""
-    global sourceWord
-    
-    try:
-        model = load_model()
-        print(f"Размер словаря: {len(model.key_to_index)}")
-        print(f"Размерность векторов: {model.vector_size}")
-        print()
-    except Exception as e:
-        print(f"Ошибка: {e}")
-        sys.exit(1)
-    
-    # Ищем исходное слово в словаре (с учетом PoS тегов)
-    found_source_word = find_word_in_model(model, sourceWord)
-    
-    if found_source_word is None:
-        print(f"Внимание: слово '{sourceWord}' не найдено в словаре модели.")
-        print("\nПоиск похожих вариантов...")
-        variants = find_word_variants(model, sourceWord)
-        if variants:
-            print(f"Найдены варианты: {', '.join(variants[:10])}")
-        else:
-            # Показываем примеры слов из словаря
-            sample_words = list(model.key_to_index.keys())[:20]
-            print(f"\nПримеры слов из словаря (первые 20):")
-            for i, w in enumerate(sample_words, 1):
-                print(f"  {i}. {w}")
-        print("\nПодсказка: слова могут храниться в формате 'слово_POS' (например, 'слон_NOUN')")
-        return
-    
-    if found_source_word != sourceWord:
-        print(f"Найдено слово в словаре: '{found_source_word}' (вместо '{sourceWord}')")
-        sourceWord = found_source_word
-    
-    print(f"Исходное слово: {sourceWord}")
-    print("Введите слово для сравнения (или 'quit' для выхода):")
-    print("-" * 50)
-    
-    while True:
-        try:
-            input_word = input("\n> ").strip()
-            
-            if input_word.lower() in ['quit', 'exit', 'q']:
-                print("Выход...")
-                break
-            
-            if not input_word:
-                continue
-            
-            # Нормализуем ввод (убираем лишние пробелы)
-            input_word = input_word.strip()
-            
-            # Отладочный вывод (можно убрать после проверки)
-            # print(f"DEBUG: Введено слово (bytes): {input_word.encode('utf-8')}")
-            # print(f"DEBUG: Введено слово (repr): {repr(input_word)}")
-            
-            # Ищем слово в словаре (с учетом PoS тегов)
-            found_input_word = find_word_in_model(model, input_word)
-            
-            if found_input_word is None:
-                print(f"Слово '{input_word}' не найдено в словаре модели.")
-                variants = find_word_variants(model, input_word)
-                if variants:
-                    print(f"Найдены варианты: {', '.join(variants[:10])}")
-                    print("Попробуйте использовать один из вариантов.")
-                else:
-                    # Показываем примеры похожих слов из словаря
-                    word_lower = input_word.lower()
-                    similar_in_dict = [
-                        w for w in model.key_to_index.keys() 
-                        if word_lower in w.lower() or w.lower().startswith(word_lower[:3])
-                    ][:10]
-                    if similar_in_dict:
-                        print(f"Похожие слова в словаре: {', '.join(similar_in_dict)}")
-                    else:
-                        print("Попробуйте другое слово или проверьте формат.")
-                continue
-            
-            if found_input_word != input_word:
-                print(f"Используется: '{found_input_word}' (вместо '{input_word}')")
-                input_word = found_input_word
-            
-            # Вычисляем сходство
-            similarity = model.similarity(sourceWord, input_word)
-            
-            # Выводим результат
-            print(f"\nСходство между '{sourceWord}' и '{input_word}': {similarity:.4f}")
-            print(f"Процент соответствия: {similarity * 100:.2f}%")
-            
-        except KeyboardInterrupt:
-            print("\n\nВыход...")
-            break
-        except Exception as e:
-            print(f"Ошибка: {e}")
-
-
 if __name__ == '__main__':
-    # Если запускается как скрипт, проверяем аргументы командной строки
-    if len(sys.argv) > 1 and sys.argv[1] == 'api':
-        # Запуск FastAPI сервера
-        import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8000)
-    else:
-        # Запуск CLI интерфейса
-        main()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
