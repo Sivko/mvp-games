@@ -36,6 +36,22 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
+    
+    // Обновляем количество пользователей во всех комнатах, из которых отключился клиент
+    const rooms = Array.from(client.rooms);
+    rooms.forEach((roomName) => {
+      if (roomName.startsWith('room:')) {
+        const roomId = roomName.replace('room:', '');
+        const room = this.server.sockets.adapter.rooms.get(roomName);
+        const usersCount = room ? room.size : 0;
+        
+        // Отправляем обновление количества пользователей всем в комнате
+        this.server.to(roomName).emit('users-count-updated', {
+          roomId,
+          count: usersCount,
+        });
+      }
+    });
   }
 
   @SubscribeMessage('join-room')
@@ -49,8 +65,18 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Присоединяем клиента к комнате Socket.IO
     client.join(`room:${roomId}`);
     
+    // Получаем количество пользователей в комнате
+    const room = this.server.sockets.adapter.rooms.get(`room:${roomId}`);
+    const usersCount = room ? room.size : 0;
+    
     // Отправляем подтверждение клиенту
     client.emit('room-joined', { roomId });
+    
+    // Отправляем обновление количества пользователей всем в комнате
+    this.server.to(`room:${roomId}`).emit('users-count-updated', {
+      roomId,
+      count: usersCount,
+    });
   }
 
   @SubscribeMessage('add-word')

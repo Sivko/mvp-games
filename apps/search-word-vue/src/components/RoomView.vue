@@ -44,47 +44,42 @@
             </div>
           </div>
 
-          <!-- Связанные слова -->
-          <div>
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Связанные слова</h2>
-            <div v-if="getLinkingWordsCount(room) === 0" class="py-8 text-gray-500 text-center">
-              Пока нет связанных слов
-            </div>
-            <div v-else class="space-y-2 max-h-96 overflow-y-auto">
-              <div v-for="item in sortedLinkingWords" :key="item.word"
-                :class="selectedSimilarityClass(item.similarity)">
-                <div class="flex justify-between items-center">
-                  <div>
-                    <span class="font-semibold text-lg">{{ item.word }}</span>
-                    <span class="ml-4 text-sm text-gray-600">
-                      Сходство: {{ (item.similarity * 100).toFixed(2) }}%
-                    </span>
+          <div class="grid grid-cols-3 gap-4">
+            <!-- Связанные слова -->
+            <div class="col-span-2">
+              <h2 class="text-xl font-bold text-gray-800 mb-4">Связанные слова</h2>
+              <div v-if="getLinkingWordsCount(room) === 0" class="py-8 text-gray-500 text-center">
+                Пока нет связанных слов
+              </div>
+              <div v-else class="space-y-2 max-h-96 overflow-y-auto">
+                <div v-for="item in sortedLinkingWords" :key="item.word"
+                  :class="selectedSimilarityClass(item.similarity)">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <span class="font-semibold text-lg">{{ item.word }}</span>
+                      <span class="ml-4 text-sm text-gray-600">
+                        Сходство: {{ (item.similarity * 100).toFixed(2) }}%
+                      </span>
+                    </div>
+                    <span class="text-xs text-gray-500">{{ item.user?.name || 'Неизвестный' }}</span>
                   </div>
-                  <span class="text-xs text-gray-500">{{ item.user?.name || 'Неизвестный' }}</span>
                 </div>
               </div>
             </div>
+            <Chat :socket="socket" />
           </div>
 
           <!-- Добавление слова -->
           <div class="flex gap-2 items-center">
-            <input 
-              type="text" 
-              v-model="newWord" 
-              @keypress.enter="addWord"
-              placeholder="Введите новое слово"
+            <input type="text" v-model="newWord" @keypress.enter="addWord" placeholder="Введите новое слово"
               :disabled="!isConnected"
-              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" 
-            />
-            <button 
-              @click="addWord"
-              :disabled="!isConnected || !newWord.trim()"
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-semibold"
-            >
-              Добавить слово
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" />
+            <button @click="addWord" :disabled="!isConnected || !newWord.trim()" aria-label="Добавить слово"
+              class="px-2 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-semibold">
+              <GrSend />
             </button>
           </div>
-          
+
           <!-- Статус подключения -->
           <div class="text-sm text-center">
             <span :class="isConnected ? 'text-green-600' : 'text-red-600'" class="font-semibold">
@@ -99,8 +94,10 @@
 </template>
 
 <script setup>
+import { GrSend } from "vue-icons-plus/gr";
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { roomApi } from '../api/roomApi'
+import Chat from './Chat.vue'
 import { io } from 'socket.io-client'
 
 const props = defineProps({
@@ -140,7 +137,7 @@ const connectWebSocket = () => {
   socket.value.on('connect', () => {
     isConnected.value = true
     console.log('WebSocket connected:', socket.value.id)
-    
+
     // Присоединяемся к комнате
     if (props.roomId) {
       socket.value.emit('join-room', { roomId: props.roomId })
@@ -152,12 +149,12 @@ const connectWebSocket = () => {
     console.log('WebSocket disconnected')
   })
 
-  socket.value.on('room-updated', (data) => {
-    // Обновляем данные комнаты при получении обновлений
-    if (data.room) {
-      room.value = data.room
-    }
-  })
+  // socket.value.on('room-updated', (data) => {
+  //   // Обновляем данные комнаты при получении обновлений
+  //   if (data.room) {
+  //     room.value = data.room
+  //   }
+  // })
 
   socket.value.on('word-added', (data) => {
     // Обновляем список связанных слов
@@ -192,7 +189,7 @@ const addWord = async () => {
   }
 
   const word = newWord.value.trim()
-  
+
   try {
     // Отправляем слово через WebSocket
     socket.value.emit('add-word', {
@@ -200,7 +197,7 @@ const addWord = async () => {
       word: word,
       user: { id: 'user-1', name: 'User' } // Временное значение, можно заменить на реального пользователя
     })
-    
+
     newWord.value = ''
   } catch (err) {
     console.error('Error adding word:', err)
@@ -238,7 +235,7 @@ const sortedLinkingWords = computed(() => {
   if (!room.value || !room.value.linkingWords || typeof room.value.linkingWords !== 'object') {
     return []
   }
-  
+
   // Преобразуем объект в массив и сортируем по similarity (от большего к меньшему)
   return Object.entries(room.value.linkingWords)
     .map(([word, wordData]) => ({
