@@ -157,8 +157,8 @@ const connectWebSocket = () => {
   // })
 
   socket.value.on('word-added', (data) => {
-    // Обновляем список связанных слов
-    if (room.value && data.word && data.similarity !== undefined) {
+    // Обновляем список связанных слов только если это не кастомное сообщение
+    if (room.value && data.word && data.similarity !== undefined && !data.isCustomMessage && data.similarity > 0) {
       if (!room.value.linkingWords) {
         room.value.linkingWords = {}
       }
