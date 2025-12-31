@@ -53,7 +53,7 @@
               </div>
               <div v-else class="space-y-2 max-h-96 overflow-y-auto">
                 <div v-for="item in sortedLinkingWords" :key="item.word"
-                  :class="selectedSimilarityClass(item.similarity)">
+                  :class="similarityRanges.find(range => item.similarity <= range.range)?.class">
                   <div class="flex justify-between items-center">
                     <div>
                       <span class="font-semibold text-lg">{{ item.word }}</span>
@@ -69,7 +69,7 @@
             <Chat :socket="socket" />
           </div>
 
-          <!-- Добавление слова -->
+          <!-- Input и кнопка добавления слова -->
           <div class="flex gap-2 items-center">
             <input type="text" v-model="newWord" @keypress.enter="addWord" placeholder="Введите новое слово"
               :disabled="!isConnected"
@@ -80,12 +80,6 @@
             </button>
           </div>
 
-          <!-- Статус подключения -->
-          <div class="text-sm text-center">
-            <span :class="isConnected ? 'text-green-600' : 'text-red-600'" class="font-semibold">
-              {{ isConnected ? '● Подключено к серверу' : '○ Отключено от сервера' }}
-            </span>
-          </div>
         </div>
 
       </div>
@@ -99,6 +93,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { roomApi } from '../api/roomApi'
 import Chat from './Chat.vue'
 import { io } from 'socket.io-client'
+import { useToast } from 'primevue/usetoast'
+import { createSimilarityRanges } from '../constants'
 
 const props = defineProps({
   roomId: {
@@ -115,6 +111,8 @@ const error = ref(null)
 const newWord = ref('')
 const socket = ref(null)
 const isConnected = ref(false)
+const toast = useToast()
+const similarityRanges = createSimilarityRanges(toast)
 
 const fetchRoom = async () => {
   loading.value = true
@@ -165,6 +163,13 @@ const connectWebSocket = () => {
       room.value.linkingWords[data.word] = {
         similarity: data.similarity,
         user: data.user || { name: 'Неизвестный' }
+      }
+      
+      // Проверяем similarity и показываем соответствующую нотификацию
+      const matchingRange = similarityRanges.find(range => data.similarity <= range.range)
+      if (matchingRange && matchingRange.notification) {
+        const userName = data.user?.name || 'Неизвестный'
+        matchingRange.notification(userName, data.similarity)
       }
     }
   })
@@ -221,15 +226,6 @@ const getStatusText = (status) => {
   return statusMap[status] || status
 }
 
-const selectedSimilarityClass = (similarity) => {
-  if (similarity < 0.5) {
-    return 'bg-red-100 border border-red-300 rounded-lg p-3'
-  } else if (similarity < 0.8) {
-    return 'bg-yellow-100 border border-yellow-300 rounded-lg p-3'
-  } else {
-    return 'bg-green-100 border border-green-300 rounded-lg p-3'
-  }
-}
 
 const sortedLinkingWords = computed(() => {
   if (!room.value || !room.value.linkingWords || typeof room.value.linkingWords !== 'object') {

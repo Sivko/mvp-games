@@ -7,7 +7,11 @@
         {{ onlineUsersCount }}
       </span>
     </h2>
-    <div class="flex-1 overflow-y-auto space-y-2 max-h-96">
+    <div 
+      ref="messagesContainer" 
+      class="flex-1 overflow-y-auto space-y-2 max-h-96"
+      @scroll="handleScroll"
+    >
       <div v-if="sortedMessages.length === 0" class="text-gray-500 text-center py-8">
         Добро пожаловать!
       </div>
@@ -20,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onUnmounted, onMounted, watch, nextTick } from 'vue'
 
 const props = defineProps({
   socket: {
@@ -31,8 +35,27 @@ const props = defineProps({
 
 const messages = ref([])
 const onlineUsersCount = ref(0)
+const messagesContainer = ref(null)
+const isScrolledToBottom = ref(true)
 
-const handleWordAdded = (data) => {
+const isAtBottom = (element) => {
+  const threshold = 100 // Порог в пикселях от низа
+  return element.scrollHeight - element.scrollTop - element.clientHeight < threshold
+}
+
+const scrollToBottom = () => {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+
+const handleScroll = () => {
+  if (messagesContainer.value) {
+    isScrolledToBottom.value = isAtBottom(messagesContainer.value)
+  }
+}
+
+const handleWordAdded = async (data) => {
   if (data.word && data.user) {
     messages.value.push({
       id: Date.now() + Math.random(), // Уникальный ID для сообщения
@@ -42,6 +65,12 @@ const handleWordAdded = (data) => {
     })
     // Сортируем по времени для гарантии хронологического порядка
     messages.value.sort((a, b) => a.timestamp - b.timestamp)
+    
+    // Прокручиваем вниз, если пользователь был внизу
+    await nextTick()
+    if (isScrolledToBottom.value) {
+      scrollToBottom()
+    }
   }
 }
 
@@ -61,6 +90,19 @@ watch(() => props.socket, (newSocket) => {
     newSocket.on('users-count-updated', handleUsersCountUpdated)
   }
 }, { immediate: true })
+
+watch(sortedMessages, async () => {
+  await nextTick()
+  if (isScrolledToBottom.value) {
+    scrollToBottom()
+  }
+})
+
+onMounted(() => {
+  nextTick(() => {
+    scrollToBottom()
+  })
+})
 
 onUnmounted(() => {
   if (props.socket) {

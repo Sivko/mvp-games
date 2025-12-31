@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import RoomList from './components/RoomList.vue'
 import RoomView from './components/RoomView.vue'
+import Toast from './components/toast/Toast.vue'
 
 const currentRoomId = ref(null)
 
@@ -49,6 +50,7 @@ const handleBackToList = () => {
 
 <template>
   <div id="app" class="mx-auto">
+    <Toast ref="toastRef" />
     <RoomList v-if="!currentRoomId" @enter-room="handleEnterRoom" />
     <RoomView v-else :room-id="currentRoomId" @back-to-list="handleBackToList" />
   </div>
