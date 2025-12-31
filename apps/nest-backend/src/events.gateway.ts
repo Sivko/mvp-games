@@ -24,6 +24,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  // Отслеживание показанных нотификаций для каждой комнаты
+  // Ключ: roomId, значение: Set с ranges, для которых уже была показана нотификация
+  private readonly shownNotifications = new Map<string, Set<number>>();
+
   constructor(
     private readonly roomService: RoomService,
     private readonly httpService: HttpService,
@@ -65,6 +69,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Присоединяем клиента к комнате Socket.IO
     client.join(`room:${roomId}`);
     
+    // Инициализируем отслеживание нотификаций для комнаты, если еще не инициализировано
+    if (!this.shownNotifications.has(roomId)) {
+      this.shownNotifications.set(roomId, new Set());
+    }
+    
     // Получаем количество пользователей в комнате
     const room = this.server.sockets.adapter.rooms.get(`room:${roomId}`);
     const usersCount = room ? room.size : 0;
@@ -77,6 +86,43 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       roomId,
       count: usersCount,
     });
+  }
+
+  /**
+   * Проверяет, есть ли уже слово со средним сходством в комнате
+   */
+  private async hasMediumSimilarityWord(roomId: string): Promise<boolean> {
+    const room = await this.roomService.findById(roomId);
+    if (!room || !room.linkingWords) {
+      return false;
+    }
+
+    const linkingWords = room.linkingWords;
+    console.log(`[Notification] Checking for existing medium similarity words in room ${roomId}, linkingWords type:`, linkingWords?.constructor?.name);
+    
+    if (linkingWords instanceof Map) {
+      console.log(`[Notification] linkingWords is Map with size: ${linkingWords.size}`);
+      for (const [word, wordData] of linkingWords) {
+        const similarity = wordData.similarity;
+        console.log(`[Notification] Word "${word}" has similarity: ${similarity}`);
+        // Среднее сходство: 0.5 < similarity <= 0.7
+        if (similarity > 0.5 && similarity <= 0.7) {
+          console.log(`[Notification] Found existing medium similarity word "${word}" with similarity ${similarity}`);
+          return true;
+        }
+      }
+    } else {
+      console.log(`[Notification] linkingWords is not a Map, it's:`, typeof linkingWords);
+    }
+
+    return false;
+  }
+
+  /**
+   * Проверяет, является ли similarity средним сходством (0.5 < similarity <= 0.7)
+   */
+  private isMediumSimilarity(similarity: number): boolean {
+    return similarity > 0.4 && similarity <= 0.7;
   }
 
   private shouldSkipSimilarityCheck(word: string): boolean {
@@ -148,6 +194,38 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Добавляем слово в комнату только если similarity > 0
       if (similarity > 0) {
+        // Проверяем, нужно ли показать нотификацию для среднего сходства
+        // Показываем только если это первое слово в диапазоне 0.5 < similarity <= 0.7
+        // ВАЖНО: Проверяем существующие слова ПЕРЕД добавлением нового слова
+        let shouldShowNotification = false;
+        if (this.isMediumSimilarity(similarity)) {
+          console.log(`[Notification] Medium similarity detected: ${similarity} for room ${roomId}`);
+          
+          // Проверяем, есть ли уже слово со средним сходством в базе
+          const hasExistingMediumSimilarity = await this.hasMediumSimilarityWord(roomId);
+          console.log(`[Notification] Has existing medium similarity word: ${hasExistingMediumSimilarity}`);
+          
+          if (!hasExistingMediumSimilarity) {
+            shouldShowNotification = true;
+            console.log(`[Notification] Will show notification for room ${roomId}, user: ${user?.name || 'Неизвестный'}`);
+            
+            // Инициализируем отслеживание и отмечаем, что нотификация будет показана
+            if (!this.shownNotifications.has(roomId)) {
+              this.shownNotifications.set(roomId, new Set());
+            }
+            const shownRanges = this.shownNotifications.get(roomId);
+            shownRanges?.add(0.7);
+            console.log(`[Notification] Added 0.7 to shownRanges`);
+          } else {
+            console.log(`[Notification] Notification already shown - existing word found`);
+          }
+        } else {
+          console.log(`[Notification] Similarity ${similarity} is not medium similarity (should be > 0.5 and <= 0.7)`);
+        }
+        
+        console.log(`[Notification] shouldShowNotification = ${shouldShowNotification}`);
+
+        // Теперь добавляем слово в базу
         const updatedRoom = await this.roomService.addWordToRoom(
           roomId,
           word,
@@ -158,6 +236,19 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (!updatedRoom) {
           client.emit('error', { message: 'Failed to add word' });
           return;
+        }
+
+        // Показываем нотификацию после успешного добавления слова
+        if (shouldShowNotification) {
+          console.log(`[Notification] Emitting show-notification event to room ${roomId}`);
+          this.server.to(`room:${roomId}`).emit('show-notification', {
+            type: 'medium-similarity',
+            userName: user?.name || 'Неизвестный',
+            similarity: similarity,
+          });
+          console.log(`[Notification] Event emitted successfully`);
+        } else {
+          console.log(`[Notification] Not emitting event - shouldShowNotification is false`);
         }
       }
 

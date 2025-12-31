@@ -2,13 +2,15 @@
 export const createSimilarityRanges = (toast) => {
   return [
     {
-      range: 0.5,
+      range: 0.4,
       class: 'bg-red-100 border border-red-300 rounded-lg p-3',
-      notification: null // Низкое сходство - без нотификации
+      notification: null, // Низкое сходство - без нотификации
+      statusClass: 'bg-red-100 rounded-full'
     },
     {
       range: 0.7,
       class: 'bg-yellow-100 border border-yellow-300 rounded-lg p-3',
+      statusClass: 'bg-yellow-100 rounded-full',
       notification: (userName, similarity) => {
         // Среднее сходство - кастомная нотификация с headless Toast
         toast.add({
@@ -23,7 +25,8 @@ export const createSimilarityRanges = (toast) => {
     {
       range: 1,
       class: 'bg-green-100 border border-green-300 rounded-lg p-3',
-      notification: null
+      notification: null,
+      statusClass: 'bg-green-100 rounded-full'
     }
   ]
 }

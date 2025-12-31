@@ -17,7 +17,15 @@
       </div>
       <div v-for="message in sortedMessages" :key="message.id" class="p-2 bg-gray-50 rounded-lg">
         <div class="text-sm font-semibold text-gray-700">{{ message.userName }}</div>
-        <div class="text-gray-800">{{ message.text }}</div>
+        <div class="flex items-center gap-2">
+          <span class="text-gray-800">{{ message.text }}</span>
+          <span 
+            v-if="!message.isCustomMessage && message.similarity !== undefined && getStatusClass(message.similarity)"
+            :class="getStatusClass(message.similarity)"
+            class="w-3 h-3 rounded-full"
+            :title="`Сходство: ${(message.similarity * 100).toFixed(1)}%`"
+          ></span>
+        </div>
       </div>
     </div>
   </div>
@@ -25,6 +33,8 @@
 
 <script setup>
 import { ref, computed, onUnmounted, onMounted, watch, nextTick } from 'vue'
+import { createSimilarityRanges } from '../constants'
+import { useToast } from 'primevue/usetoast'
 
 const props = defineProps({
   socket: {
@@ -32,6 +42,9 @@ const props = defineProps({
     default: null
   }
 })
+
+const toast = useToast()
+const similarityRanges = createSimilarityRanges(toast)
 
 const messages = ref([])
 const onlineUsersCount = ref(0)
@@ -61,7 +74,9 @@ const handleWordAdded = async (data) => {
       id: Date.now() + Math.random(), // Уникальный ID для сообщения
       userName: data.user.name || 'Неизвестный',
       text: data.word,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      similarity: data.similarity,
+      isCustomMessage: data.isCustomMessage || false
     })
     // Сортируем по времени для гарантии хронологического порядка
     messages.value.sort((a, b) => a.timestamp - b.timestamp)
@@ -72,6 +87,17 @@ const handleWordAdded = async (data) => {
       scrollToBottom()
     }
   }
+}
+
+// Получаем класс статуса на основе similarity
+const getStatusClass = (similarity) => {
+  if (similarity === undefined || similarity === null) {
+    return null
+  }
+  
+  // Находим соответствующий range
+  const matchingRange = similarityRanges.find(range => similarity <= range.range)
+  return matchingRange?.statusClass || null
 }
 
 const handleUsersCountUpdated = (data) => {

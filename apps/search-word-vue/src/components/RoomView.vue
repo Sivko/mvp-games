@@ -1,11 +1,11 @@
 <template>
   <div class="">
-    <div class="max-w-4xl mx-auto">
-      <div class="bg-white rounded-lg shadow-xl p-8">
+    <div class="">
+      <div class="">
         <div class="flex justify-between items-center mb-6">
           <div>
             <h1 class="text-3xl font-bold text-gray-800">Комната #{{ room?.roomNumber }}</h1>
-            <p class="text-gray-600 mt-1">Исходное слово: <span class="font-semibold">{{ room?.sourceWord }}</span></p>
+            <!-- <p class="text-gray-600 mt-1">Исходное слово: <span class="font-semibold">{{ room?.sourceWord }}</span></p> -->
           </div>
           <button @click="$emit('back-to-list')"
             class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors">
@@ -29,7 +29,7 @@
         <!-- Контент комнаты -->
         <div v-else-if="room" class="space-y-6 flex flex-col">
           <!-- Статистика -->
-          <div class="grid grid-cols-3 gap-4">
+          <!-- <div class="grid grid-cols-3 gap-4">
             <div class="bg-blue-50 rounded-lg p-4 text-center">
               <p class="text-sm text-gray-600">Игр сыграно</p>
               <p class="text-2xl font-bold text-blue-600">{{ room.gamesCount }}</p>
@@ -42,14 +42,14 @@
               <p class="text-sm text-gray-600">Статус</p>
               <p class="text-lg font-semibold text-purple-600">{{ getStatusText(room.status) }}</p>
             </div>
-          </div>
+          </div> -->
 
           <div class="grid grid-cols-3 gap-4">
             <!-- Связанные слова -->
             <div class="col-span-2">
-              <h2 class="text-xl font-bold text-gray-800 mb-4">Связанные слова</h2>
+              <!-- <h2 class="text-xl font-bold text-gray-800 mb-4">Связанные слова</h2> -->
               <div v-if="getLinkingWordsCount(room) === 0" class="py-8 text-gray-500 text-center">
-                Пока нет связанных слов
+                Пока нет отгаданных слов
               </div>
               <div v-else class="space-y-2 max-h-96 overflow-y-auto">
                 <div v-for="item in sortedLinkingWords" :key="item.word"
@@ -164,15 +164,40 @@ const connectWebSocket = () => {
         similarity: data.similarity,
         user: data.user || { name: 'Неизвестный' }
       }
-      
-      // Проверяем similarity и показываем соответствующую нотификацию
-      const matchingRange = similarityRanges.find(range => data.similarity <= range.range)
-      if (matchingRange && matchingRange.notification) {
-        const userName = data.user?.name || 'Неизвестный'
-        matchingRange.notification(userName, data.similarity)
-      }
     }
   })
+
+  // Слушаем событие показа нотификации от backend
+  socket.value.on('show-notification', (data) => {
+    console.log('[Frontend] Received show-notification event:', data)
+    console.log('[Frontend] Event data type:', data?.type)
+    console.log('[Frontend] similarityRanges:', similarityRanges)
+    
+    if (data && data.type === 'medium-similarity') {
+      // Находим range для среднего сходства (0.7) и вызываем его notification
+      const mediumRange = similarityRanges.find(range => range.range === 0.7)
+      console.log('[Frontend] Medium range found:', mediumRange)
+      console.log('[Frontend] Medium range notification function:', mediumRange?.notification)
+      
+      if (mediumRange && mediumRange.notification) {
+        console.log('[Frontend] Calling notification function with:', { userName: data.userName, similarity: data.similarity })
+        try {
+          mediumRange.notification(data.userName, data.similarity)
+          console.log('[Frontend] Notification function called successfully')
+        } catch (error) {
+          console.error('[Frontend] Error calling notification function:', error)
+        }
+      } else {
+        console.log('[Frontend] Medium range or notification not found')
+        console.log('[Frontend] mediumRange:', mediumRange)
+        console.log('[Frontend] mediumRange.notification:', mediumRange?.notification)
+      }
+    } else {
+      console.log('[Frontend] Event type is not medium-similarity or data is invalid')
+    }
+  })
+  
+  console.log('[Frontend] show-notification event listener registered')
 
   socket.value.on('connect_error', (err) => {
     console.error('WebSocket connection error:', err)

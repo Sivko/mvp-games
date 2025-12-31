@@ -49,10 +49,12 @@ const handleBackToList = () => {
 </script>
 
 <template>
-  <div id="app" class="mx-auto">
-    <Toast ref="toastRef" />
-    <RoomList v-if="!currentRoomId" @enter-room="handleEnterRoom" />
-    <RoomView v-else :room-id="currentRoomId" @back-to-list="handleBackToList" />
+  <div id="app" class="container mx-auto">
+    <div class="p-4 bg-white rounded-lg shadow-xl">
+      <Toast ref="toastRef" />
+      <RoomList v-if="!currentRoomId" @enter-room="handleEnterRoom" />
+      <RoomView v-else :room-id="currentRoomId" @back-to-list="handleBackToList" />
+    </div>
   </div>
 </template>
 
