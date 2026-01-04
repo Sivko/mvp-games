@@ -1,0 +1,49 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
+
+export type AnswerDocument = Answer & Document;
+
+@Schema({ timestamps: true })
+export class Answer {
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'Game',
+    required: true,
+  })
+  gameId: MongooseSchema.Types.ObjectId;
+
+  @Prop({
+    type: {
+      user: { type: MongooseSchema.Types.Mixed, required: true },
+    },
+    required: true,
+  })
+  user: any;
+
+  @Prop({ required: true, type: String })
+  text: string;
+
+  @Prop({ type: Number, default: 0 })
+  similarity: number;
+
+  @Prop({
+    type: {
+      totalReactions: { type: Number, default: 0 },
+      uniqueUsersReacted: { type: Number, default: 0 },
+    },
+    default: {
+      totalReactions: 0,
+      uniqueUsersReacted: 0,
+    },
+  })
+  stats: {
+    totalReactions: number;
+    uniqueUsersReacted: number;
+  };
+
+  @Prop({ type: Number, default: 0 })
+  score: number;
+}
+
+export const AnswerSchema = SchemaFactory.createForClass(Answer);
+

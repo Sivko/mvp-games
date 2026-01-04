@@ -11,6 +11,10 @@ import { SearchWordService } from './games/search-word/search-word.service';
 import { Room, RoomSchema } from './room/schemas/room.schema';
 import { SettingsModule } from './settings/settings.module';
 import { ReactionTypesModule } from './reaction-types/reaction-types.module';
+import { AnswersModule } from './answers/answers.module';
+import { GameModule } from './games/game.module';
+import { Game, GameSchema } from './games/schemas/game.schema';
+import { Answer, AnswerSchema } from './answers/schemas/answer.schema';
 
 @Module({
   imports: [
@@ -29,11 +33,17 @@ import { ReactionTypesModule } from './reaction-types/reaction-types.module';
       }),
       inject: [ConfigService],
     }),
-    MongooseModule.forFeature([{ name: Room.name, schema: RoomSchema }]),
+    MongooseModule.forFeature([
+      { name: Room.name, schema: RoomSchema },
+      { name: Game.name, schema: GameSchema },
+      { name: Answer.name, schema: AnswerSchema },
+    ]),
     HttpModule,
     RoomModule,
     SettingsModule,
     ReactionTypesModule,
+    AnswersModule,
+    GameModule,
   ],
   controllers: [AppController],
   providers: [AppService, EventsGateway, SearchWordService],

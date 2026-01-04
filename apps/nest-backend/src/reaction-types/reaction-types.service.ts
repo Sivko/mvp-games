@@ -17,13 +17,11 @@ export class ReactionTypesService implements OnModuleInit {
   private async initializeDefaultReactions() {
     const defaultReactions: Partial<ReactionType>[] = [
       {
-        _id: 1,
         name: 'смешно',
         image: null,
         weight: 1,
       },
       {
-        _id: 2,
         name: 'мило',
         image: null,
         weight: 1,
@@ -31,7 +29,7 @@ export class ReactionTypesService implements OnModuleInit {
     ];
 
     for (const reaction of defaultReactions) {
-      const existing = await this.reactionTypeModel.findOne({ _id: reaction._id } as any).exec();
+      const existing = await this.reactionTypeModel.findOne({ name: reaction.name }).exec();
       if (!existing) {
         await this.reactionTypeModel.create(reaction as any);
       }
@@ -42,8 +40,8 @@ export class ReactionTypesService implements OnModuleInit {
     return this.reactionTypeModel.find().exec();
   }
 
-  async findOne(id: number): Promise<ReactionTypeDocument | null> {
-    return this.reactionTypeModel.findOne({ _id: id } as any).exec();
+  async findOne(id: string): Promise<ReactionTypeDocument | null> {
+    return this.reactionTypeModel.findById(id).exec();
   }
 }
 

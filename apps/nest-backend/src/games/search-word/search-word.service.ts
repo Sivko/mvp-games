@@ -6,6 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { RoomService } from '../../room/room.service';
 import { Room, RoomDocument } from '../../room/schemas/room.schema';
+import { Game, GameDocument } from '../schemas/game.schema';
+import { Answer, AnswerDocument } from '../../answers/schemas/answer.schema';
 import { Server } from 'socket.io';
 
 @Injectable()
@@ -19,6 +21,8 @@ export class SearchWordService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     @InjectModel(Room.name) private roomModel: Model<RoomDocument>,
+    @InjectModel(Game.name) private gameModel: Model<GameDocument>,
+    @InjectModel(Answer.name) private answerModel: Model<AnswerDocument>,
   ) {}
 
   /**
@@ -26,26 +30,22 @@ export class SearchWordService {
    */
   private async hasMediumSimilarityWord(roomId: string): Promise<boolean> {
     const room = await this.roomService.findById(roomId);
-    if (!room) {
+    if (!room || !room.game) {
       return false;
     }
 
-    const linkingWords = room.searchWord.linkingWords;
-    console.log(`[Notification] Checking for existing medium similarity words in room ${roomId}, linkingWords type:`, linkingWords?.constructor?.name);
+    // Получаем все ответы для игры этой комнаты
+    const answers = await this.answerModel.find({ gameId: room.game }).exec();
+    console.log(`[Notification] Checking for existing medium similarity words in room ${roomId}, answers count: ${answers.length}`);
     
-    if (linkingWords instanceof Map) {
-      console.log(`[Notification] linkingWords is Map with size: ${linkingWords.size}`);
-      for (const [word, wordData] of linkingWords) {
-        const similarity = wordData.similarity;
-        console.log(`[Notification] Word "${word}" has similarity: ${similarity}`);
-        // Среднее сходство: 0.5 < similarity <= 0.7
-        if (similarity > 0.5 && similarity <= 0.7) {
-          console.log(`[Notification] Found existing medium similarity word "${word}" with similarity ${similarity}`);
-          return true;
-        }
+    for (const answer of answers) {
+      const similarity = answer.similarity || 0;
+      console.log(`[Notification] Answer "${answer.text}" has similarity: ${similarity}`);
+      // Среднее сходство: 0.5 < similarity <= 0.7
+      if (similarity > 0.5 && similarity <= 0.7) {
+        console.log(`[Notification] Found existing medium similarity word "${answer.text}" with similarity ${similarity}`);
+        return true;
       }
-    } else {
-      console.log(`[Notification] linkingWords is not a Map, it's:`, typeof linkingWords);
     }
 
     return false;
@@ -93,36 +93,28 @@ export class SearchWordService {
   /**
    * Добавляет слово в комнату для игры search-word
    */
-  async addWordToRoom(roomId: string, word: string, similarity: number, user: any): Promise<RoomDocument | null> {
-    const room = await this.roomModel.findById(roomId).exec();
-    if (!room) {
+  async addWordToRoom(roomId: string, word: string, similarity: number, user: any): Promise<AnswerDocument | null> {
+    const room = await this.roomModel.findById(roomId).populate('game').exec();
+    if (!room || !room.game) {
       return null;
     }
 
-    // Инициализируем searchWord, если его нет
-    if (!room.searchWord) {
-      room.searchWord = {
-        linkingWords: new Map(),
-        status: 'waiting',
-        gamesCount: 0,
-        sourceWord: '',
-        blackListWord: [],
-      };
-    }
+    const gameId = typeof room.game === 'object' ? (room.game as any)._id : room.game;
 
-    // Инициализируем Map, если его нет
-    if (!room.searchWord.linkingWords) {
-      room.searchWord.linkingWords = new Map();
-    }
-
-    // Добавляем новое слово в Map
-    room.searchWord.linkingWords.set(word, {
+    // Создаем новый ответ
+    const answer = new this.answerModel({
+      gameId,
+      user: { user },
+      text: word,
       similarity,
-      user,
+      stats: {
+        totalReactions: 0,
+        uniqueUsersReacted: 0,
+      },
+      score: 0,
     });
 
-    // Сохраняем комнату
-    return room.save();
+    return answer.save();
   }
 
   /**
@@ -148,6 +140,13 @@ export class SearchWordService {
       // Проверяем, нужно ли пропустить проверку сходства
       const skipSimilarityCheck = this.shouldSkipSimilarityCheck(word);
       
+      // Получаем игру комнаты
+      const game = await this.gameModel.findById(room.game).exec();
+      if (!game) {
+        server.to(clientId).emit('error', { message: 'Game not found' });
+        return;
+      }
+
       // Вычисляем similarity через Python API (только если не нужно пропустить проверку)
       let similarity: number = 0;
       if (!skipSimilarityCheck) {
@@ -155,7 +154,7 @@ export class SearchWordService {
           const pythonApiUrl = this.configService.get<string>('PYTHON_API_URL', 'http://localhost:8000');
           const response = await firstValueFrom(
             this.httpService.post(`${pythonApiUrl}/similarity`, {
-              sourceWord: room.searchWord?.sourceWord || '',
+              sourceWord: game.question || '',
               word: word,
             }),
           );
@@ -207,14 +206,14 @@ export class SearchWordService {
         console.log(`[Notification] shouldShowNotification = ${shouldShowNotification}`);
 
         // Теперь добавляем слово в базу
-        const updatedRoom = await this.addWordToRoom(
+        const answer = await this.addWordToRoom(
           roomId,
           word,
           similarity,
           user,
         );
 
-        if (!updatedRoom) {
+        if (!answer) {
           server.to(clientId).emit('error', { message: 'Failed to add word' });
           return;
         }

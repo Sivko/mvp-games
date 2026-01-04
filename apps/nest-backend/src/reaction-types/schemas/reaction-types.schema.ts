@@ -5,9 +5,6 @@ export type ReactionTypeDocument = ReactionType & Document;
 
 @Schema({ timestamps: true })
 export class ReactionType {
-  @Prop({ required: true, unique: true, type: Number })
-  _id: number;
-
   @Prop({ required: true, type: String })
   name: string;
 
