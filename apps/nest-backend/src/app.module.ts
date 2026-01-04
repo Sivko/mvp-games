@@ -10,6 +10,7 @@ import { RoomModule } from './room/room.module';
 import { SearchWordService } from './games/search-word/search-word.service';
 import { Room, RoomSchema } from './room/schemas/room.schema';
 import { SettingsModule } from './settings/settings.module';
+import { ReactionTypesModule } from './reaction-types/reaction-types.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { SettingsModule } from './settings/settings.module';
     HttpModule,
     RoomModule,
     SettingsModule,
+    ReactionTypesModule,
   ],
   controllers: [AppController],
   providers: [AppService, EventsGateway, SearchWordService],
