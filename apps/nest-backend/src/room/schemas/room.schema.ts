@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
-import { SearchWord, SearchWordSchema } from '../../games/search-word/search-word.schema';
+import { Game } from '../../games/schemas/game.schema';
 
 export type RoomDocument = Room & Document;
 
@@ -10,10 +10,11 @@ export class Room {
   roomNumber: number;
 
   @Prop({
-    type: SearchWordSchema,
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'Game',
     required: true,
   })
-  searchWord: SearchWord;
+  game: MongooseSchema.Types.ObjectId;
 
   @Prop({
     type: {

@@ -26,7 +26,7 @@ export class SearchWordService {
    */
   private async hasMediumSimilarityWord(roomId: string): Promise<boolean> {
     const room = await this.roomService.findById(roomId);
-    if (!room || !room.searchWord || !room.searchWord.linkingWords) {
+    if (!room) {
       return false;
     }
 
