@@ -7,6 +7,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
 import { join } from 'path';
 import { RoomModule } from './room/room.module';
+import { SearchWordService } from './games/search-word/search-word.service';
+import { Room, RoomSchema } from './room/schemas/room.schema';
 
 @Module({
   imports: [
@@ -25,10 +27,11 @@ import { RoomModule } from './room/room.module';
       }),
       inject: [ConfigService],
     }),
+    MongooseModule.forFeature([{ name: Room.name, schema: RoomSchema }]),
     HttpModule,
     RoomModule,
   ],
   controllers: [AppController],
-  providers: [AppService, EventsGateway],
+  providers: [AppService, EventsGateway, SearchWordService],
 })
 export class AppModule {}

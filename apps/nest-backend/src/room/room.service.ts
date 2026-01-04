@@ -67,36 +67,4 @@ export class RoomService {
   async delete(roomNumber: number): Promise<RoomDocument | null> {
     return this.roomModel.findOneAndDelete({ roomNumber }).exec();
   }
-
-  async addWordToRoom(roomId: string, word: string, similarity: number, user: any): Promise<RoomDocument | null> {
-    const room = await this.roomModel.findById(roomId).exec();
-    if (!room) {
-      return null;
-    }
-
-    // Инициализируем searchWord, если его нет
-    if (!room.searchWord) {
-      room.searchWord = {
-        linkingWords: new Map(),
-        status: 'waiting',
-        gamesCount: 0,
-        sourceWord: '',
-        blackListWord: [],
-      };
-    }
-
-    // Инициализируем Map, если его нет
-    if (!room.searchWord.linkingWords) {
-      room.searchWord.linkingWords = new Map();
-    }
-
-    // Добавляем новое слово в Map
-    room.searchWord.linkingWords.set(word, {
-      similarity,
-      user,
-    });
-
-    // Сохраняем комнату
-    return room.save();
-  }
 }
