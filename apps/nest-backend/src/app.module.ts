@@ -9,6 +9,7 @@ import { join } from 'path';
 import { RoomModule } from './room/room.module';
 import { SearchWordService } from './games/search-word/search-word.service';
 import { Room, RoomSchema } from './room/schemas/room.schema';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { Room, RoomSchema } from './room/schemas/room.schema';
     MongooseModule.forFeature([{ name: Room.name, schema: RoomSchema }]),
     HttpModule,
     RoomModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService, EventsGateway, SearchWordService],
