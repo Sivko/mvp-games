@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
-import { SearchWord, SearchWordSchema } from './search-word.schema';
+import { SearchWord, SearchWordSchema } from '../../games/search-word/search-word.schema';
 
 export type RoomDocument = Room & Document;
 
