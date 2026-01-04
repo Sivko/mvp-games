@@ -93,11 +93,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   private async hasMediumSimilarityWord(roomId: string): Promise<boolean> {
     const room = await this.roomService.findById(roomId);
-    if (!room || !room.linkingWords) {
+    if (!room || !room.searchWord || !room.searchWord.linkingWords) {
       return false;
     }
 
-    const linkingWords = room.linkingWords;
+    const linkingWords = room.searchWord.linkingWords;
     console.log(`[Notification] Checking for existing medium similarity words in room ${roomId}, linkingWords type:`, linkingWords?.constructor?.name);
     
     if (linkingWords instanceof Map) {
@@ -174,7 +174,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           const pythonApiUrl = this.configService.get<string>('PYTHON_API_URL', 'http://localhost:8000');
           const response = await firstValueFrom(
             this.httpService.post(`${pythonApiUrl}/similarity`, {
-              sourceWord: room.sourceWord,
+              sourceWord: room.searchWord?.sourceWord || '',
               word: word,
             }),
           );

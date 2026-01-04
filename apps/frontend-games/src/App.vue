@@ -50,16 +50,10 @@ const handleBackToList = () => {
 
 <template>
   <div id="app" class="container mx-auto">
-    <div class="p-4 bg-white rounded-lg shadow-xl">
+    <div class="p-4 bg-white rounded-lg shadow-xl h-screen">
       <Toast ref="toastRef" />
       <RoomList v-if="!currentRoomId" @enter-room="handleEnterRoom" />
       <RoomView v-else :room-id="currentRoomId" @back-to-list="handleBackToList" />
     </div>
   </div>
 </template>
-
-<style scoped>
-#app {
-  min-height: 100vh;
-}
-</style>

@@ -1,35 +1,33 @@
 <template>
-  <div class="">
-    <div class="">
-      <div class="">
-        <div class="flex justify-between items-center mb-6">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-800">Комната #{{ room?.roomNumber }}</h1>
-            <!-- <p class="text-gray-600 mt-1">Исходное слово: <span class="font-semibold">{{ room?.sourceWord }}</span></p> -->
-          </div>
-          <button @click="$emit('back-to-list')"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors">
-            ← Назад к списку
-          </button>
-        </div>
+  <div class="flex flex-col h-full overflow-hidden justify-between">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800">Комната #{{ room?.roomNumber }}</h1>
+        <!-- <p class="text-gray-600 mt-1">Исходное слово: <span class="font-semibold">{{ room?.sourceWord }}</span></p> -->
+      </div>
+      <button @click="$emit('back-to-list')"
+        class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors">
+        ← Назад к списку
+      </button>
+    </div>
 
-        <!-- Загрузка -->
-        <div v-if="loading" class="text-center py-12">
-          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p class="mt-4 text-gray-600">Загрузка комнаты...</p>
-        </div>
+    <!-- Загрузка -->
+    <div v-if="loading" class="text-center py-12 flex-1">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <p class="mt-4 text-gray-600">Загрузка комнаты...</p>
+    </div>
 
-        <!-- Ошибка -->
-        <div v-else-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {{ error }}
-        </div>
+    <!-- Ошибка -->
+    <div v-else-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+      {{ error }}
+    </div>
 
 
 
-        <!-- Контент комнаты -->
-        <div v-else-if="room" class="space-y-6 flex flex-col">
-          <!-- Статистика -->
-          <!-- <div class="grid grid-cols-3 gap-4">
+    <!-- Контент комнаты -->
+    <div v-else-if="room" class="flex-1 overflow-hidden">
+      <!-- Статистика -->
+      <!-- <div class="grid grid-cols-3 gap-4">
             <div class="bg-blue-50 rounded-lg p-4 text-center">
               <p class="text-sm text-gray-600">Игр сыграно</p>
               <p class="text-2xl font-bold text-blue-600">{{ room.gamesCount }}</p>
@@ -44,45 +42,41 @@
             </div>
           </div> -->
 
-          <div class="grid grid-cols-3 gap-4">
-            <!-- Связанные слова -->
-            <div class="col-span-2">
-              <!-- <h2 class="text-xl font-bold text-gray-800 mb-4">Связанные слова</h2> -->
-              <div v-if="getLinkingWordsCount(room) === 0" class="py-8 text-gray-500 text-center">
-                Пока нет отгаданных слов
-              </div>
-              <div v-else class="space-y-2 max-h-96 overflow-y-auto">
-                <div v-for="item in sortedLinkingWords" :key="item.word"
-                  :class="similarityRanges.find(range => item.similarity <= range.range)?.class">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <span class="font-semibold text-lg">{{ item.word }}</span>
-                      <span class="ml-4 text-sm text-gray-600">
-                        Сходство: {{ (item.similarity * 100).toFixed(2) }}%
-                      </span>
-                    </div>
-                    <span class="text-xs text-gray-500">{{ item.user?.name || 'Неизвестный' }}</span>
-                  </div>
+      <div class="grid grid-cols-3 gap-4 h-full">
+        <div class="col-span-2 overflow-y-auto">
+          <div v-if="getLinkingWordsCount(room) === 0" class="py-8 text-gray-500 text-center">
+            Пока нет отгаданных слов
+          </div>
+          <div v-else class="space-y-2 overflow-y-auto">
+            <div v-for="item in sortedLinkingWords" :key="item.word"
+              :class="similarityRanges.find(range => item.similarity <= range.range)?.class">
+              <div class="flex justify-between items-center">
+                <div>
+                  <span class="font-semibold text-lg">{{ item.word }}</span>
+                  <span class="ml-4 text-sm text-gray-600">
+                    Сходство: {{ (item.similarity * 100).toFixed(2) }}%
+                  </span>
                 </div>
+                <span class="text-xs text-gray-500">{{ item.user?.name || 'Неизвестный' }}</span>
               </div>
             </div>
-            <Chat :socket="socket" />
           </div>
-
-          <!-- Input и кнопка добавления слова -->
-          <div class="flex gap-2 items-center">
-            <input type="text" v-model="newWord" @keypress.enter="addWord" placeholder="Введите новое слово"
-              :disabled="!isConnected"
-              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" />
-            <button @click="addWord" :disabled="!isConnected || !newWord.trim()" aria-label="Добавить слово"
-              class="px-2 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-semibold">
-              <GrSend />
-            </button>
-          </div>
-
         </div>
-
+        <Chat :socket="socket" />
       </div>
+
+
+    </div>
+
+    <!-- Input и кнопка добавления слова -->
+    <div class="flex gap-2 items-center pt-4">
+      <input type="text" v-model="newWord" @keypress.enter="addWord" placeholder="Введите новое слово"
+        :disabled="!isConnected"
+        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed" />
+      <button @click="addWord" :disabled="!isConnected || !newWord.trim()" aria-label="Добавить слово"
+        class="px-2 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-semibold">
+        <GrSend />
+      </button>
     </div>
   </div>
 </template>
@@ -172,13 +166,13 @@ const connectWebSocket = () => {
     console.log('[Frontend] Received show-notification event:', data)
     console.log('[Frontend] Event data type:', data?.type)
     console.log('[Frontend] similarityRanges:', similarityRanges)
-    
+
     if (data && data.type === 'medium-similarity') {
       // Находим range для среднего сходства (0.7) и вызываем его notification
       const mediumRange = similarityRanges.find(range => range.range === 0.7)
       console.log('[Frontend] Medium range found:', mediumRange)
       console.log('[Frontend] Medium range notification function:', mediumRange?.notification)
-      
+
       if (mediumRange && mediumRange.notification) {
         console.log('[Frontend] Calling notification function with:', { userName: data.userName, similarity: data.similarity })
         try {
@@ -196,7 +190,7 @@ const connectWebSocket = () => {
       console.log('[Frontend] Event type is not medium-similarity or data is invalid')
     }
   })
-  
+
   console.log('[Frontend] show-notification event listener registered')
 
   socket.value.on('connect_error', (err) => {

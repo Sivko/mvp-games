@@ -1,17 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
+import { SearchWord, SearchWordSchema } from './search-word.schema';
 
 export type RoomDocument = Room & Document;
-
-export interface LinkingWord {
-  similarity: number;
-  user: any;
-}
-
-const LinkingWordSchema = new MongooseSchema({
-  similarity: { type: Number, required: true },
-  user: { type: MongooseSchema.Types.Mixed, required: true },
-}, { _id: false });
 
 @Schema({ timestamps: true })
 export class Room {
@@ -19,20 +10,10 @@ export class Room {
   roomNumber: number;
 
   @Prop({
-    type: Map,
-    of: LinkingWordSchema,
-    default: new Map(),
+    type: SearchWordSchema,
+    required: true,
   })
-  linkingWords: Map<string, LinkingWord>;
-
-  @Prop({ type: String, default: 'waiting' })
-  status: string;
-
-  @Prop({ type: Number, default: 0 })
-  gamesCount: number;
-
-  @Prop({ type: String, required: true })
-  sourceWord: string;
+  searchWord: SearchWord;
 
   @Prop({
     type: {
@@ -43,9 +24,6 @@ export class Room {
   created: {
     user: any;
   };
-
-  @Prop({ type: [String], default: [] })
-  blackListWord: string[];
 }
 
 export const RoomSchema = SchemaFactory.createForClass(Room);
