@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '../views/HomePage.vue'
-import AssociationText from '../views/AssociationText.vue'
+import UserPage from '../views/UserPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,7 +13,7 @@ const router = createRouter({
     {
       path: '/:userId',
       name: 'game',
-      component: AssociationText,
+      component: UserPage,
     },
   ],
 })
