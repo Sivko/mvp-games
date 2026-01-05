@@ -90,13 +90,45 @@ export class GameAssociationTextGateway
     // Отправляем событие о присоединении пользователя
     await this.sendNewAction(gameId, userId, 'присоединился к игре');
 
-    // Отправляем текущую фазу и количество онлайн пользователей
-    this.server.to(gameId).emit('game-state', {
-      phase: room.phase,
-      onlineUsersCount: room.users.size,
-      timerEndsAt: room.timerEndsAt,
-      readyCount: room.readyUsers.size,
-    });
+    // Если комната в фазе results, загружаем ответы и реакции
+    if (room.phase === 'results') {
+      const answers = await this.answersService.findByGameId(gameId);
+      
+      // Отправляем текущую фазу с ответами
+      client.emit('game-state', {
+        phase: room.phase,
+        onlineUsersCount: room.users.size,
+        timerEndsAt: room.timerEndsAt,
+        readyCount: room.readyUsers.size,
+        answers: answers.map((a) => ({
+          id: a._id.toString(),
+          userId: a.user.toString(),
+          text: a.text,
+        })),
+      });
+
+      // Загружаем и отправляем все существующие реакции для каждого ответа
+      for (const answer of answers) {
+        const answerId = answer._id.toString();
+        const reactions = await this.reactionsService.findByAnswerId(answerId);
+        client.emit('reactions-updated', {
+          answerId,
+          reactions: reactions.map((r) => ({
+            id: r._id.toString(),
+            userId: r.userId.toString(),
+            reactionId: r.reactionId.toString(),
+          })),
+        });
+      }
+    } else {
+      // Отправляем текущую фазу и количество онлайн пользователей
+      this.server.to(gameId).emit('game-state', {
+        phase: room.phase,
+        onlineUsersCount: room.users.size,
+        timerEndsAt: room.timerEndsAt,
+        readyCount: room.readyUsers.size,
+      });
+    }
   }
 
   @SubscribeMessage('submit-answer')
@@ -316,6 +348,20 @@ export class GameAssociationTextGateway
       })),
       readyCount: 0,
     });
+
+    // Загружаем и отправляем все существующие реакции для каждого ответа
+    for (const answer of answers) {
+      const answerId = answer._id.toString();
+      const reactions = await this.reactionsService.findByAnswerId(answerId);
+      this.server.to(gameId).emit('reactions-updated', {
+        answerId,
+        reactions: reactions.map((r) => ({
+          id: r._id.toString(),
+          userId: r.userId.toString(),
+          reactionId: r.reactionId.toString(),
+        })),
+      });
+    }
   }
 
   private startResultsPhaseTimer(gameId: string) {

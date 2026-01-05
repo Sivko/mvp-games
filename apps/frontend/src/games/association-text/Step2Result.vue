@@ -7,14 +7,14 @@
       <div class="text-telegram-text-secondary mb-4">
         <span v-if="timerEndsAt">Время: {{ timeLeft }} сек</span>
         <span v-else>
-          Готово: {{ readyCount }} / {{ onlineUsersCount }}
-          (нужно {{ Math.ceil(onlineUsersCount / 2) + 1 }})
+          Готовы: {{ readyCount }} / {{ onlineUsersCount }}
+          <!-- (нужно {{ Math.ceil(onlineUsersCount / 2) + 1 }}) -->
         </span>
       </div>
     </div>
 
     <div class="space-y-4">
-      <div v-for="answer in answers" :key="answer.id" class="p-4 bg-telegram-bg rounded-lg"
+      <div v-for="answer in answers" :key="answer.id" class="pt-4 px-2 bg-telegram-bg-secondary rounded-lg"
         :class="{ 'opacity-50': answer.userId === currentUserId }">
         <div class="flex items-center justify-between mb-2">
           <div class="text-telegram-text font-semibold">
@@ -26,17 +26,19 @@
         </div>
 
         <!-- Реакции (только для чужих ответов) -->
-        <div v-if="answer.userId !== currentUserId" class="flex gap-2 mt-2">
+        <!-- <div v-if="answer.userId !== currentUserId" class="flex gap-2 mt-2"> -->
+        <div class="flex mt-2">
           <button v-for="reactionType in reactionTypes" :key="reactionType._id"
             @click="handleToggleReaction(answer.id, reactionType._id)" :class="[
-              'px-3 py-1 rounded-lg text-sm transition-opacity',
+              'rounded-lg text-sm transition-opacity',
               isReactionActive(answer.id, reactionType._id)
                 ? 'bg-telegram-button text-telegram-button-text'
                 : 'bg-telegram-bg-secondary text-telegram-text hover:opacity-90',
             ]">
-            {{ reactionType.name }}
-            <span v-if="getReactionCount(answer.id, reactionType._id) > 0">
-              ({{ getReactionCount(answer.id, reactionType._id) }})
+            <img :src="getReactionImageUrl(reactionType.name)" :alt="reactionType.name" class="h-8">
+            <span v-if="getReactionCount(answer.id, reactionType._id) > 0"
+              class="bg-telegram-button text-telegram-button-text rounded-full px-2 text-xs">
+              {{ getReactionCount(answer.id, reactionType._id) }}
             </span>
           </button>
         </div>
@@ -52,7 +54,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
+import { getReactionImageUrl } from '../../utils/reactions';
 
 const props = defineProps<{
   timerEndsAt: number | null;
@@ -62,9 +65,15 @@ const props = defineProps<{
   answers: Array<{ id: string; userId: string; text: string }>;
   currentUserId: string | null;
   reactionTypes: Array<{ _id: string; name: string }>;
-  reactions: Map<string, Array<{ userId: string; reactionId: string }>>;
+  reactions: Record<string, Array<{ userId: string; reactionId: string }>>;
   currentTime: number;
 }>();
+
+// Отладка для проверки reactionTypes
+onMounted(() => {
+  console.log('Step2Result mounted, reactionTypes:', props.reactionTypes);
+  console.log('Step2Result reactions:', props.reactions);
+});
 
 const emit = defineEmits<{
   (e: 'toggle-reaction', answerId: string, reactionId: string): void;
@@ -89,15 +98,16 @@ const handleMarkReady = () => {
 
 const isReactionActive = (answerId: string, reactionId: string): boolean => {
   if (!props.currentUserId) return false;
-  const answerReactions = props.reactions.get(answerId) || [];
+  const answerReactions = props.reactions[answerId] || [];
   return answerReactions.some(
     (r) => r.userId === props.currentUserId && r.reactionId === reactionId,
   );
 };
 
 const getReactionCount = (answerId: string, reactionId: string): number => {
-  const answerReactions = props.reactions.get(answerId) || [];
-  return answerReactions.filter((r) => r.reactionId === reactionId).length;
+  const answerReactions = props.reactions[answerId] || [];
+  const count = answerReactions.filter((r) => r.reactionId === reactionId).length;
+  return count;
 };
 </script>
 

@@ -9,6 +9,9 @@
           <router-link to="/bank-association-text" class="nav-link">
             Bank Association Text
           </router-link>
+          <router-link to="/reaction-types" class="nav-link">
+            Reaction Types
+          </router-link>
         </div>
       </div>
     </nav>

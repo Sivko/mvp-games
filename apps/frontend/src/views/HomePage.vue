@@ -4,6 +4,7 @@
       <div class="bg-telegram-section rounded-lg shadow p-8 mb-4">
         <h1 class="text-3xl font-bold text-telegram-text mb-6">
           Добро пожаловать
+          <img :src="getReactionImageUrl('🤔')" />
         </h1>
         <button
           @click="handleStart"
@@ -29,6 +30,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUser } from '../composables/useUser';
 import AddNameModal from '../components/AddNameModal.vue';
+import { getReactionImageUrl } from '../utils/reactions';
 
 const router = useRouter();
 const { currentUser, checkAndCreateUser, createUserWithName } = useUser();

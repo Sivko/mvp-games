@@ -10,8 +10,8 @@
             </router-link>
             Игра в слова
           </h1>
-          <div class="text-white text-sm">
-            Онлайн: {{ onlineUsersCount }}
+          <div class="text-white text-sm pr-4">
+            <span class="bg-green-500 rounded-full px-2 py-1 text-xs"> {{ onlineUsersCount }} </span>
           </div>
         </div>
       </div>
@@ -35,14 +35,14 @@
       <!-- Фрейм 2: Результаты -->
       <Step2Result v-if="phase === 'results'" :timer-ends-at="timerEndsAt" :ready-count="readyCount"
         :online-users-count="onlineUsersCount" :ready-for-next-round="readyForNextRound" :answers="answers"
-        :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactions"
+        :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactionsObject"
         :current-time="currentTime" @toggle-reaction="toggleReaction" @mark-ready="markReady" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 // @ts-expect-error - socket.io-client types may not be available
 import { io, Socket } from 'socket.io-client';
 import { reactionTypesApi } from '../../api/reactionTypesApi';
@@ -73,6 +73,14 @@ const onlineUsersCount = ref(0);
 const answerSubmitted = ref(false);
 const answers = ref<Array<{ id: string; userId: string; text: string }>>([]);
 const reactions = ref<Map<string, Array<{ userId: string; reactionId: string }>>>(new Map());
+// Преобразуем Map в объект для лучшей реактивности при передаче в дочерний компонент
+const reactionsObject = computed(() => {
+  const obj: Record<string, Array<{ userId: string; reactionId: string }>> = {};
+  reactions.value.forEach((reactionsArray, answerId) => {
+    obj[answerId] = reactionsArray;
+  });
+  return obj;
+});
 const reactionTypes = ref<Array<{ _id: string; name: string }>>([]);
 const timerEndsAt = ref<number | null>(null);
 const currentTime = ref(Date.now());
@@ -164,7 +172,13 @@ onMounted(async () => {
     answerId: string;
     reactions: Array<{ userId: string; reactionId: string }>;
   }) => {
-    reactions.value.set(data.answerId, data.reactions);
+    // Отладка (можно убрать позже)
+    console.log('reactions-updated received:', data);
+    // Создаем новую Map для обеспечения реактивности Vue 3
+    const newReactions = new Map(reactions.value);
+    newReactions.set(data.answerId, data.reactions);
+    reactions.value = newReactions;
+    console.log('Updated reactions Map:', Array.from(newReactions.entries()));
   });
 
   socket.value.on('ready-update', (data: {
