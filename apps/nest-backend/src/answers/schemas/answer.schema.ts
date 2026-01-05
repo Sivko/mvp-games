@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
+import { User } from '../../users/schemas/user.schema';
 
 export type AnswerDocument = Answer & Document;
 
@@ -13,12 +14,11 @@ export class Answer {
   gameId: MongooseSchema.Types.ObjectId;
 
   @Prop({
-    type: {
-      user: { type: MongooseSchema.Types.Mixed, required: true },
-    },
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'User',
     required: true,
   })
-  user: any;
+  user: MongooseSchema.Types.ObjectId;
 
   @Prop({ required: true, type: String })
   text: string;

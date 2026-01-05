@@ -15,6 +15,8 @@ import { AnswersModule } from './answers/answers.module';
 import { GameModule } from './games/game.module';
 import { Game, GameSchema } from './games/schemas/game.schema';
 import { Answer, AnswerSchema } from './answers/schemas/answer.schema';
+import { UsersModule } from './users/users.module';
+import { User, UserSchema } from './users/schemas/user.schema';
 
 @Module({
   imports: [
@@ -37,6 +39,7 @@ import { Answer, AnswerSchema } from './answers/schemas/answer.schema';
       { name: Room.name, schema: RoomSchema },
       { name: Game.name, schema: GameSchema },
       { name: Answer.name, schema: AnswerSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     HttpModule,
     RoomModule,
@@ -44,6 +47,7 @@ import { Answer, AnswerSchema } from './answers/schemas/answer.schema';
     ReactionTypesModule,
     AnswersModule,
     GameModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService, EventsGateway, SearchWordService],

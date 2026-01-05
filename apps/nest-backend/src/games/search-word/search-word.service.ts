@@ -8,6 +8,7 @@ import { RoomService } from '../../room/room.service';
 import { Room, RoomDocument } from '../../room/schemas/room.schema';
 import { Game, GameDocument } from '../schemas/game.schema';
 import { Answer, AnswerDocument } from '../../answers/schemas/answer.schema';
+import { UsersService } from '../../users/users.service';
 import { Server } from 'socket.io';
 
 @Injectable()
@@ -20,6 +21,7 @@ export class SearchWordService {
     private readonly roomService: RoomService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly usersService: UsersService,
     @InjectModel(Room.name) private roomModel: Model<RoomDocument>,
     @InjectModel(Game.name) private gameModel: Model<GameDocument>,
     @InjectModel(Answer.name) private answerModel: Model<AnswerDocument>,
@@ -101,10 +103,21 @@ export class SearchWordService {
 
     const gameId = typeof room.game === 'object' ? (room.game as any)._id : room.game;
 
+    // Находим или создаем пользователя
+    const userId = await this.usersService.findOrCreateUser({
+      name: user?.name,
+      telegramId: user?.telegramId,
+      telegramUsername: user?.telegramUsername,
+      telegramFirstName: user?.telegramFirstName,
+      telegramLastName: user?.telegramLastName,
+      telegramPhotoUrl: user?.telegramPhotoUrl,
+      telegramLanguageCode: user?.telegramLanguageCode,
+    });
+
     // Создаем новый ответ
     const answer = new this.answerModel({
       gameId,
-      user: { user },
+      user: userId,
       text: word,
       similarity,
       stats: {

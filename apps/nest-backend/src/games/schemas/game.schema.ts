@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
+import { User } from '../../users/schemas/user.schema';
 
 export type GameDocument = Game & Document;
 
@@ -35,14 +36,11 @@ export class Game {
 
   // создатель игры
   @Prop({
-    type: {
-      user: { type: MongooseSchema.Types.Mixed, required: true },
-    },
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'User',
     required: true,
   })
-  created: {
-    user: any;
-  };
+  createdBy: MongooseSchema.Types.ObjectId;
 }
 
 export const GameSchema = SchemaFactory.createForClass(Game);
