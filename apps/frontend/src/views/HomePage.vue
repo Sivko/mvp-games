@@ -11,55 +11,25 @@
         <p class="text-telegram-text text-center">Загрузка...</p>
       </div>
 
-      <div v-else-if="rooms.length === 0" class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-        <p class="text-telegram-text text-center mb-6">
-          Чтобы начать, создайте комнату и пригласите друзей в игру
-        </p>
-        <div class="flex justify-center">
-          <button
-            @click="handleCreateRoom"
-            :disabled="creating"
-            class="px-6 py-3 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-          >
-            {{ creating ? 'Создание...' : 'Создать комнату' }}
-          </button>
-        </div>
-      </div>
-
       <div v-else class="space-y-4">
+        <!-- Сетка игр -->
         <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold text-telegram-section-header">
-              Комнаты
-            </h2>
-            <button
-              @click="handleCreateRoom"
-              :disabled="creating"
-              class="px-4 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              {{ creating ? 'Создание...' : '+ Создать комнату' }}
-            </button>
-          </div>
-          <div class="space-y-2">
+          <h2 class="text-xl font-semibold text-telegram-section-header mb-4">
+            Игры
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div
-              v-for="room in rooms"
-              :key="room._id"
+              v-for="game in availableGames"
+              :key="game.typeGame"
               class="p-4 bg-telegram-bg-secondary rounded-lg border border-telegram-section-separator hover:border-telegram-button transition-colors cursor-pointer"
-              @click="handleRoomClick(room._id)"
+              @click="handleGameClick(game.typeGame)"
             >
-              <div class="flex justify-between items-start">
-                <div>
-                  <h3 class="text-telegram-text font-semibold mb-1">
-                    Комната {{ room.roomNumber || room._id.slice(-6) }}
-                  </h3>
-                  <p v-if="room.sourceWord" class="text-telegram-hint text-sm">
-                    Слово: {{ room.sourceWord }}
-                  </p>
-                  <p class="text-telegram-subtitle text-xs mt-1">
-                    Статус: {{ getStatusText(room.status) }}
-                  </p>
-                </div>
-              </div>
+              <h3 class="text-telegram-text font-semibold mb-2">
+                {{ game.name }}
+              </h3>
+              <p class="text-telegram-subtitle text-sm">
+                Онлайн: {{ game.onlineUsersCount }} пользователей
+              </p>
             </div>
           </div>
         </div>
@@ -77,18 +47,38 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { roomsApi, type Room } from '../api/roomsApi';
 import { usersApi } from '../api/usersApi';
+import { gamesApi, type GameStats } from '../api/gamesApi';
 import { storage } from '../utils/storage';
 import { getTelegramWebApp } from '../utils/telegramTheme';
 import AddNameModal from '../components/AddNameModal.vue';
 
+const router = useRouter();
 const rooms = ref<Room[]>([]);
 const loading = ref(true);
 const creating = ref(false);
 const showNameModal = ref(false);
 const nameModalRef = ref<InstanceType<typeof AddNameModal> | null>(null);
 const currentUser = ref(storage.getUser());
+const gameStats = ref<Record<string, GameStats>>({});
+
+interface AvailableGame {
+  typeGame: string;
+  name: string;
+  onlineUsersCount: number;
+}
+
+const availableGames = computed<AvailableGame[]>(() => {
+  return [
+    {
+      typeGame: 'association-text',
+      name: 'Сто к одному',
+      onlineUsersCount: gameStats.value['association-text']?.onlineUsersCount || 0,
+    },
+  ];
+});
 
 const shouldShowModal = computed(() => {
   return showNameModal.value && !currentUser.value;
@@ -216,9 +206,61 @@ const handleRoomClick = (roomId: string) => {
   console.log('Room clicked:', roomId);
 };
 
+const handleGameClick = async (typeGame: string) => {
+  // Если пользователь не авторизован, показываем модалку
+  if (!currentUser.value) {
+    showNameModal.value = true;
+    return;
+  }
+
+  creating.value = true;
+  try {
+    // Проверяем, есть ли у пользователя уже открытая игра
+    const existingGame = await gamesApi.getActiveGameByUserAndType(
+      currentUser.value.id,
+      typeGame,
+    );
+
+    if (existingGame) {
+      // Если есть активная игра, открываем её
+      router.push({
+        path: `/${existingGame._id}`,
+        query: { type: typeGame },
+      });
+    } else {
+      // Если нет активной игры, создаем новую
+      const newGame = await gamesApi.createGame({
+        typeGame,
+        createdBy: currentUser.value.id,
+      });
+      
+      // Переходим на страницу игры
+      router.push({
+        path: `/${newGame._id}`,
+        query: { type: typeGame },
+      });
+    }
+  } catch (error) {
+    console.error('Error creating game:', error);
+    alert('Ошибка при создании игры');
+  } finally {
+    creating.value = false;
+  }
+};
+
+const fetchGameStats = async () => {
+  try {
+    const stats = await gamesApi.getGameStats('association-text');
+    gameStats.value['association-text'] = stats;
+  } catch (error) {
+    console.error('Error fetching game stats:', error);
+  }
+};
+
 onMounted(async () => {
   await checkUser();
   await fetchRooms();
+  await fetchGameStats();
 });
 </script>
 

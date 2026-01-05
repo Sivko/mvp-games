@@ -10,6 +10,8 @@ import { ReactionTypesModule } from './reaction-types/reaction-types.module';
 import { AnswersModule } from './answers/answers.module';
 import { GameModule } from './games/game.module';
 import { Game, GameSchema } from './games/game.schema';
+import { GamesService } from './games/games.service';
+import { GamesController } from './games/games.controller';
 import { Answer, AnswerSchema } from './answers/schemas/answer.schema';
 import { UsersModule } from './users/users.module';
 import { User, UserSchema } from './users/schemas/user.schema';
@@ -46,7 +48,7 @@ import { BankAssociationText, BankAssociationTextSchema } from './games/bank-ass
     UsersModule,
     BankAssociationTextModule,
   ],
-  controllers: [AppController],
-  providers: [AppService, EventsGateway],
+  controllers: [AppController, GamesController],
+  providers: [AppService, EventsGateway, GamesService],
 })
 export class AppModule {}

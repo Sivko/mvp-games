@@ -6,7 +6,7 @@ export type GameDocument = Game & Document;
 @Schema({ timestamps: true })
 export class Game {
   // статус игры
-  @Prop({ type: String, default: 'waiting' })
+  @Prop({ type: String, default: 'active' })
   status: string;
 
   // количество игр
@@ -24,14 +24,6 @@ export class Game {
   // тип игры
   @Prop({ required: true, type: String })
   typeGame: string;
-
-  // id комнаты
-  @Prop({
-    type: MongooseSchema.Types.ObjectId,
-    ref: 'Room',
-    required: true,
-  })
-  roomId: MongooseSchema.Types.ObjectId;
 
   // создатель игры
   @Prop({
