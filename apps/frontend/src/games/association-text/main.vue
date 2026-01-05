@@ -14,94 +14,44 @@
       </div>
 
       <!-- Фрейм 1: Ввод ответа -->
-      <div v-if="phase === 'input'" class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-        <div class="mb-4">
-          <h2 class="text-2xl font-bold text-telegram-text mb-4">
-            {{ currentQuestion }}
-          </h2>
-          <div class="text-telegram-text-secondary mb-4">
-            <span v-if="timerEndsAt">Время: {{ timeLeft }} сек</span>
-            <span v-else>
-              Отправлено ответов: {{ readyCount }} / {{ onlineUsersCount }}
-              (нужно {{ Math.ceil(onlineUsersCount / 2) + 1 }})
-            </span>
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <input v-model="answerText" type="text" placeholder="Введите ваш вариант ответа"
-            class="w-full px-4 py-2 border border-telegram-section-separator rounded-lg bg-telegram-bg text-telegram-text focus:outline-none focus:ring-2 focus:ring-telegram-button"
-            :disabled="answerSubmitted" @keyup.enter="submitAnswer" />
-        </div>
-
-        <button @click="submitAnswer" :disabled="!answerText.trim() || answerSubmitted"
-          class="px-6 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold">
-          {{ answerSubmitted ? 'Ответ отправлен' : 'Отправить ответ' }}
-        </button>
-      </div>
+      <Step1Input
+        v-if="phase === 'input'"
+        :question="currentQuestion"
+        :timer-ends-at="timerEndsAt"
+        :ready-count="readyCount"
+        :online-users-count="onlineUsersCount"
+        :answer-submitted="answerSubmitted"
+        :current-time="currentTime"
+        @submit="handleSubmitAnswer"
+      />
 
       <!-- Фрейм 2: Результаты -->
-      <div v-if="phase === 'results'" class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-        <div class="mb-4">
-          <h2 class="text-2xl font-bold text-telegram-text mb-4">
-            Результаты
-          </h2>
-          <div class="text-telegram-text-secondary mb-4">
-            <span v-if="timerEndsAt">Время: {{ timeLeft }} сек</span>
-            <span v-else>
-              Готово: {{ readyCount }} / {{ onlineUsersCount }}
-              (нужно {{ Math.ceil(onlineUsersCount / 2) + 1 }})
-            </span>
-          </div>
-        </div>
-
-        <div v-if="!readyForNextRound" class="mb-4">
-          <button @click="markReady"
-            class="px-6 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity font-semibold">
-            Готово
-          </button>
-        </div>
-
-        <div class="space-y-4">
-          <div v-for="answer in answers" :key="answer.id" class="p-4 bg-telegram-bg rounded-lg"
-            :class="{ 'opacity-50': answer.userId === currentUserId }">
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-telegram-text font-semibold">
-                {{ answer.text }}
-              </div>
-              <div v-if="answer.userId === currentUserId" class="text-telegram-text-secondary text-sm">
-                Ваш ответ
-              </div>
-            </div>
-
-            <!-- Реакции (только для чужих ответов) -->
-            <div v-if="answer.userId !== currentUserId" class="flex gap-2 mt-2">
-              <button v-for="reactionType in reactionTypes" :key="reactionType._id"
-                @click="toggleReaction(answer.id, reactionType._id)" :class="[
-                  'px-3 py-1 rounded-lg text-sm transition-opacity',
-                  isReactionActive(answer.id, reactionType._id)
-                    ? 'bg-telegram-button text-telegram-button-text'
-                    : 'bg-telegram-bg-secondary text-telegram-text hover:opacity-90'
-                ]">
-                {{ reactionType.name }}
-                <span v-if="getReactionCount(answer.id, reactionType._id) > 0">
-                  ({{ getReactionCount(answer.id, reactionType._id) }})
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Step2Result
+        v-if="phase === 'results'"
+        :timer-ends-at="timerEndsAt"
+        :ready-count="readyCount"
+        :online-users-count="onlineUsersCount"
+        :ready-for-next-round="readyForNextRound"
+        :answers="answers"
+        :current-user-id="currentUserId"
+        :reaction-types="reactionTypes"
+        :reactions="reactions"
+        :current-time="currentTime"
+        @toggle-reaction="toggleReaction"
+        @mark-ready="markReady"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 // @ts-expect-error - socket.io-client types may not be available
 import { io, Socket } from 'socket.io-client';
 import { reactionTypesApi } from '../../api/reactionTypesApi';
 import { useUser } from '../../composables/useUser';
+import Step1Input from './Step1Input.vue';
+import Step2Result from './Step2Result.vue';
 
 const props = defineProps<{
   gameId: string;
@@ -122,7 +72,6 @@ const currentUserId = ref<string | null>(null);
 const socket = ref<Socket | null>(null);
 const phase = ref<'input' | 'results'>('input');
 const onlineUsersCount = ref(0);
-const answerText = ref('');
 const answerSubmitted = ref(false);
 const answers = ref<Array<{ id: string; userId: string; text: string }>>([]);
 const reactions = ref<Map<string, Array<{ userId: string; reactionId: string }>>>(new Map());
@@ -131,12 +80,6 @@ const timerEndsAt = ref<number | null>(null);
 const currentTime = ref(Date.now());
 const readyCount = ref(0);
 const readyForNextRound = ref(false);
-
-const timeLeft = computed(() => {
-  if (!timerEndsAt.value) return 0;
-  const left = Math.max(0, Math.ceil((timerEndsAt.value - currentTime.value) / 1000));
-  return left;
-});
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -193,7 +136,6 @@ onMounted(async () => {
     }
     if (data.phase === 'input') {
       // Сброс состояния при переходе к новой фазе ввода
-      answerText.value = '';
       answerSubmitted.value = false;
       readyForNextRound.value = false;
     }
@@ -257,15 +199,15 @@ onUnmounted(() => {
   }
 });
 
-const submitAnswer = () => {
-  if (!answerText.value.trim() || answerSubmitted.value || !socket.value || !currentUserId.value) {
+const handleSubmitAnswer = (text: string) => {
+  if (!text.trim() || answerSubmitted.value || !socket.value || !currentUserId.value) {
     return;
   }
 
   socket.value.emit('submit-answer', {
     gameId: props.gameId,
     userId: currentUserId.value,
-    text: answerText.value.trim(),
+    text: text.trim(),
   });
 };
 
@@ -278,19 +220,6 @@ const toggleReaction = (answerId: string, reactionId: string) => {
     answerId,
     reactionId,
   });
-};
-
-const isReactionActive = (answerId: string, reactionId: string): boolean => {
-  if (!currentUserId.value) return false;
-  const answerReactions = reactions.value.get(answerId) || [];
-  return answerReactions.some(
-    (r) => r.userId === currentUserId.value && r.reactionId === reactionId,
-  );
-};
-
-const getReactionCount = (answerId: string, reactionId: string): number => {
-  const answerReactions = reactions.value.get(answerId) || [];
-  return answerReactions.filter((r) => r.reactionId === reactionId).length;
 };
 
 const markReady = () => {
