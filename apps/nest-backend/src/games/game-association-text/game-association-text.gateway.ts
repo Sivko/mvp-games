@@ -142,6 +142,18 @@ export class GameAssociationTextGateway
       totalUsers,
     });
 
+    // Если все пользователи отправили ответы, сразу переходим к фазе results
+    if (readyCount >= totalUsers && room.phase === 'input') {
+      // Очищаем таймер, если он был запущен
+      if (room.timer) {
+        clearTimeout(room.timer);
+        room.timer = null;
+      }
+      // Сразу переходим к фазе results
+      await this.switchToResultsPhase(gameId);
+      return;
+    }
+
     // Если больше половины готовы и таймер не запущен, запускаем его
     if (readyCount > halfUsers && !room.timer && room.phase === 'input') {
       this.startInputPhaseTimer(gameId);
@@ -227,6 +239,18 @@ export class GameAssociationTextGateway
       readyCount,
       totalUsers,
     });
+
+    // Если все пользователи нажали "Готово", сразу переходим к новому раунду
+    if (readyCount >= totalUsers && room.phase === 'results') {
+      // Очищаем таймер, если он был запущен
+      if (room.timer) {
+        clearTimeout(room.timer);
+        room.timer = null;
+      }
+      // Сразу переходим к новому раунду
+      await this.startNewRound(gameId);
+      return;
+    }
 
     // Если больше половины готовы и таймер не запущен, запускаем его
     if (readyCount > halfUsers && !room.timer) {
