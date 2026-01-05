@@ -50,8 +50,8 @@ export const gamesApi = {
     return response.json();
   },
 
-  async getGameStats(typeGame: string): Promise<GameStats> {
-    const response = await fetch(`${API_BASE_URL}/games/stats/${typeGame}`);
+  async getGameStats(userId: string): Promise<GameStats[]> {
+    const response = await fetch(`${API_BASE_URL}/games/stats/user/${userId}`);
     if (!response.ok) {
       throw new Error('Failed to fetch game stats');
     }

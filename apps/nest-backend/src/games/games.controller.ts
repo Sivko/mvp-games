@@ -64,6 +64,17 @@ export class GamesController {
     };
   }
 
+  @Get('stats/user/:userId')
+  async getUserGameStats(@Param('userId') userId: string) {
+    const stats = await this.gamesService.getUserGameStats(userId);
+    return stats.map((stat) => ({
+      typeGame: stat.typeGame,
+      activeGamesCount: stat.count,
+      // Пока возвращаем 0 онлайн пользователей, позже можно добавить через WebSocket
+      onlineUsersCount: 0,
+    }));
+  }
+
   @Get('user/:userId/type/:typeGame/active')
   async getActiveGameByUserAndType(
     @Param('userId') userId: string,

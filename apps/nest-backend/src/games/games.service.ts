@@ -62,6 +62,31 @@ export class GamesService {
   }
 
   /**
+   * Получает статистику по всем активным играм пользователя
+   * (игры со статусом != 'disabled')
+   */
+  async getUserGameStats(userId: string): Promise<Array<{ typeGame: string; count: number }>> {
+    const games = await this.gameModel
+      .find({
+        createdBy: userId as any,
+        status: { $ne: 'disabled' },
+      })
+      .exec();
+
+    // Группируем игры по типу и считаем количество
+    const statsMap = new Map<string, number>();
+    games.forEach((game) => {
+      const count = statsMap.get(game.typeGame) || 0;
+      statsMap.set(game.typeGame, count + 1);
+    });
+
+    return Array.from(statsMap.entries()).map(([typeGame, count]) => ({
+      typeGame,
+      count,
+    }));
+  }
+
+  /**
    * Находит активную игру пользователя по типу
    * (игра со статусом != 'disabled')
    */

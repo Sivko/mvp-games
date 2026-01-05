@@ -1,38 +1,17 @@
 <template>
-  <div class="min-h-screen bg-telegram-bg p-8">
-    <div class="max-w-4xl mx-auto">
-      <div class="bg-telegram-header p-4 rounded-lg mb-4">
-        <h1 class="text-3xl font-bold text-white mb-2">
-          Игра в слова
+  <div class="min-h-screen bg-telegram-bg flex items-center justify-center p-8">
+    <div class="max-w-md mx-auto text-center">
+      <div class="bg-telegram-section rounded-lg shadow p-8 mb-4">
+        <h1 class="text-3xl font-bold text-telegram-text mb-6">
+          Добро пожаловать
         </h1>
-      </div>
-
-      <div v-if="loading" class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-        <p class="text-telegram-text text-center">Загрузка...</p>
-      </div>
-
-      <div v-else class="space-y-4">
-        <!-- Сетка игр -->
-        <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-          <h2 class="text-xl font-semibold text-telegram-section-header mb-4">
-            Игры
-          </h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div
-              v-for="game in availableGames"
-              :key="game.typeGame"
-              class="p-4 bg-telegram-bg-secondary rounded-lg border border-telegram-section-separator hover:border-telegram-button transition-colors cursor-pointer"
-              @click="handleGameClick(game.typeGame)"
-            >
-              <h3 class="text-telegram-text font-semibold mb-2">
-                {{ game.name }}
-              </h3>
-              <p class="text-telegram-subtitle text-sm">
-                Онлайн: {{ game.onlineUsersCount }} пользователей
-              </p>
-            </div>
-          </div>
-        </div>
+        <button
+          @click="handleStart"
+          :disabled="loading"
+          class="px-8 py-3 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg"
+        >
+          {{ loading ? 'Загрузка...' : 'Начать' }}
+        </button>
       </div>
 
       <AddNameModal
@@ -49,46 +28,26 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { usersApi } from '../api/usersApi';
-import { gamesApi, type GameStats } from '../api/gamesApi';
 import { storage } from '../utils/storage';
 import { getTelegramWebApp } from '../utils/telegramTheme';
 import AddNameModal from '../components/AddNameModal.vue';
 
 const router = useRouter();
-const loading = ref(true);
-const creating = ref(false);
+const loading = ref(false);
 const showNameModal = ref(false);
 const nameModalRef = ref<InstanceType<typeof AddNameModal> | null>(null);
 const currentUser = ref(storage.getUser());
-const gameStats = ref<Record<string, GameStats>>({});
-
-interface AvailableGame {
-  typeGame: string;
-  name: string;
-  onlineUsersCount: number;
-}
-
-const availableGames = computed<AvailableGame[]>(() => {
-  return [
-    {
-      typeGame: 'association-text',
-      name: 'Сто к одному',
-      onlineUsersCount: gameStats.value['association-text']?.onlineUsersCount || 0,
-    },
-  ];
-});
 
 const shouldShowModal = computed(() => {
   return showNameModal.value && !currentUser.value;
 });
 
-const checkUser = async () => {
+const checkAndCreateUser = async (): Promise<string | null> => {
   const storedUser = storage.getUser();
   if (storedUser) {
     // Пользователь уже есть
     currentUser.value = storedUser;
-    showNameModal.value = false;
-    return;
+    return storedUser.id;
   }
 
   // Проверяем Telegram данные
@@ -114,14 +73,15 @@ const checkUser = async () => {
       };
       storage.setUser(savedUser);
       currentUser.value = savedUser;
-      showNameModal.value = false;
+      return savedUser.id;
     } catch (error) {
       console.error('Error creating user from Telegram:', error);
-      // Не открываем модалку автоматически, только при попытке создать комнату
+      return null;
     }
   }
-  // Если нет Telegram данных, модалка не открывается автоматически
-  // Она откроется только при нажатии на "Создать комнату"
+
+  // Если нет Telegram данных, возвращаем null
+  return null;
 };
 
 const handleSubmitName = async (name: string) => {
@@ -137,6 +97,8 @@ const handleSubmitName = async (name: string) => {
     storage.setUser(savedUser);
     currentUser.value = savedUser;
     showNameModal.value = false;
+    // После создания пользователя делаем редирект
+    router.push(`/${savedUser.id}`);
   } catch (error) {
     console.error('Error creating user:', error);
     alert('Ошибка при создании пользователя');
@@ -155,60 +117,49 @@ const handleCloseNameModal = () => {
   showNameModal.value = false;
 };
 
-const handleGameClick = async (typeGame: string) => {
-  // Если пользователь не авторизован, показываем модалку
-  if (!currentUser.value) {
-    showNameModal.value = true;
-    return;
-  }
-
-  creating.value = true;
+const handleStart = async () => {
+  loading.value = true;
   try {
-    // Проверяем, есть ли у пользователя уже открытая игра
-    const existingGame = await gamesApi.getActiveGameByUserAndType(
-      currentUser.value.id,
-      typeGame,
-    );
+    // Проверяем, есть ли уже авторизованный пользователь
+    const userId = await checkAndCreateUser();
 
-    if (existingGame) {
-      // Если есть активная игра, открываем её
-      router.push({
-        path: `/${existingGame._id}`,
-        query: { type: typeGame },
-      });
+    if (userId) {
+      // Если пользователь авторизован, делаем редирект
+      router.push(`/${userId}`);
     } else {
-      // Если нет активной игры, создаем новую
-      const newGame = await gamesApi.createGame({
-        typeGame,
-        createdBy: currentUser.value.id,
-      });
-      
-      // Переходим на страницу игры
-      router.push({
-        path: `/${newGame._id}`,
-        query: { type: typeGame },
-      });
+      // Если пользователь не авторизован или ошибка при авторизации, показываем модалку для создания
+      showNameModal.value = true;
     }
   } catch (error) {
-    console.error('Error creating game:', error);
-    alert('Ошибка при создании игры');
+    console.error('Error checking user:', error);
+    // При ошибке показываем модалку для создания пользователя
+    showNameModal.value = true;
   } finally {
-    creating.value = false;
-  }
-};
-
-const fetchGameStats = async () => {
-  try {
-    const stats = await gamesApi.getGameStats('association-text');
-    gameStats.value['association-text'] = stats;
-  } catch (error) {
-    console.error('Error fetching game stats:', error);
+    loading.value = false;
   }
 };
 
 onMounted(async () => {
-  await checkUser();
-  await fetchGameStats();
+  // Проверяем, есть ли данные авторизации в localStorage
+  const storedUser = storage.getUser();
+  
+  if (storedUser && storedUser.id) {
+    try {
+      // Проверяем, существует ли пользователь
+      const user = await usersApi.findOrCreateUser({ name: storedUser.name || '' });
+      
+      if (user && user.id) {
+        // Если пользователь найден, делаем редирект
+        router.push(`/${storedUser.id}`);
+      } else {
+        // Если пользователь не найден, выводим ошибку в консоль
+        console.error('User not found in database');
+      }
+    } catch (error) {
+      // Если ошибка при проверке пользователя, выводим в консоль
+      console.error('Error checking user from localStorage:', error);
+    }
+  }
 });
 </script>
 
