@@ -13,56 +13,39 @@
       </div>
     </div>
 
-    <div v-if="!readyForNextRound" class="mb-4">
-      <button
-        @click="handleMarkReady"
-        class="px-6 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity font-semibold"
-      >
-        Готово
-      </button>
-    </div>
-
     <div class="space-y-4">
-      <div
-        v-for="answer in answers"
-        :key="answer.id"
-        class="p-4 bg-telegram-bg rounded-lg"
-        :class="{ 'opacity-50': answer.userId === currentUserId }"
-      >
+      <div v-for="answer in answers" :key="answer.id" class="p-4 bg-telegram-bg rounded-lg"
+        :class="{ 'opacity-50': answer.userId === currentUserId }">
         <div class="flex items-center justify-between mb-2">
           <div class="text-telegram-text font-semibold">
             {{ answer.text }}
           </div>
-          <div
-            v-if="answer.userId === currentUserId"
-            class="text-telegram-text-secondary text-sm"
-          >
+          <div v-if="answer.userId === currentUserId" class="text-telegram-text-secondary text-sm">
             Ваш ответ
           </div>
         </div>
 
         <!-- Реакции (только для чужих ответов) -->
-        <div
-          v-if="answer.userId !== currentUserId"
-          class="flex gap-2 mt-2"
-        >
-          <button
-            v-for="reactionType in reactionTypes"
-            :key="reactionType._id"
-            @click="handleToggleReaction(answer.id, reactionType._id)"
-            :class="[
+        <div v-if="answer.userId !== currentUserId" class="flex gap-2 mt-2">
+          <button v-for="reactionType in reactionTypes" :key="reactionType._id"
+            @click="handleToggleReaction(answer.id, reactionType._id)" :class="[
               'px-3 py-1 rounded-lg text-sm transition-opacity',
               isReactionActive(answer.id, reactionType._id)
                 ? 'bg-telegram-button text-telegram-button-text'
                 : 'bg-telegram-bg-secondary text-telegram-text hover:opacity-90',
-            ]"
-          >
+            ]">
             {{ reactionType.name }}
             <span v-if="getReactionCount(answer.id, reactionType._id) > 0">
               ({{ getReactionCount(answer.id, reactionType._id) }})
             </span>
           </button>
         </div>
+      </div>
+      <div v-if="!readyForNextRound" class="mb-4">
+        <button @click="handleMarkReady"
+          class="px-6 py-2 w-full rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity font-semibold">
+          Далее
+        </button>
       </div>
     </div>
   </div>
@@ -119,4 +102,3 @@ const getReactionCount = (answerId: string, reactionId: string): number => {
 </script>
 
 <style scoped></style>
-

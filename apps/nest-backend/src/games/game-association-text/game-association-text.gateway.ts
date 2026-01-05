@@ -12,6 +12,7 @@ import { Injectable } from '@nestjs/common';
 import { AnswersService } from '../../answers/answers.service';
 import { ReactionsService } from '../../reactions/reactions.service';
 import { GamesService } from '../games.service';
+import { UsersService } from '../../users/users.service';
 
 interface GameRoom {
   gameId: string;
@@ -41,6 +42,7 @@ export class GameAssociationTextGateway
     private answersService: AnswersService,
     private reactionsService: ReactionsService,
     private gamesService: GamesService,
+    private usersService: UsersService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -85,6 +87,9 @@ export class GameAssociationTextGateway
     // Добавляем пользователя в комнату
     room.users.set(client.id, { userId, socketId: client.id });
 
+    // Отправляем событие о присоединении пользователя
+    await this.sendNewAction(gameId, userId, 'присоединился к игре');
+
     // Отправляем текущую фазу и количество онлайн пользователей
     this.server.to(gameId).emit('game-state', {
       phase: room.phase,
@@ -127,6 +132,9 @@ export class GameAssociationTextGateway
 
     // Отправляем подтверждение
     client.emit('answer-submitted', { success: true });
+
+    // Отправляем событие о новом действии
+    await this.sendNewAction(gameId, userId, 'добавил слово');
 
     // Добавляем пользователя в готовые
     room.readyUsers.add(userId);
@@ -193,6 +201,8 @@ export class GameAssociationTextGateway
         userId,
         reactionId,
       });
+      // Отправляем событие о новой реакции
+      await this.sendNewAction(data.gameId, userId, 'поставил реакцию');
     } else {
       // Удаляем реакцию (toggle)
       await this.reactionsService.deleteByAnswerAndUserAndReaction(
@@ -200,6 +210,8 @@ export class GameAssociationTextGateway
         userId,
         reactionId,
       );
+      // Отправляем событие об удалении реакции
+      await this.sendNewAction(data.gameId, userId, 'убрал реакцию');
     }
 
     // Отправляем обновленные реакции для этого ответа
@@ -363,6 +375,29 @@ export class GameAssociationTextGateway
       this.server.to(gameId).emit('online-users-update', {
         count: room.users.size,
       });
+    }
+  }
+
+  /**
+   * Отправляет событие о новом действии пользователя
+   * @param gameId - ID игры
+   * @param userId - ID пользователя
+   * @param action - описание действия (например, "добавил слово")
+   */
+  private async sendNewAction(
+    gameId: string,
+    userId: string,
+    action: string,
+  ): Promise<void> {
+    try {
+      const user = await this.usersService.findById(userId);
+      if (user) {
+        const userName = user.name || user.telegramFirstName || 'Неизвестный';
+        const message = `<strong>${userName}</strong> ${action}`;
+        this.server.to(gameId).emit('new-action', { message });
+      }
+    } catch (error) {
+      console.error('Error sending new action:', error);
     }
   }
 }

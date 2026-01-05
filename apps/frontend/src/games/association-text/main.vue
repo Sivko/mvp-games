@@ -13,6 +13,21 @@
         </div>
       </div>
 
+      <!-- Последние события -->
+      <div v-if="recentActions.length > 0" class="bg-telegram-section rounded-lg shadow p-4 mb-4">
+        <h3 class="text-lg font-semibold text-telegram-text mb-2">
+          Последние события
+        </h3>
+        <div class="space-y-1 max-h-32 overflow-y-auto">
+          <div
+            v-for="(action, index) in recentActions"
+            :key="index"
+            class="text-sm text-telegram-text-secondary"
+            v-html="action"
+          ></div>
+        </div>
+      </div>
+
       <!-- Фрейм 1: Ввод ответа -->
       <Step1Input
         v-if="phase === 'input'"
@@ -80,6 +95,8 @@ const timerEndsAt = ref<number | null>(null);
 const currentTime = ref(Date.now());
 const readyCount = ref(0);
 const readyForNextRound = ref(false);
+const recentActions = ref<string[]>([]);
+const MAX_ACTIONS = 10; // Максимальное количество отображаемых событий
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -172,6 +189,15 @@ onMounted(async () => {
     totalUsers: number;
   }) => {
     readyCount.value = data.readyCount;
+  });
+
+  socket.value.on('new-action', (data: { message: string }) => {
+    // Добавляем новое событие в начало списка
+    recentActions.value.unshift(data.message);
+    // Ограничиваем количество событий
+    if (recentActions.value.length > MAX_ACTIONS) {
+      recentActions.value = recentActions.value.slice(0, MAX_ACTIONS);
+    }
   });
 
   // Обновляем таймер каждую секунду
