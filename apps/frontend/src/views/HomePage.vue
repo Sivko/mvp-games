@@ -48,7 +48,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { roomsApi, type Room } from '../api/roomsApi';
 import { usersApi } from '../api/usersApi';
 import { gamesApi, type GameStats } from '../api/gamesApi';
 import { storage } from '../utils/storage';
@@ -56,7 +55,6 @@ import { getTelegramWebApp } from '../utils/telegramTheme';
 import AddNameModal from '../components/AddNameModal.vue';
 
 const router = useRouter();
-const rooms = ref<Room[]>([]);
 const loading = ref(true);
 const creating = ref(false);
 const showNameModal = ref(false);
@@ -83,26 +81,6 @@ const availableGames = computed<AvailableGame[]>(() => {
 const shouldShowModal = computed(() => {
   return showNameModal.value && !currentUser.value;
 });
-
-const getStatusText = (status?: string) => {
-  const statusMap: Record<string, string> = {
-    waiting: 'Ожидание',
-    active: 'Активна',
-    finished: 'Завершена',
-  };
-  return statusMap[status || ''] || status || 'Неизвестно';
-};
-
-const fetchRooms = async () => {
-  loading.value = true;
-  try {
-    rooms.value = await roomsApi.getAllRooms();
-  } catch (error) {
-    console.error('Error fetching rooms:', error);
-  } finally {
-    loading.value = false;
-  }
-};
 
 const checkUser = async () => {
   const storedUser = storage.getUser();
@@ -177,35 +155,6 @@ const handleCloseNameModal = () => {
   showNameModal.value = false;
 };
 
-const handleCreateRoom = async () => {
-  // Если пользователь не авторизован, показываем модалку
-  if (!currentUser.value) {
-    showNameModal.value = true;
-    return;
-  }
-  
-  const user = currentUser.value;
-  creating.value = true;
-  try {
-    const newRoom = await roomsApi.createRoom({
-      createdBy: user.id,
-    });
-    await fetchRooms();
-    // Можно добавить навигацию к созданной комнате
-    console.log('Room created:', newRoom);
-  } catch (error) {
-    console.error('Error creating room:', error);
-    alert('Ошибка при создании комнаты');
-  } finally {
-    creating.value = false;
-  }
-};
-
-const handleRoomClick = (roomId: string) => {
-  // Можно добавить навигацию к комнате
-  console.log('Room clicked:', roomId);
-};
-
 const handleGameClick = async (typeGame: string) => {
   // Если пользователь не авторизован, показываем модалку
   if (!currentUser.value) {
@@ -259,7 +208,6 @@ const fetchGameStats = async () => {
 
 onMounted(async () => {
   await checkUser();
-  await fetchRooms();
   await fetchGameStats();
 });
 </script>
