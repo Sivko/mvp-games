@@ -5,21 +5,27 @@ export type GameDocument = Game & Document;
 
 @Schema({ timestamps: true })
 export class Game {
+  // статус игры
   @Prop({ type: String, default: 'waiting' })
   status: string;
 
+  // количество игр
   @Prop({ type: Number, default: 0 })
   gamesCount: number;
 
+  // вопрос
   @Prop({ type: String, default: '' })
   question: string;
 
+  // массив использованных вопросов
   @Prop({ type: [Number], default: [] })
   usedQuestions: number[];
 
+  // тип игры
   @Prop({ required: true, type: String })
   typeGame: string;
 
+  // id комнаты
   @Prop({
     type: MongooseSchema.Types.ObjectId,
     ref: 'Room',
@@ -27,6 +33,7 @@ export class Game {
   })
   roomId: MongooseSchema.Types.ObjectId;
 
+  // создатель игры
   @Prop({
     type: {
       user: { type: MongooseSchema.Types.Mixed, required: true },
