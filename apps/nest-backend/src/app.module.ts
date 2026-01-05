@@ -17,6 +17,8 @@ import { Game, GameSchema } from './games/schemas/game.schema';
 import { Answer, AnswerSchema } from './answers/schemas/answer.schema';
 import { UsersModule } from './users/users.module';
 import { User, UserSchema } from './users/schemas/user.schema';
+import { BankAssociationTextModule } from './games/bank-association-text/bank-association-text.module';
+import { BankAssociationText, BankAssociationTextSchema } from './games/bank-association-text/schemas/bank-association-text.schema';
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { User, UserSchema } from './users/schemas/user.schema';
       { name: Game.name, schema: GameSchema },
       { name: Answer.name, schema: AnswerSchema },
       { name: User.name, schema: UserSchema },
+      { name: BankAssociationText.name, schema: BankAssociationTextSchema },
     ]),
     HttpModule,
     RoomModule,
@@ -48,6 +51,7 @@ import { User, UserSchema } from './users/schemas/user.schema';
     AnswersModule,
     GameModule,
     UsersModule,
+    BankAssociationTextModule,
   ],
   controllers: [AppController],
   providers: [AppService, EventsGateway, SearchWordService],
