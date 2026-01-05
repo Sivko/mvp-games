@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { RoomService } from '../../room/room.service';
 import { Room, RoomDocument } from '../../room/schemas/room.schema';
-import { Game, GameDocument } from '../schemas/game.schema';
+import { Game, GameDocument } from '../game.schema';
 import { Answer, AnswerDocument } from '../../answers/schemas/answer.schema';
 import { UsersService } from '../../users/users.service';
 import { Server } from 'socket.io';

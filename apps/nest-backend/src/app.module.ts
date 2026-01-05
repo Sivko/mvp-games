@@ -12,7 +12,7 @@ import { Room, RoomSchema } from './room/schemas/room.schema';
 import { ReactionTypesModule } from './reaction-types/reaction-types.module';
 import { AnswersModule } from './answers/answers.module';
 import { GameModule } from './games/game.module';
-import { Game, GameSchema } from './games/schemas/game.schema';
+import { Game, GameSchema } from './games/game.schema';
 import { Answer, AnswerSchema } from './answers/schemas/answer.schema';
 import { UsersModule } from './users/users.module';
 import { User, UserSchema } from './users/schemas/user.schema';
