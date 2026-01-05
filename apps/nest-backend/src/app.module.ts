@@ -9,7 +9,6 @@ import { join } from 'path';
 import { RoomModule } from './room/room.module';
 import { SearchWordService } from './games/g-search-word/search-word.service';
 import { Room, RoomSchema } from './room/schemas/room.schema';
-import { SettingsModule } from './settings/settings.module';
 import { ReactionTypesModule } from './reaction-types/reaction-types.module';
 import { AnswersModule } from './answers/answers.module';
 import { GameModule } from './games/game.module';
@@ -46,7 +45,6 @@ import { BankAssociationText, BankAssociationTextSchema } from './games/bank-ass
     ]),
     HttpModule,
     RoomModule,
-    SettingsModule,
     ReactionTypesModule,
     AnswersModule,
     GameModule,
