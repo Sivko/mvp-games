@@ -2,12 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Telegram Theme Variables - будут установлены через Telegram WebApp API */
+:root {
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2481cc;
+  --tg-theme-button-color: #2481cc;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f1f1f1;
+  --tg-theme-header-bg-color: #2481cc;
+  --tg-theme-accent-text-color: #2481cc;
+  --tg-theme-section-bg-color: #ffffff;
+  --tg-theme-section-header-text-color: #2481cc;
+  --tg-theme-subtitle-text-color: #999999;
+  --tg-theme-destructive-text-color: #ff3b30;
+  --tg-theme-bottom-bar-bg-color: #ffffff;
+  --tg-theme-section-separator-color: #e5e5e5;
+}
+
+/* Применение цветов Telegram к body и app */
 body {
   margin: 0;
   padding: 0;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
 }
 
 #app {
   min-height: 100vh;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
 }
 
