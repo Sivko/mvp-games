@@ -6,9 +6,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
 import { join } from 'path';
-import { RoomModule } from './room/room.module';
-import { SearchWordService } from './games/g-search-word/search-word.service';
-import { Room, RoomSchema } from './room/schemas/room.schema';
 import { ReactionTypesModule } from './reaction-types/reaction-types.module';
 import { AnswersModule } from './answers/answers.module';
 import { GameModule } from './games/game.module';
@@ -37,14 +34,12 @@ import { BankAssociationText, BankAssociationTextSchema } from './games/bank-ass
       inject: [ConfigService],
     }),
     MongooseModule.forFeature([
-      { name: Room.name, schema: RoomSchema },
       { name: Game.name, schema: GameSchema },
       { name: Answer.name, schema: AnswerSchema },
       { name: User.name, schema: UserSchema },
       { name: BankAssociationText.name, schema: BankAssociationTextSchema },
     ]),
     HttpModule,
-    RoomModule,
     ReactionTypesModule,
     AnswersModule,
     GameModule,
@@ -52,6 +47,6 @@ import { BankAssociationText, BankAssociationTextSchema } from './games/bank-ass
     BankAssociationTextModule,
   ],
   controllers: [AppController],
-  providers: [AppService, EventsGateway, SearchWordService],
+  providers: [AppService, EventsGateway],
 })
 export class AppModule {}
