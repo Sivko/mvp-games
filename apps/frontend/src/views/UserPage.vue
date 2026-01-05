@@ -28,11 +28,17 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { gamesApi, type Game } from '../api/gamesApi';
+import { useUser } from '../composables/useUser';
 
 const games = ref<Game[]>([]);
-const userId = useRoute().params.userId as string;
+const route = useRoute();
+const userId = route.params.userId as string;
+const { checkUserOnMount } = useUser();
 
 onMounted(async () => {
+  // Проверяем пользователя при монтировании
+  await checkUserOnMount((id) => `/${id}`);
+  
   const gamesData = await gamesApi.getActiveGameByUser(userId);
   games.value = gamesData;
 });

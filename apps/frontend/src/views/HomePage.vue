@@ -25,80 +25,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { usersApi } from '../api/usersApi';
-import { storage } from '../utils/storage';
-import { getTelegramWebApp } from '../utils/telegramTheme';
+import { useUser } from '../composables/useUser';
 import AddNameModal from '../components/AddNameModal.vue';
 
 const router = useRouter();
+const { currentUser, checkAndCreateUser, createUserWithName } = useUser();
 const loading = ref(false);
+
 const showNameModal = ref(false);
 const nameModalRef = ref<InstanceType<typeof AddNameModal> | null>(null);
-const currentUser = ref(storage.getUser());
 
 const shouldShowModal = computed(() => {
   return showNameModal.value && !currentUser.value;
 });
-
-const checkAndCreateUser = async (): Promise<string | null> => {
-  const storedUser = storage.getUser();
-  if (storedUser) {
-    // Пользователь уже есть
-    currentUser.value = storedUser;
-    return storedUser.id;
-  }
-
-  // Проверяем Telegram данные
-  const webApp = getTelegramWebApp();
-  const telegramData = webApp?.initDataUnsafe?.user;
-
-  if (telegramData) {
-    // Если есть Telegram данные, создаем пользователя автоматически
-    try {
-      const userData = {
-        telegramId: telegramData.id,
-        telegramUsername: telegramData.username,
-        telegramFirstName: telegramData.first_name,
-        telegramLastName: telegramData.last_name,
-        telegramPhotoUrl: telegramData.photo_url,
-        telegramLanguageCode: telegramData.language_code,
-      };
-
-      const user = await usersApi.findOrCreateUser(userData);
-      const savedUser = {
-        id: user.id,
-        name: user.name || user.telegramFirstName || user.telegramUsername || 'Пользователь',
-      };
-      storage.setUser(savedUser);
-      currentUser.value = savedUser;
-      return savedUser.id;
-    } catch (error) {
-      console.error('Error creating user from Telegram:', error);
-      return null;
-    }
-  }
-
-  // Если нет Telegram данных, возвращаем null
-  return null;
-};
 
 const handleSubmitName = async (name: string) => {
   if (nameModalRef.value) {
     nameModalRef.value.setLoading(true);
   }
   try {
-    const user = await usersApi.findOrCreateUser({ name });
-    const savedUser = {
-      id: user.id,
-      name: user.name,
-    };
-    storage.setUser(savedUser);
-    currentUser.value = savedUser;
+    const userId = await createUserWithName(name);
     showNameModal.value = false;
     // После создания пользователя делаем редирект
-    router.push(`/${savedUser.id}`);
+    router.push(`/${userId}`);
   } catch (error) {
     console.error('Error creating user:', error);
     alert('Ошибка при создании пользователя');
@@ -138,29 +89,6 @@ const handleStart = async () => {
     loading.value = false;
   }
 };
-
-onMounted(async () => {
-  // Проверяем, есть ли данные авторизации в localStorage
-  const storedUser = storage.getUser();
-  
-  if (storedUser && storedUser.id) {
-    try {
-      // Проверяем, существует ли пользователь
-      const user = await usersApi.findOrCreateUser({ name: storedUser.name || '' });
-      
-      if (user && user.id) {
-        // Если пользователь найден, делаем редирект
-        router.push(`/${storedUser.id}`);
-      } else {
-        // Если пользователь не найден, выводим ошибку в консоль
-        console.error('User not found in database');
-      }
-    } catch (error) {
-      // Если ошибка при проверке пользователя, выводим в консоль
-      console.error('Error checking user from localStorage:', error);
-    }
-  }
-});
 </script>
 
 <style scoped></style>

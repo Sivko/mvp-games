@@ -164,5 +164,29 @@ export class GamesService {
       [],
     );
   }
+
+  /**
+   * Обновляет вопрос в игре и добавляет ID в usedQuestions
+   */
+  async updateQuestion(gameId: string): Promise<GameDocument | null> {
+    const game = await this.findById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    // Если тип игры - association-text, выбираем новый вопрос
+    if (game.typeGame === 'association-text') {
+      const randomQuestion = await this.getRandomAssociationText(
+        game.usedQuestions,
+      );
+      if (randomQuestion) {
+        game.question = randomQuestion.question;
+        game.usedQuestions.push(randomQuestion._id.toString());
+        return game.save();
+      }
+    }
+
+    return game;
+  }
 }
 

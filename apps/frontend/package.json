@@ -16,9 +16,10 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "socket.io-client": "^4.8.3",
     "vue": "^3.5.26",
-    "vue-router": "^4.6.4",
-    "vue-icons-plus": "^0.1.9"
+    "vue-icons-plus": "^0.1.9",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.3",
@@ -28,14 +29,14 @@
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/tsconfig": "^0.8.1",
+    "autoprefixer": "^10.4.20",
     "eslint": "^9.39.2",
     "eslint-plugin-vue": "~10.6.2",
     "jiti": "^2.6.1",
     "npm-run-all2": "^8.0.4",
+    "postcss": "^8.4.47",
     "prettier": "3.7.4",
     "tailwindcss": "^3.4.14",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.47",
     "typescript": "~5.9.3",
     "vite": "^7.3.0",
     "vite-plugin-vue-devtools": "^8.0.5",
