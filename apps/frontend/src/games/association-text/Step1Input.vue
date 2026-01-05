@@ -7,8 +7,7 @@
       <div class="text-telegram-text-secondary mb-4">
         <span v-if="timerEndsAt">Время: {{ timeLeft }} сек</span>
         <span v-else>
-          Отправлено ответов: {{ readyCount }} / {{ onlineUsersCount }}
-          (нужно {{ Math.ceil(onlineUsersCount / 2) + 1 }})
+          Готовы: {{ readyCount }} / {{ onlineUsersCount }}
         </span>
       </div>
     </div>
