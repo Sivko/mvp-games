@@ -39,9 +39,9 @@ export class GamesController {
     };
   }
 
-  @Get('type/:typeGame')
-  async getGamesByType(@Param('typeGame') typeGame: string) {
-    const games = await this.gamesService.findByType(typeGame);
+  @Get('user/:userId/active')
+  async getActiveGamesByUser(@Param('userId') userId: string) {
+    const games = await this.gamesService.findActiveGamesByUser(userId);
     return games.map((game) => ({
       _id: game._id.toString(),
       typeGame: game.typeGame,
@@ -53,37 +53,13 @@ export class GamesController {
     }));
   }
 
-  @Get('stats/:typeGame')
-  async getGameStats(@Param('typeGame') typeGame: string) {
-    const activeCount = await this.gamesService.getActiveGamesCountByType(typeGame);
-    return {
-      typeGame,
-      activeGamesCount: activeCount,
-      // Пока возвращаем 0 онлайн пользователей, позже можно добавить через WebSocket
-      onlineUsersCount: 0,
-    };
-  }
-
-  @Get('stats/user/:userId')
-  async getUserGameStats(@Param('userId') userId: string) {
-    const stats = await this.gamesService.getUserGameStats(userId);
-    return stats.map((stat) => ({
-      typeGame: stat.typeGame,
-      activeGamesCount: stat.count,
-      // Пока возвращаем 0 онлайн пользователей, позже можно добавить через WebSocket
-      onlineUsersCount: 0,
-    }));
-  }
-
-  @Get('user/:userId/type/:typeGame/active')
-  async getActiveGameByUserAndType(
+  @Get('user/:userId/type/:typeGame')
+  async getGameByUserAndType(
     @Param('userId') userId: string,
     @Param('typeGame') typeGame: string,
   ) {
-    const game = await this.gamesService.findActiveGameByUserAndType(userId, typeGame);
-    if (!game) {
-      return null;
-    }
+    console.log('getGameByUserAndType', userId, typeGame);
+    const game = await this.gamesService.findOrCreateGameByUserAndType(userId, typeGame);
     return {
       _id: game._id.toString(),
       typeGame: game.typeGame,
@@ -94,5 +70,6 @@ export class GamesController {
       usedQuestions: game.usedQuestions,
     };
   }
+
 }
 

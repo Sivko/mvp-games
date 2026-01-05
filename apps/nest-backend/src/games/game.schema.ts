@@ -17,9 +17,9 @@ export class Game {
   @Prop({ type: String, default: '' })
   question: string;
 
-  // массив использованных вопросов
-  @Prop({ type: [Number], default: [] })
-  usedQuestions: number[];
+  // массив использованных вопросов (ID записей из банка)
+  @Prop({ type: [String], default: [] })
+  usedQuestions: string[];
 
   // тип игры
   @Prop({ required: true, type: String })
