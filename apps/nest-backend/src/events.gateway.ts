@@ -10,7 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { RoomService } from './room/room.service';
-import { SearchWordService } from './games/search-word/search-word.service';
+import { SearchWordService } from './games/g-search-word/search-word.service';
 
 @WebSocketGateway({
   cors: {

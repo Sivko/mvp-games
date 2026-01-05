@@ -7,7 +7,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
 import { join } from 'path';
 import { RoomModule } from './room/room.module';
-import { SearchWordService } from './games/search-word/search-word.service';
+import { SearchWordService } from './games/g-search-word/search-word.service';
 import { Room, RoomSchema } from './room/schemas/room.schema';
 import { SettingsModule } from './settings/settings.module';
 import { ReactionTypesModule } from './reaction-types/reaction-types.module';
