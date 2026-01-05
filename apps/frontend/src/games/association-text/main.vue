@@ -2,9 +2,12 @@
   <div class="min-h-screen bg-telegram-bg p-8">
     <div class="max-w-4xl mx-auto">
       <!-- Заголовок с количеством онлайн пользователей -->
-      <div class="bg-telegram-header p-4 rounded-lg mb-4">
+      <div class="bg-telegram-header rounded-lg mb-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-3xl font-bold text-white mb-2">
+          <h1 class="text-3xl font-bold text-white flex items-center">
+            <router-link to="/" class="px-4  h-full py-4">
+              <AiOutlineArrowLeft />
+            </router-link>
             Игра в слова
           </h1>
           <div class="text-white text-sm">
@@ -19,42 +22,21 @@
           Последние события
         </h3>
         <div class="space-y-1 max-h-32 overflow-y-auto">
-          <div
-            v-for="(action, index) in recentActions"
-            :key="index"
-            class="text-sm text-telegram-text-secondary"
-            v-html="action"
-          ></div>
+          <div v-for="(action, index) in recentActions" :key="index" class="text-sm text-telegram-text-secondary"
+            v-html="action"></div>
         </div>
       </div>
 
       <!-- Фрейм 1: Ввод ответа -->
-      <Step1Input
-        v-if="phase === 'input'"
-        :question="currentQuestion"
-        :timer-ends-at="timerEndsAt"
-        :ready-count="readyCount"
-        :online-users-count="onlineUsersCount"
-        :answer-submitted="answerSubmitted"
-        :current-time="currentTime"
-        @submit="handleSubmitAnswer"
-      />
+      <Step1Input v-if="phase === 'input'" :question="currentQuestion" :timer-ends-at="timerEndsAt"
+        :ready-count="readyCount" :online-users-count="onlineUsersCount" :answer-submitted="answerSubmitted"
+        :current-time="currentTime" @submit="handleSubmitAnswer" />
 
       <!-- Фрейм 2: Результаты -->
-      <Step2Result
-        v-if="phase === 'results'"
-        :timer-ends-at="timerEndsAt"
-        :ready-count="readyCount"
-        :online-users-count="onlineUsersCount"
-        :ready-for-next-round="readyForNextRound"
-        :answers="answers"
-        :current-user-id="currentUserId"
-        :reaction-types="reactionTypes"
-        :reactions="reactions"
-        :current-time="currentTime"
-        @toggle-reaction="toggleReaction"
-        @mark-ready="markReady"
-      />
+      <Step2Result v-if="phase === 'results'" :timer-ends-at="timerEndsAt" :ready-count="readyCount"
+        :online-users-count="onlineUsersCount" :ready-for-next-round="readyForNextRound" :answers="answers"
+        :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactions"
+        :current-time="currentTime" @toggle-reaction="toggleReaction" @mark-ready="markReady" />
     </div>
   </div>
 </template>
@@ -67,6 +49,7 @@ import { reactionTypesApi } from '../../api/reactionTypesApi';
 import { useUser } from '../../composables/useUser';
 import Step1Input from './Step1Input.vue';
 import Step2Result from './Step2Result.vue';
+import { AiOutlineArrowLeft } from 'vue-icons-plus/ai';
 
 const props = defineProps<{
   gameId: string;
