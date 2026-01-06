@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-telegram-section rounded-lg shadow p-4 mb-4 overflow-scroll">
+  <div class="bg-telegram-section rounded-lg shadow p-4 mb-4 overflow-scroll h-full">
     <div class="mb-4">
       <h2 class="text-2xl font-bold text-telegram-text mb-4">
         Результаты

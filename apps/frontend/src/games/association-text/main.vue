@@ -13,6 +13,9 @@
           <div class="text-white text-sm pr-4 flex items-center gap-2">
             <span class="bg-green-500 rounded-full px-2 py-1 text-xs"> {{ onlineUsersCount }} </span>
             <button>
+              <AiOutlineUserAdd />
+            </button>
+            <button>
               <Io5SettingsOutline />
             </button>
           </div>
@@ -57,6 +60,7 @@ import Step1Input from './Step1Input.vue';
 import Step2Result from './Step2Result.vue';
 import { AiOutlineArrowLeft } from 'vue-icons-plus/ai';
 import { Io5SettingsOutline } from 'vue-icons-plus/io5';
+import { AiOutlineUserAdd } from 'vue-icons-plus/ai';
 
 const props = defineProps<{
   gameId: string;
