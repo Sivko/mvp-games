@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query } from '@nestjs/common';
 import { AnswersService } from './answers.service';
 
 @Controller('answers')
@@ -17,6 +17,23 @@ export class AnswersController {
   @Get('game/:gameId')
   async findByGameId(@Param('gameId') gameId: string) {
     return this.answersService.findByGameId(gameId);
+  }
+
+  @Get('by-question')
+  async findByQuestionExcludingGame(
+    @Query('question') question: string,
+    @Query('excludeGameId') excludeGameId: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    return this.answersService.findByQuestionExcludingGame(
+      question,
+      excludeGameId,
+      pageNum,
+      limitNum,
+    );
   }
 
   @Get(':id')

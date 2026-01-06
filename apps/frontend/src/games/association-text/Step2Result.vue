@@ -14,7 +14,7 @@
     </div>
 
     <div class="space-y-4">
-      <div v-for="answer in Array.from({ length: 10 }).fill(answers[0])" :key="answer.id"
+      <div v-for="answer in answers" :key="answer.id"
         class="px-2 pt-2 bg-telegram-bg-secondary rounded-lg flex justify-between"
         :class="{ 'opacity-50': answer.userId === currentUserId }">
         <div class="flex flex-col">
@@ -45,8 +45,51 @@
       </div>
       <div v-if="!readyForNextRound" class="mb-4">
         <hr />
-        <div class="text-center mt-4">Ответы других пользователей</div>
-        <!-- TODO: Добавить ответы других пользователей -->
+        <div class="text-center mt-4 mb-4">Ответы других пользователей</div>
+        
+        <!-- Загрузка -->
+        <div v-if="loadingOtherAnswers" class="text-center text-telegram-text-secondary py-4">
+          Загрузка...
+        </div>
+
+        <!-- Список ответов других пользователей -->
+        <div v-else-if="otherAnswers.length > 0" class="space-y-4">
+          <div v-for="answer in otherAnswers" :key="answer._id"
+            class="px-2 pt-2 bg-telegram-bg-secondary rounded-lg flex justify-between">
+            <div class="flex flex-col">
+              <div class="text-telegram-text-secondary text-sm">
+                {{ getUserName(answer) }}
+              </div>
+              <div class="text-telegram-text font-semibold">
+                {{ answer.text }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Пагинация -->
+          <div v-if="totalOtherAnswers > limit" class="flex justify-center items-center gap-2 mt-4">
+            <button
+              @click="loadOtherAnswers(currentPage - 1)"
+              :disabled="currentPage === 1"
+              class="px-4 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+              Назад
+            </button>
+            <span class="text-telegram-text">
+              Страница {{ currentPage }} из {{ totalPages }}
+            </span>
+            <button
+              @click="loadOtherAnswers(currentPage + 1)"
+              :disabled="currentPage >= totalPages"
+              class="px-4 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+              Вперед
+            </button>
+          </div>
+        </div>
+
+        <!-- Нет ответов -->
+        <div v-else class="text-center text-telegram-text-secondary py-4">
+          Нет других ответов по этому вопросу
+        </div>
       </div>
     </div>
   </div>
@@ -59,8 +102,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { getReactionImageUrl } from '../../utils/reactions';
+import { answersApi, type Answer } from '../../api/answersApi';
 
 const props = defineProps<{
   timerEndsAt: number | null;
@@ -72,13 +116,72 @@ const props = defineProps<{
   reactionTypes: Array<{ _id: string; name: string }>;
   reactions: Record<string, Array<{ userId: string; reactionId: string }>>;
   currentTime: number;
+  gameId: string;
+  question: string;
 }>();
+
+// Состояние для ответов других пользователей
+const otherAnswers = ref<Answer[]>([]);
+const loadingOtherAnswers = ref(false);
+const currentPage = ref(1);
+const totalOtherAnswers = ref(0);
+const limit = 10;
+
+const totalPages = computed(() => Math.ceil(totalOtherAnswers.value / limit));
 
 // Отладка для проверки reactionTypes
 onMounted(() => {
   console.log('Step2Result mounted, reactionTypes:', props.reactionTypes);
   console.log('Step2Result reactions:', props.reactions);
+  // Загружаем ответы других пользователей при монтировании
+  if (props.question && props.gameId) {
+    loadOtherAnswers(1);
+  }
 });
+
+// Загружаем ответы при изменении вопроса
+watch(() => props.question, () => {
+  if (props.question && props.gameId) {
+    currentPage.value = 1;
+    loadOtherAnswers(1);
+  }
+});
+
+const loadOtherAnswers = async (page: number) => {
+  if (!props.question || !props.gameId) return;
+  
+  loadingOtherAnswers.value = true;
+  try {
+    const response = await answersApi.getAnswersByQuestion(
+      props.question,
+      props.gameId,
+      page,
+      limit,
+    );
+    otherAnswers.value = response.answers;
+    totalOtherAnswers.value = response.total;
+    currentPage.value = page;
+  } catch (error) {
+    console.error('Failed to load other answers:', error);
+    otherAnswers.value = [];
+    totalOtherAnswers.value = 0;
+  } finally {
+    loadingOtherAnswers.value = false;
+  }
+};
+
+const getUserName = (answer: Answer): string => {
+  if (typeof answer.user === 'string') {
+    return 'Неизвестный';
+  }
+  if (answer.user?.telegramFirstName) {
+    return answer.user.telegramFirstName;
+  }
+  if (answer.user?.name) {
+    return answer.user.name;
+  }
+  return 'Неизвестный';
+};
 
 const emit = defineEmits<{
   (e: 'toggle-reaction', answerId: string, reactionId: string): void;

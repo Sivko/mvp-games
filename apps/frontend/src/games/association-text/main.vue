@@ -41,7 +41,8 @@
       <Step2Result v-if="phase === 'results'" :timer-ends-at="timerEndsAt" :ready-count="readyCount"
         :online-users-count="onlineUsersCount" :ready-for-next-round="readyForNextRound" :answers="answers"
         :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactionsObject"
-        :current-time="currentTime" @toggle-reaction="toggleReaction" @mark-ready="markReady" />
+        :current-time="currentTime" :game-id="props.gameId" :question="currentQuestion"
+        @toggle-reaction="toggleReaction" @mark-ready="markReady" />
     </div>
   </div>
 </template>
