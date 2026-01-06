@@ -2,17 +2,17 @@
   <div class="min-h-screen bg-telegram-bg p-8">
     <div class="max-w-4xl mx-auto">
       <div class="bg-telegram-header p-4 rounded-lg mb-4">
-        <h1 class="text-3xl font-bold text-white mb-2">
+        <h1 class="text-3xl font-bold text-telegram-button-text">
           Список Игр
         </h1>
       </div>
 
       <!-- Список комнат, где пользователь является участником -->
       <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-        <h2 class="text-xl font-semibold text-white mb-4">
+        <h2 class="text-xl font-semibold text-telegram-text mb-4">
           Комнаты, где я участник
         </h2>
-        <div v-if="participantGames.length === 0" class="text-gray-400">
+        <div v-if="participantGames.length === 0" class="text-telegram-text-secondary">
           Вы не участвуете ни в одной комнате
         </div>
         <div v-else>
@@ -24,13 +24,13 @@
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
               <div>
-                <div class="text-white font-medium">{{ getGameName(game.typeGame) }}</div>
-                <div class="text-gray-400 text-sm">ID: {{ game._id }}</div>
+                <div class="text-telegram-text font-medium">{{ getGameName(game.typeGame) }}</div>
+                <div class="text-telegram-text-secondary text-sm">ID: {{ game._id }}</div>
               </div>
             </div>
             <button
               @click="goToGame(game.createdBy, game.typeGame)"
-              class="px-4 py-2 bg-telegram-button text-white rounded-lg hover:opacity-90"
+              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
             >
               Перейти
             </button>
@@ -40,7 +40,7 @@
 
       <!-- Перейти в комнату по приглашению -->
       <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-        <h2 class="text-xl font-semibold text-white mb-4">
+        <h2 class="text-xl font-semibold text-telegram-text mb-4">
           Перейти в комнату по приглашению
         </h2>
         <div class="flex gap-2">
@@ -48,11 +48,11 @@
             v-model="inviteCode"
             type="text"
             placeholder="Введите invite-код (например: 695b3797a5e39fae62b5fb8a/game/association-text)"
-            class="flex-1 px-4 py-2 bg-telegram-bg text-white rounded-lg border border-telegram-button focus:outline-none focus:ring-2 focus:ring-telegram-button"
+            class="flex-1 px-4 py-2 bg-telegram-bg text-telegram-text rounded-lg border border-telegram-section-separator focus:outline-none focus:ring-2 focus:ring-telegram-button"
           />
           <button
             @click="handleInvite"
-            class="px-6 py-2 bg-telegram-button text-white rounded-lg hover:opacity-90"
+            class="px-6 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
           >
             Перейти
           </button>
@@ -64,26 +64,26 @@
 
       <!-- Список игр с кнопками Перейти/Создать комнату -->
       <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-        <h2 class="text-xl font-semibold text-white mb-4">
+        <h2 class="text-xl font-semibold text-telegram-text mb-4">
           Доступные игры
         </h2>
         <div v-for="defaultGame in defaultGames" :key="defaultGame.typeGame" class="mb-4">
           <div class="flex items-center justify-between p-3 bg-telegram-bg rounded-lg">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
-              <div class="text-white font-medium">{{ defaultGame.name }}</div>
+              <div class="text-telegram-text font-medium">{{ defaultGame.name }}</div>
             </div>
             <button
               v-if="hasGame(defaultGame.typeGame)"
               @click="goToGame(userId, defaultGame.typeGame)"
-              class="px-4 py-2 bg-telegram-button text-white rounded-lg hover:opacity-90"
+              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
             >
               Перейти
             </button>
             <button
               v-else
               @click="createGame(defaultGame.typeGame)"
-              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90"
+              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
             >
               Создать комнату
             </button>
