@@ -22,6 +22,7 @@ import { Reaction, ReactionSchema } from './reactions/schemas/reaction.schema';
 import { GameAssociationTextModule } from './games/game-association-text/game-association-text.module';
 import { ComplainAssociationTextModule } from './games/complain-association-text/complain-association-text.module';
 import { ComplainAssociationText, ComplainAssociationTextSchema } from './games/complain-association-text/schemas/complain-association-text.schema';
+import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { ComplainAssociationText, ComplainAssociationTextSchema } from './games/
     ReactionsModule,
     GameAssociationTextModule,
     ComplainAssociationTextModule,
+    ElasticsearchModule,
   ],
   controllers: [AppController, GamesController],
   providers: [AppService, EventsGateway, GamesService],
