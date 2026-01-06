@@ -35,6 +35,21 @@
         </div>
       </div>
 
+      <!-- Игроки в игре -->
+      <div v-if="uniquePlayers.length > 0" class="bg-telegram-section rounded-lg shadow p-4 mb-4">
+        <h3 class="text-sm font-semibold text-telegram-text-secondary mb-2">
+          Игроки ({{ uniquePlayers.length }})
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <PlayerAvatar
+            v-for="player in uniquePlayers"
+            :key="player.userId"
+            :user-name="player.userName"
+            :initial="player.initial"
+          />
+        </div>
+      </div>
+
       <!-- Фрейм 1: Ввод ответа -->
       <Step1Input v-if="phase === 'input'" :question="currentQuestion" :timer-ends-at="timerEndsAt"
         :ready-count="readyCount" :online-users-count="onlineUsersCount" :answer-submitted="answerSubmitted"
@@ -58,6 +73,7 @@ import { reactionTypesApi } from '../../api/reactionTypesApi';
 import { useUser } from '../../composables/useUser';
 import Step1Input from './Step1Input.vue';
 import Step2Result from './Step2Result.vue';
+import PlayerAvatar from './PlayerAvatar.vue';
 import { AiOutlineArrowLeft } from 'vue-icons-plus/ai';
 import { Io5SettingsOutline } from 'vue-icons-plus/io5';
 import { AiOutlineUserAdd } from 'vue-icons-plus/ai';
@@ -92,6 +108,26 @@ const reactionsObject = computed(() => {
   });
   return obj;
 });
+
+// Уникальные игроки из ответов
+const uniquePlayers = computed(() => {
+  const playersMap = new Map<string, { userId: string; userName: string; initial: string }>();
+  
+  answers.value.forEach((answer) => {
+    if (!playersMap.has(answer.userId)) {
+      const userName = answer.userName || 'Неизвестный';
+      const initial = userName.charAt(0).toUpperCase();
+      playersMap.set(answer.userId, {
+        userId: answer.userId,
+        userName,
+        initial,
+      });
+    }
+  });
+  
+  return Array.from(playersMap.values());
+});
+
 const reactionTypes = ref<Array<{ _id: string; name: string }>>([]);
 const timerEndsAt = ref<number | null>(null);
 const currentTime = ref(Date.now());
