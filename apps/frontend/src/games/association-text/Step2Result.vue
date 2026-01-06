@@ -7,7 +7,7 @@
       <div class="text-telegram-text-secondary mb-4">
         <span v-if="timerEndsAt">Время: {{ timeLeft }} сек</span>
         <span v-else>
-          Готовы: {{ readyCount }} / {{ onlineUsersCount }}
+          <!-- Готовы: {{ readyCount }} / {{ onlineUsersCount }} -->
           <!-- (нужно {{ Math.ceil(onlineUsersCount / 2) + 1 }}) -->
         </span>
       </div>
@@ -108,7 +108,6 @@ import { answersApi, type Answer } from '../../api/answersApi';
 
 const props = defineProps<{
   timerEndsAt: number | null;
-  readyCount: number;
   onlineUsersCount: number;
   readyForNextRound: boolean;
   answers: Array<{ id: string; userId: string; text: string; userName?: string }>;

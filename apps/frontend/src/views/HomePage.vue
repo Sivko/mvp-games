@@ -4,23 +4,22 @@
       <div class="bg-telegram-section rounded-lg shadow p-8 mb-4">
         <h1 class="text-3xl font-bold text-telegram-text mb-6">
           Добро пожаловать
-          <img :src="getReactionImageUrl('🤔')" />
         </h1>
-        <button
-          @click="handleStart"
-          :disabled="loading"
-          class="px-8 py-3 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg"
-        >
+        <div class="text-telegram-text-secondary mb-4">
+          Цель участников игры «Сто к одному» состоит в том, чтобы угадать наиболее распространённые ответы людей с
+          улицы на предложенные вопросы, на которые невозможно дать однозначный объективный ответ, например, «Какую еду
+          больше всего любят французы?». Ответы бывают порой совершенно непредсказуемы и очень забавны. К примеру, на
+          вопрос «Кто поддерживает порядок в стране?» десять из ста случайных людей могут дать ответ «дворники».
+        </div>
+        <img :src="getReactionImageUrl('🤔')" class="w-1/2 mx-auto mb-4" />
+        <button @click="handleStart" :disabled="loading"
+          class="px-8 py-3 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg">
           {{ loading ? 'Загрузка...' : 'Начать' }}
         </button>
       </div>
 
-      <AddNameModal
-        ref="nameModalRef"
-        :show="shouldShowModal"
-        @close="handleCloseNameModal"
-        @submit="handleSubmitName"
-      />
+      <AddNameModal ref="nameModalRef" :show="shouldShowModal" @close="handleCloseNameModal"
+        @submit="handleSubmitName" />
     </div>
   </div>
 </template>
@@ -94,4 +93,3 @@ const handleStart = async () => {
 </script>
 
 <style scoped></style>
-

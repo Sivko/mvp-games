@@ -1,11 +1,18 @@
 <template>
-  <div
-    ref="referenceRef"
-    class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer"
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
-  >
-    {{ initial }}
+  <div class="flex flex-col items-center">
+    <div
+      ref="referenceRef"
+      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer relative"
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave"
+    >
+      {{ initial }}
+    </div>
+    <div
+      v-if="isReady"
+      class="w-3 h-3 rounded-full bg-green-500 mt-1"
+      title="Готов"
+    ></div>
   </div>
   <Teleport to="body">
     <div
@@ -28,6 +35,7 @@ import { offset, shift, flip } from '@floating-ui/core';
 const props = defineProps<{
   userName: string;
   initial: string;
+  isReady?: boolean;
 }>();
 
 const referenceRef = ref<HTMLElement | null>(null);

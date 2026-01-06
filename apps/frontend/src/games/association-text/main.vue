@@ -46,17 +46,18 @@
             :key="player.userId"
             :user-name="player.userName"
             :initial="player.initial"
+            :is-ready="player.isReady"
           />
         </div>
       </div>
 
       <!-- Фрейм 1: Ввод ответа -->
       <Step1Input v-if="phase === 'input'" :question="currentQuestion" :timer-ends-at="timerEndsAt"
-        :ready-count="readyCount" :online-users-count="onlineUsersCount" :answer-submitted="answerSubmitted"
+        :online-users-count="onlineUsersCount" :answer-submitted="answerSubmitted"
         :current-time="currentTime" :bank-association-text-id="bankAssociationTextId" @submit="handleSubmitAnswer" />
 
       <!-- Фрейм 2: Результаты -->
-      <Step2Result v-if="phase === 'results'" :timer-ends-at="timerEndsAt" :ready-count="readyCount"
+      <Step2Result v-if="phase === 'results'" :timer-ends-at="timerEndsAt"
         :online-users-count="onlineUsersCount" :ready-for-next-round="readyForNextRound" :answers="answers"
         :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactionsObject"
         :current-time="currentTime" :game-id="props.gameId" :question="currentQuestion"
@@ -111,16 +112,24 @@ const reactionsObject = computed(() => {
 
 // Уникальные игроки из ответов
 const uniquePlayers = computed(() => {
-  const playersMap = new Map<string, { userId: string; userName: string; initial: string }>();
+  const playersMap = new Map<string, { userId: string; userName: string; initial: string; isReady: boolean }>();
+  
+  // В фазе input: игрок готов, если у него есть ответ
+  // В фазе results: игрок готов, если он в readyUsers Set
+  const isInputPhase = phase.value === 'input';
   
   answers.value.forEach((answer) => {
     if (!playersMap.has(answer.userId)) {
       const userName = answer.userName || 'Неизвестный';
       const initial = userName.charAt(0).toUpperCase();
+      const isReady = isInputPhase 
+        ? true // В фазе input все игроки с ответами считаются готовыми
+        : readyUsers.value.has(answer.userId); // В фазе results проверяем Set
       playersMap.set(answer.userId, {
         userId: answer.userId,
         userName,
         initial,
+        isReady,
       });
     }
   });
@@ -131,8 +140,8 @@ const uniquePlayers = computed(() => {
 const reactionTypes = ref<Array<{ _id: string; name: string }>>([]);
 const timerEndsAt = ref<number | null>(null);
 const currentTime = ref(Date.now());
-const readyCount = ref(0);
 const readyForNextRound = ref(false);
+const readyUsers = ref<Set<string>>(new Set()); // Set готовых пользователей в фазе results
 const recentActions = ref<string[]>([]);
 const MAX_ACTIONS = 10; // Максимальное количество отображаемых событий
 const bankAssociationTextId = ref<string | undefined>(undefined);
@@ -189,7 +198,7 @@ onMounted(async () => {
     timerEndsAt?: number;
     question?: string;
     answers?: Array<{ id: string; userId: string; text: string; userName?: string }>;
-    readyCount?: number;
+    readyUsers?: string[];
   }) => {
     phase.value = data.phase;
     onlineUsersCount.value = data.onlineUsersCount;
@@ -197,9 +206,6 @@ onMounted(async () => {
       timerEndsAt.value = data.timerEndsAt;
     } else {
       timerEndsAt.value = null;
-    }
-    if (data.readyCount !== undefined) {
-      readyCount.value = data.readyCount;
     }
     if (data.question) {
       currentQuestion.value = data.question;
@@ -209,9 +215,21 @@ onMounted(async () => {
       // Сброс состояния при переходе к новой фазе ввода
       answerSubmitted.value = false;
       readyForNextRound.value = false;
+      // Обновляем готовых пользователей из данных WebSocket
+      if (data.readyUsers) {
+        readyUsers.value = new Set(data.readyUsers);
+      } else {
+        readyUsers.value.clear();
+      }
     }
     if (data.phase === 'results') {
       readyForNextRound.value = false;
+      // Обновляем готовых пользователей из данных WebSocket
+      if (data.readyUsers) {
+        readyUsers.value = new Set(data.readyUsers);
+      } else {
+        readyUsers.value.clear();
+      }
     }
     if (data.answers) {
       answers.value = data.answers;
@@ -247,8 +265,10 @@ onMounted(async () => {
   socket.value.on('ready-update', (data: {
     readyCount: number;
     totalUsers: number;
+    readyUsers: string[];
   }) => {
-    readyCount.value = data.readyCount;
+    // Обновляем Set готовых пользователей из данных WebSocket
+    readyUsers.value = new Set(data.readyUsers || []);
   });
 
   socket.value.on('new-action', (data: { message: string }) => {
@@ -317,6 +337,8 @@ const markReady = () => {
       userId: currentUserId.value,
     });
     readyForNextRound.value = true;
+    // Добавляем текущего пользователя в готовые
+    readyUsers.value.add(currentUserId.value);
   }
 };
 </script>

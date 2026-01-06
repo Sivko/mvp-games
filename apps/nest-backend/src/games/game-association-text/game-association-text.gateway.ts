@@ -87,6 +87,9 @@ export class GameAssociationTextGateway
     // Добавляем пользователя в комнату
     room.users.set(client.id, { userId, socketId: client.id });
 
+    // Добавляем пользователя в массив users игры в базе данных
+    await this.gamesService.addUserToGame(gameId, userId);
+
     // Отправляем событие о присоединении пользователя
     await this.sendNewAction(gameId, userId, 'присоединился к игре');
 
@@ -114,6 +117,7 @@ export class GameAssociationTextGateway
         onlineUsersCount: room.users.size,
         timerEndsAt: room.timerEndsAt,
         readyCount: room.readyUsers.size,
+        readyUsers: Array.from(room.readyUsers),
         answers: answersWithUserNames,
       });
 
@@ -137,6 +141,7 @@ export class GameAssociationTextGateway
         onlineUsersCount: room.users.size,
         timerEndsAt: room.timerEndsAt,
         readyCount: room.readyUsers.size,
+        readyUsers: Array.from(room.readyUsers),
       });
     }
   }
@@ -196,10 +201,11 @@ export class GameAssociationTextGateway
     const readyCount = room.readyUsers.size;
     const halfUsers = Math.ceil(totalUsers / 2);
 
-    // Отправляем обновление готовности
+    // Отправляем обновление готовности с списком готовых пользователей
     this.server.to(gameId).emit('ready-update', {
       readyCount,
       totalUsers,
+      readyUsers: Array.from(room.readyUsers),
     });
 
     // Если все пользователи отправили ответы, сразу переходим к фазе results
@@ -298,10 +304,11 @@ export class GameAssociationTextGateway
     const readyCount = room.readyUsers.size;
     const halfUsers = Math.ceil(totalUsers / 2);
 
-    // Отправляем обновление готовности
+    // Отправляем обновление готовности с списком готовых пользователей
     this.server.to(gameId).emit('ready-update', {
       readyCount,
       totalUsers,
+      readyUsers: Array.from(room.readyUsers),
     });
 
     // Если все пользователи нажали "Готово", сразу переходим к новому раунду
@@ -377,6 +384,7 @@ export class GameAssociationTextGateway
       onlineUsersCount: room.users.size,
       answers: answersWithUserNames,
       readyCount: 0,
+      readyUsers: Array.from(room.readyUsers),
     });
 
     // Загружаем и отправляем все существующие реакции для каждого ответа
@@ -442,6 +450,7 @@ export class GameAssociationTextGateway
       question: game?.question || '',
       timerEndsAt: null,
       readyCount: 0,
+      readyUsers: Array.from(room.readyUsers),
     });
   }
 

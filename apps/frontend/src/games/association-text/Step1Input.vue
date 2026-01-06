@@ -9,9 +9,6 @@
       </h2>
       <div class="text-telegram-text-secondary mb-4">
         <span v-if="timerEndsAt">Время: {{ timeLeft }} сек</span>
-        <span v-else>
-          Готовы: {{ readyCount }} / {{ onlineUsersCount }}
-        </span>
       </div>
     </div>
 
@@ -48,7 +45,6 @@ import { useUser } from '../../composables/useUser';
 const props = defineProps<{
   question: string;
   timerEndsAt: number | null;
-  readyCount: number;
   onlineUsersCount: number;
   answerSubmitted: boolean;
   currentTime: number;

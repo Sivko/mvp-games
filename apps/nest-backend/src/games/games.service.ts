@@ -188,5 +188,34 @@ export class GamesService {
 
     return game;
   }
+
+  /**
+   * Добавляет пользователя в массив users игры, если его там еще нет
+   */
+  async addUserToGame(gameId: string, userId: string): Promise<GameDocument | null> {
+    const game = await this.findById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    const userIdObjectId = new Types.ObjectId(userId);
+    
+    // Проверяем, не находится ли пользователь в черном списке
+    const isBlacklisted = game.blackListUsers.some(
+      (id) => id.toString() === userId,
+    );
+    if (isBlacklisted) {
+      return game; // Не добавляем пользователя из черного списка
+    }
+
+    // Проверяем, не добавлен ли пользователь уже в массив users
+    const userExists = game.users.some((id) => id.toString() === userId);
+    if (!userExists) {
+      game.users.push(userIdObjectId);
+      return game.save();
+    }
+
+    return game;
+  }
 }
 

@@ -32,6 +32,20 @@ export class Game {
     required: true,
   })
   createdBy: MongooseSchema.Types.ObjectId;
+
+  // массив пользователей в игре
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'User' }],
+    default: [],
+  })
+  users: MongooseSchema.Types.ObjectId[];
+
+  // черный список пользователей
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'User' }],
+    default: [],
+  })
+  blackListUsers: MongooseSchema.Types.ObjectId[];
 }
 
 export const GameSchema = SchemaFactory.createForClass(Game);
