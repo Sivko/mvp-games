@@ -94,17 +94,27 @@ export class GameAssociationTextGateway
     if (room.phase === 'results') {
       const answers = await this.answersService.findByGameId(gameId);
       
+      // Загружаем имена пользователей для ответов
+      const answersWithUserNames = await Promise.all(
+        answers.map(async (a) => {
+          const user = await this.usersService.findById(a.user.toString());
+          const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+          return {
+            id: a._id.toString(),
+            userId: a.user.toString(),
+            text: a.text,
+            userName,
+          };
+        })
+      );
+      
       // Отправляем текущую фазу с ответами
       client.emit('game-state', {
         phase: room.phase,
         onlineUsersCount: room.users.size,
         timerEndsAt: room.timerEndsAt,
         readyCount: room.readyUsers.size,
-        answers: answers.map((a) => ({
-          id: a._id.toString(),
-          userId: a.user.toString(),
-          text: a.text,
-        })),
+        answers: answersWithUserNames,
       });
 
       // Загружаем и отправляем все существующие реакции для каждого ответа
@@ -337,15 +347,25 @@ export class GameAssociationTextGateway
     // Получаем все ответы для этой игры
     const answers = await this.answersService.findByGameId(gameId);
 
+    // Загружаем имена пользователей для ответов
+    const answersWithUserNames = await Promise.all(
+      answers.map(async (a) => {
+        const user = await this.usersService.findById(a.user.toString());
+        const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+        return {
+          id: a._id.toString(),
+          userId: a.user.toString(),
+          text: a.text,
+          userName,
+        };
+      })
+    );
+
     // Отправляем результаты всем в комнате
     this.server.to(gameId).emit('game-state', {
       phase: 'results',
       onlineUsersCount: room.users.size,
-      answers: answers.map((a) => ({
-        id: a._id.toString(),
-        userId: a.user.toString(),
-        text: a.text,
-      })),
+      answers: answersWithUserNames,
       readyCount: 0,
     });
 
@@ -447,4 +467,5 @@ export class GameAssociationTextGateway
     }
   }
 }
+
 

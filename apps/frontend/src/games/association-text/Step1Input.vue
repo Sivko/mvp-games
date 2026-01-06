@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
+  <div class="bg-telegram-section rounded-lg shadow p-4 mb-4 overflow-scroll h-full flex flex-col justify-between">
     <div class="mb-4">
       <h2 
         class="text-2xl font-bold text-telegram-text mb-4 cursor-pointer hover:opacity-80 transition-opacity"

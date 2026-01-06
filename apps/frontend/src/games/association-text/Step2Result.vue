@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
+  <div class="bg-telegram-section rounded-lg shadow p-4 mb-4 overflow-scroll">
     <div class="mb-4">
       <h2 class="text-2xl font-bold text-telegram-text mb-4">
         Результаты
@@ -14,19 +14,19 @@
     </div>
 
     <div class="space-y-4">
-      <div v-for="answer in answers" :key="answer.id" class="pt-4 px-2 bg-telegram-bg-secondary rounded-lg"
+      <div v-for="answer in Array.from({ length: 10 }).fill(answers[0])" :key="answer.id"
+        class="px-2 pt-2 bg-telegram-bg-secondary rounded-lg flex justify-between"
         :class="{ 'opacity-50': answer.userId === currentUserId }">
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex flex-col">
+          <div class="text-telegram-text-secondary text-sm">
+            <span v-if="answer.userId === currentUserId">Ваш ответ</span>
+            <span v-else>{{ answer.userName || 'Неизвестный' }}</span>
+          </div>
           <div class="text-telegram-text font-semibold">
             {{ answer.text }}
           </div>
-          <div v-if="answer.userId === currentUserId" class="text-telegram-text-secondary text-sm">
-            Ваш ответ
-          </div>
         </div>
 
-        <!-- Реакции (только для чужих ответов) -->
-        <!-- <div v-if="answer.userId !== currentUserId" class="flex gap-2 mt-2"> -->
         <div class="flex mt-2">
           <button v-for="reactionType in reactionTypes" :key="reactionType._id"
             @click="handleToggleReaction(answer.id, reactionType._id)" :class="[
@@ -35,7 +35,7 @@
                 ? 'bg-telegram-button text-telegram-button-text'
                 : 'bg-telegram-bg-secondary text-telegram-text hover:opacity-90',
             ]">
-            <img :src="getReactionImageUrl(reactionType.name)" :alt="reactionType.name" class="h-8">
+            <img :src="getReactionImageUrl(reactionType.name)" :alt="reactionType.name" class="h-10">
             <span v-if="getReactionCount(answer.id, reactionType._id) > 0"
               class="bg-telegram-button text-telegram-button-text rounded-full px-2 text-xs">
               {{ getReactionCount(answer.id, reactionType._id) }}
@@ -44,12 +44,16 @@
         </div>
       </div>
       <div v-if="!readyForNextRound" class="mb-4">
-        <button @click="handleMarkReady"
-          class="px-6 py-2 w-full rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity font-semibold">
-          Далее
-        </button>
+        <hr />
+        <div class="text-center mt-4">Ответы других пользователей</div>
       </div>
     </div>
+  </div>
+  <div v-if="!readyForNextRound" class="mb-4">
+    <button @click="handleMarkReady"
+      class="px-6 py-2 w-full rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity font-semibold">
+      Далее
+    </button>
   </div>
 </template>
 
@@ -62,7 +66,7 @@ const props = defineProps<{
   readyCount: number;
   onlineUsersCount: number;
   readyForNextRound: boolean;
-  answers: Array<{ id: string; userId: string; text: string }>;
+  answers: Array<{ id: string; userId: string; text: string; userName?: string }>;
   currentUserId: string | null;
   reactionTypes: Array<{ _id: string; name: string }>;
   reactions: Record<string, Array<{ userId: string; reactionId: string }>>;

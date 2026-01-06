@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-telegram-bg p-8">
-    <div class="max-w-4xl mx-auto">
+  <div class="min-h-screen bg-telegram-bg">
+    <div class="max-w-4xl mx-auto h-screen overflow-hidden pt-4 flex flex-col">
       <!-- Заголовок с количеством онлайн пользователей -->
       <div class="bg-telegram-header rounded-lg mb-4">
         <div class="flex items-center justify-between">
@@ -77,7 +77,7 @@ const socket = ref<Socket | null>(null);
 const phase = ref<'input' | 'results'>('input');
 const onlineUsersCount = ref(0);
 const answerSubmitted = ref(false);
-const answers = ref<Array<{ id: string; userId: string; text: string }>>([]);
+const answers = ref<Array<{ id: string; userId: string; text: string; userName?: string }>>([]);
 const reactions = ref<Map<string, Array<{ userId: string; reactionId: string }>>>(new Map());
 // Преобразуем Map в объект для лучшей реактивности при передаче в дочерний компонент
 const reactionsObject = computed(() => {
@@ -147,7 +147,7 @@ onMounted(async () => {
     onlineUsersCount: number;
     timerEndsAt?: number;
     question?: string;
-    answers?: Array<{ id: string; userId: string; text: string }>;
+    answers?: Array<{ id: string; userId: string; text: string; userName?: string }>;
     readyCount?: number;
   }) => {
     phase.value = data.phase;
