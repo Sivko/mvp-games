@@ -32,3 +32,5 @@ export class ComplainAssociationText {
 
 export const ComplainAssociationTextSchema = SchemaFactory.createForClass(ComplainAssociationText);
 
+
+

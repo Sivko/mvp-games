@@ -46,6 +46,7 @@
       <div v-if="!readyForNextRound" class="mb-4">
         <hr />
         <div class="text-center mt-4">Ответы других пользователей</div>
+        <!-- TODO: Добавить ответы других пользователей -->
       </div>
     </div>
   </div>
