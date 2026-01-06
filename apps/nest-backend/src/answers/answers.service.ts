@@ -15,11 +15,15 @@ export class AnswersService {
     gameId: string;
     userId: string;
     text: string;
+    bankAssociationTextId?: string;
   }): Promise<AnswerDocument> {
     const created = new this.answerModel({
       gameId: createDto.gameId as any,
       user: createDto.userId as any,
       text: createDto.text,
+      ...(createDto.bankAssociationTextId && {
+        bankAssociationTextId: createDto.bankAssociationTextId as any,
+      }),
     });
     return created.save();
   }

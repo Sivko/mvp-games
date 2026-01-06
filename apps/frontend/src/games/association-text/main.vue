@@ -23,7 +23,7 @@
       </div>
 
       <!-- Последние события -->
-      <div v-if="recentActions.length > 0" class="bg-telegram-section rounded-lg shadow p-4 mb-4">
+      <!-- <div v-if="recentActions.length > 0" class="bg-telegram-section rounded-lg shadow p-4 mb-4">
         <h3 class="text-lg font-semibold text-telegram-text mb-2">
           Последние события
         </h3>
@@ -33,7 +33,7 @@
               v-if="index < recentActions.length - 1">, </span>
           </template>
         </div>
-      </div>
+      </div> -->
 
       <!-- Игроки в игре -->
       <div v-if="uniquePlayers.length > 0" class="bg-telegram-section rounded-lg shadow p-4 mb-4">

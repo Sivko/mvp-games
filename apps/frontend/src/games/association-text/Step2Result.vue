@@ -139,8 +139,8 @@ onMounted(() => {
   }
 });
 
-// Загружаем ответы при изменении вопроса
-watch(() => props.question, () => {
+// Загружаем ответы при изменении вопроса или gameId
+watch([() => props.question, () => props.gameId], () => {
   if (props.question && props.gameId) {
     currentPage.value = 1;
     loadOtherAnswers(1);

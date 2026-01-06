@@ -10,6 +10,7 @@ export class AnswersController {
     gameId: string;
     userId: string;
     text: string;
+    bankAssociationTextId?: string;
   }) {
     return this.answersService.create(createDto);
   }

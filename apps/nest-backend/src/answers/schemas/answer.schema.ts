@@ -43,6 +43,13 @@ export class Answer {
 
   @Prop({ type: Number, default: 0 })
   score: number;
+
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'BankAssociationText',
+    required: false,
+  })
+  bankAssociationTextId?: MongooseSchema.Types.ObjectId;
 }
 
 export const AnswerSchema = SchemaFactory.createForClass(Answer);

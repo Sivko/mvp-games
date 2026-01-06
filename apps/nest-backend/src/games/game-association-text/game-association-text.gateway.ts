@@ -153,6 +153,12 @@ export class GameAssociationTextGateway
       return;
     }
 
+    // Получаем игру для получения bankAssociationTextId
+    const game = await this.gamesService.findById(gameId);
+    const bankAssociationTextId = game?.usedQuestions && game.usedQuestions.length > 0
+      ? game.usedQuestions[game.usedQuestions.length - 1]
+      : undefined;
+
     // Проверяем, не отправил ли пользователь уже ответ
     const existingAnswer = await this.answersService.findByGameIdAndUserId(
       gameId,
@@ -162,6 +168,9 @@ export class GameAssociationTextGateway
     if (existingAnswer) {
       // Обновляем существующий ответ
       existingAnswer.text = text;
+      if (bankAssociationTextId) {
+        existingAnswer.bankAssociationTextId = bankAssociationTextId as any;
+      }
       await existingAnswer.save();
     } else {
       // Создаем новый ответ
@@ -169,6 +178,7 @@ export class GameAssociationTextGateway
         gameId,
         userId,
         text,
+        bankAssociationTextId,
       });
     }
 
