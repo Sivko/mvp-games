@@ -2,7 +2,12 @@
   <div class="bank-association-text-page">
     <div class="header">
       <h1>Bank Association Text</h1>
-      <button @click="showCreateModal = true" class="btn btn-primary">Create New</button>
+      <div class="header-actions">
+        <button @click="handleImport" class="btn btn-success" :disabled="importing">
+          {{ importing ? 'Импорт...' : 'Сделать импорт' }}
+        </button>
+        <button @click="showCreateModal = true" class="btn btn-primary">Create New</button>
+      </div>
     </div>
 
     <div v-if="loading" class="loading">Loading...</div>
@@ -173,6 +178,7 @@ import { answersApi, type Answer } from '@/api/answersApi';
 const items = ref<BankAssociationText[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const importing = ref(false);
 const showCreateModal = ref(false);
 const editingItem = ref<BankAssociationText | null>(null);
 const currentItem = ref<BankAssociationText | null>(null);
@@ -357,6 +363,37 @@ const closeAnswersModal = () => {
   newAnswer.value = { text: '', score: 0 };
 };
 
+const handleImport = async () => {
+  if (!confirm('Вы уверены? Все существующие записи будут удалены перед импортом новых данных.')) {
+    return;
+  }
+
+  importing.value = true;
+  error.value = null;
+  
+  try {
+    const result = await bankAssociationTextApi.import();
+    
+    if (result.success) {
+      alert(`Импорт успешно завершен!\nИмпортировано вопросов: ${result.imported}\nУдалено записей: ${result.deleted.bankAssociationTexts} вопросов, ${result.deleted.answers} ответов`);
+      await loadItems();
+    } else {
+      const errorMessage = result.errors.length > 0 
+        ? `Ошибки при импорте:\n${result.errors.join('\n')}`
+        : 'Импорт завершен с ошибками';
+      alert(errorMessage);
+      if (result.imported > 0) {
+        await loadItems();
+      }
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to import data';
+    alert(`Ошибка импорта: ${error.value}`);
+  } finally {
+    importing.value = false;
+  }
+};
+
 onMounted(() => {
   loadItems();
 });
@@ -374,6 +411,11 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .header h1 {
@@ -478,6 +520,20 @@ onMounted(() => {
 
 .btn-danger:hover {
   background-color: #d32f2f;
+}
+
+.btn-success {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #45a049;
+}
+
+.btn-success:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
 .btn-sm {

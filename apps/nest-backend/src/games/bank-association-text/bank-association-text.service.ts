@@ -32,6 +32,11 @@ export class BankAssociationTextService {
   async delete(id: string): Promise<BankAssociationTextDocument | null> {
     return this.bankAssociationTextModel.findByIdAndDelete(id).exec();
   }
+
+  async deleteAll(): Promise<{ deletedCount: number }> {
+    const result = await this.bankAssociationTextModel.deleteMany({}).exec();
+    return { deletedCount: result.deletedCount || 0 };
+  }
 }
 
 

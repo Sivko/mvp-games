@@ -12,13 +12,15 @@ export class AnswersService {
   ) {}
 
   async create(createDto: {
-    gameId: string;
+    gameId?: string;
     userId?: string;
     text: string;
     bankAssociationTextId?: string;
   }): Promise<AnswerDocument> {
     const created = new this.answerModel({
-      gameId: createDto.gameId as any,
+      ...(createDto.gameId && {
+        gameId: createDto.gameId as any,
+      }),
       text: createDto.text,
       ...(createDto.userId && {
         user: createDto.userId as any,
@@ -174,6 +176,23 @@ export class AnswersService {
   }
 
   /**
+   * Удаляет все ответы, связанные с bankAssociationTextId
+   * @param bankAssociationTextId - ID записи из банка
+   */
+  async deleteByBankAssociationTextId(bankAssociationTextId: string): Promise<{ deletedCount: number }> {
+    const result = await this.answerModel.deleteMany({ bankAssociationTextId: bankAssociationTextId as any }).exec();
+    return { deletedCount: result.deletedCount || 0 };
+  }
+
+  /**
+   * Удаляет все ответы, которые имеют bankAssociationTextId
+   */
+  async deleteAllWithBankAssociationTextId(): Promise<{ deletedCount: number }> {
+    const result = await this.answerModel.deleteMany({ bankAssociationTextId: { $exists: true, $ne: null } }).exec();
+    return { deletedCount: result.deletedCount || 0 };
+  }
+
+  /**
    * Создает ответ по вопросу (находит или создает игру автоматически)
    * @param question - текст вопроса
    * @param text - текст ответа
@@ -187,33 +206,8 @@ export class AnswersService {
     bankAssociationTextId?: string,
     score?: number,
   ): Promise<AnswerDocument> {
-    // Находим первую игру с таким вопросом
-    let game = await this.gameModel
-      .findOne({ question })
-      .sort({ createdAt: -1 })
-      .exec();
-
-    // Если игры нет, создаем новую
-    if (!game) {
-      // Нужно создать игру, но для этого нужен createdBy
-      // Используем системный ID или создаем без пользователя
-      // Для простоты создадим игру с пустым createdBy (но это может вызвать проблемы)
-      // Лучше использовать специальный системный пользователь или сделать createdBy опциональным
-      // Пока создадим игру с временным ID
-      const tempUserId = '000000000000000000000000'; // Временный ObjectId
-      game = new this.gameModel({
-        typeGame: 'association-text',
-        createdBy: tempUserId as any,
-        status: 'active',
-        question,
-        usedQuestions: bankAssociationTextId ? [bankAssociationTextId] : [],
-      });
-      await game.save();
-    }
-
     // Создаем ответ
     const created = new this.answerModel({
-      gameId: game._id as any,
       text,
       ...(bankAssociationTextId && {
         bankAssociationTextId: bankAssociationTextId as any,

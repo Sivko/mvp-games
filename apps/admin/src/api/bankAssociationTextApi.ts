@@ -61,6 +61,24 @@ export const bankAssociationTextApi = {
       throw new Error('Failed to delete bank association text');
     }
   },
+
+  async import(): Promise<{
+    success: boolean;
+    imported: number;
+    deleted: {
+      bankAssociationTexts: number;
+      answers: number;
+    };
+    errors: string[];
+  }> {
+    const response = await fetch(`${API_BASE_URL}/bank-association-text/import`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to import data');
+    }
+    return response.json();
+  },
 };
 
 

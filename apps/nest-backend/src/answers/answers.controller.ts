@@ -7,7 +7,7 @@ export class AnswersController {
 
   @Post()
   async create(@Body() createDto: {
-    gameId: string;
+    gameId?: string;
     userId?: string;
     text: string;
     bankAssociationTextId?: string;

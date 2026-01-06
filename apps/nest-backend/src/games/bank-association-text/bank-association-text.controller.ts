@@ -9,11 +9,13 @@ import {
 } from '@nestjs/common';
 import { BankAssociationTextService } from './bank-association-text.service';
 import { BankAssociationText } from './schemas/bank-association-text.schema';
+import { ImportDataService } from './import-data.service';
 
 @Controller('bank-association-text')
 export class BankAssociationTextController {
   constructor(
     private readonly bankAssociationTextService: BankAssociationTextService,
+    private readonly importDataService: ImportDataService,
   ) {}
 
   @Post()
@@ -42,6 +44,11 @@ export class BankAssociationTextController {
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return this.bankAssociationTextService.delete(id);
+  }
+
+  @Post('import')
+  async importFromFile() {
+    return this.importDataService.importFromFile();
   }
 }
 

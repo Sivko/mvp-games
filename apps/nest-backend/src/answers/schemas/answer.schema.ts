@@ -8,7 +8,7 @@ export class Answer {
   @Prop({
     type: MongooseSchema.Types.ObjectId,
     ref: 'Game',
-    required: true,
+    required: false,
   })
   gameId?: MongooseSchema.Types.ObjectId;
 
