@@ -1,18 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-export interface Variant {
-  variant: string;
-  score: number;
-  createdAt?: Date;
-  updatedAt?: Date;
-  _id?: string;
-}
-
 export interface BankAssociationText {
   _id?: string;
   question: string;
   status: boolean;
-  variants: Variant[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -69,44 +60,6 @@ export const bankAssociationTextApi = {
     if (!response.ok) {
       throw new Error('Failed to delete bank association text');
     }
-  },
-
-  async addVariant(id: string, variant: { variant: string; score: number }): Promise<BankAssociationText> {
-    const response = await fetch(`${API_BASE_URL}/bank-association-text/${id}/variants`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(variant),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to add variant');
-    }
-    return response.json();
-  },
-
-  async removeVariant(id: string, variantId: string): Promise<BankAssociationText> {
-    const response = await fetch(`${API_BASE_URL}/bank-association-text/${id}/variants/${variantId}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error('Failed to remove variant');
-    }
-    return response.json();
-  },
-
-  async updateVariant(id: string, variantId: string, variant: { variant?: string; score?: number }): Promise<BankAssociationText> {
-    const response = await fetch(`${API_BASE_URL}/bank-association-text/${id}/variants/${variantId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(variant),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to update variant');
-    }
-    return response.json();
   },
 };
 

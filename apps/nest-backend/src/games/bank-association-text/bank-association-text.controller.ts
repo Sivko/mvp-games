@@ -6,7 +6,6 @@ import {
   Delete,
   Body,
   Param,
-  Patch,
 } from '@nestjs/common';
 import { BankAssociationTextService } from './bank-association-text.service';
 import { BankAssociationText } from './schemas/bank-association-text.schema';
@@ -43,31 +42,6 @@ export class BankAssociationTextController {
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return this.bankAssociationTextService.delete(id);
-  }
-
-  @Post(':id/variants')
-  async addVariant(
-    @Param('id') id: string,
-    @Body() variant: { variant: string; score: number },
-  ) {
-    return this.bankAssociationTextService.addVariant(id, variant);
-  }
-
-  @Delete(':id/variants/:variantId')
-  async removeVariant(
-    @Param('id') id: string,
-    @Param('variantId') variantId: string,
-  ) {
-    return this.bankAssociationTextService.removeVariant(id, variantId);
-  }
-
-  @Patch(':id/variants/:variantId')
-  async updateVariant(
-    @Param('id') id: string,
-    @Param('variantId') variantId: string,
-    @Body() variant: { variant?: string; score?: number },
-  ) {
-    return this.bankAssociationTextService.updateVariant(id, variantId, variant);
   }
 }
 

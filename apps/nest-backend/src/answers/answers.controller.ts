@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query, Put, Delete } from '@nestjs/common';
 import { AnswersService } from './answers.service';
 
 @Controller('answers')
@@ -8,7 +8,7 @@ export class AnswersController {
   @Post()
   async create(@Body() createDto: {
     gameId: string;
-    userId: string;
+    userId?: string;
     text: string;
     bankAssociationTextId?: string;
   }) {
@@ -37,9 +37,34 @@ export class AnswersController {
     );
   }
 
+  @Get('by-question/all')
+  async findByQuestion(
+    @Query('question') question: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '50',
+  ) {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 50;
+    return this.answersService.findByQuestion(question, pageNum, limitNum);
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string) {
     return this.answersService.findById(id);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: { text?: string; score?: number },
+  ) {
+    return this.answersService.update(id, updateDto);
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    await this.answersService.delete(id);
+    return { success: true };
   }
 }
 

@@ -3,7 +3,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 export interface Answer {
   _id: string
   gameId: string
-  user: string | {
+  user?: string | {
     _id: string
     name: string
     telegramUsername?: string
@@ -22,7 +22,7 @@ export interface AnswersByQuestionResponse {
 export const answersApi = {
   async createAnswer(data: {
     gameId: string
-    userId: string
+    userId?: string
     text: string
   }): Promise<Answer> {
     const response = await fetch(`${API_BASE_URL}/answers`, {

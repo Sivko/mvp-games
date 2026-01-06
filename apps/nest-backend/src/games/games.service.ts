@@ -198,8 +198,6 @@ export class GamesService {
       return null;
     }
 
-    const userIdObjectId = new Types.ObjectId(userId);
-    
     // Проверяем, не находится ли пользователь в черном списке
     const isBlacklisted = game.blackListUsers.some(
       (id) => id.toString() === userId,
@@ -211,7 +209,7 @@ export class GamesService {
     // Проверяем, не добавлен ли пользователь уже в массив users
     const userExists = game.users.some((id) => id.toString() === userId);
     if (!userExists) {
-      game.users.push(userIdObjectId);
+      game.users.push(userId as any);
       return game.save();
     }
 

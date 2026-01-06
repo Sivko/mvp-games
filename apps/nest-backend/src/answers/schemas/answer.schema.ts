@@ -11,14 +11,14 @@ export class Answer {
     ref: 'Game',
     required: true,
   })
-  gameId: MongooseSchema.Types.ObjectId;
+  gameId?: MongooseSchema.Types.ObjectId;
 
   @Prop({
     type: MongooseSchema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: false,
   })
-  user: MongooseSchema.Types.ObjectId;
+  user?: MongooseSchema.Types.ObjectId;
 
   @Prop({ required: true, type: String })
   text: string;

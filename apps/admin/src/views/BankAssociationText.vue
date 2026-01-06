@@ -14,7 +14,6 @@
           <tr>
             <th>Question</th>
             <th>Status</th>
-            <th>Variants Count</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -26,10 +25,9 @@
                 {{ item.status ? 'Active' : 'Inactive' }}
               </span>
             </td>
-            <td>{{ item.variants?.length || 0 }}</td>
             <td class="actions">
               <button @click="editItem(item)" class="btn btn-sm btn-secondary">Edit</button>
-              <button @click="manageVariants(item)" class="btn btn-sm btn-info">Variants</button>
+              <button @click="manageAnswers(item)" class="btn btn-sm btn-info">Редактирование ответов</button>
               <button @click="deleteItem(item._id!)" class="btn btn-sm btn-danger">Delete</button>
             </td>
           </tr>
@@ -63,32 +61,79 @@
       </div>
     </div>
 
-    <!-- Variants Modal -->
-    <div v-if="showVariantsModal && currentItem" class="modal-overlay" @click="closeVariantsModal">
+    <!-- Answers Modal -->
+    <div v-if="showAnswersModal && currentItem" class="modal-overlay" @click="closeAnswersModal">
       <div class="modal modal-large" @click.stop>
         <div class="modal-header">
-          <h2>Manage Variants - {{ currentItem.question }}</h2>
-          <button @click="closeVariantsModal" class="close-btn">&times;</button>
+          <h2>Редактирование ответов - {{ currentItem.question }}</h2>
+          <button @click="closeAnswersModal" class="close-btn">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="variants-list">
-            <div v-for="(variant, index) in currentItem.variants" :key="variant._id || index" class="variant-item">
-              <input v-model="variant.variant" @blur="updateVariant(variant)" class="form-control" />
-              <input v-model.number="variant.score" @blur="updateVariant(variant)" type="number" class="form-control" />
-              <button @click="removeVariant(variant._id!)" class="btn btn-sm btn-danger">Remove</button>
+          <div v-if="answersLoading" class="loading">Загрузка ответов...</div>
+          <div v-if="answersError" class="error">{{ answersError }}</div>
+          
+          <div v-if="!answersLoading && !answersError" class="answers-container">
+            <div class="answers-header">
+              <p>Всего ответов: {{ answersTotal }}</p>
             </div>
-          </div>
-          <div class="add-variant">
-            <h3>Add New Variant</h3>
-            <div class="form-row">
-              <input v-model="newVariant.variant" placeholder="Variant text" class="form-control" />
-              <input v-model.number="newVariant.score" type="number" placeholder="Score" class="form-control" />
-              <button @click="addVariant" class="btn btn-primary">Add</button>
+            
+            <div class="answers-list">
+              <div v-for="answer in answers" :key="answer._id" class="answer-item">
+                <div class="answer-info">
+                  <div class="answer-text">
+                    <input 
+                      v-model="answer.text" 
+                      @blur="updateAnswer(answer)" 
+                      class="form-control" 
+                    />
+                  </div>
+                  <div class="answer-meta">
+                    <span class="answer-user">
+                      Пользователь: {{ getUserName(answer) }}
+                    </span>
+                    <span class="answer-score">
+                      Оценка: 
+                      <input 
+                        v-model.number="answer.score" 
+                        @blur="updateAnswer(answer)" 
+                        type="number" 
+                        class="form-control form-control-small" 
+                      />
+                    </span>
+                    <span v-if="answer.createdAt" class="answer-date">
+                      {{ formatDate(answer.createdAt) }}
+                    </span>
+                  </div>
+                </div>
+                <button @click="deleteAnswer(answer._id)" class="btn btn-sm btn-danger">Удалить</button>
+              </div>
+            </div>
+
+            <div v-if="answers.length === 0 && !answersLoading" class="no-answers">
+              Ответы не найдены
+            </div>
+
+            <div v-if="answersTotal > answers.length" class="pagination">
+              <button 
+                @click="loadAnswers(currentAnswersPage - 1)" 
+                :disabled="currentAnswersPage === 1"
+                class="btn btn-sm btn-secondary"
+              >
+                Предыдущая
+              </button>
+              <span>Страница {{ currentAnswersPage }} из {{ Math.ceil(answersTotal / answersLimit) }}</span>
+              <button 
+                @click="loadAnswers(currentAnswersPage + 1)" 
+                :disabled="currentAnswersPage >= Math.ceil(answersTotal / answersLimit)"
+                class="btn btn-sm btn-secondary"
+              >
+                Следующая
+              </button>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="closeVariantsModal" class="btn btn-secondary">Close</button>
+          <button @click="closeAnswersModal" class="btn btn-secondary">Close</button>
         </div>
       </div>
     </div>
@@ -97,24 +142,26 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { bankAssociationTextApi, type BankAssociationText, type Variant } from '@/api/bankAssociationTextApi';
+import { bankAssociationTextApi, type BankAssociationText } from '@/api/bankAssociationTextApi';
+import { answersApi, type Answer } from '@/api/answersApi';
 
 const items = ref<BankAssociationText[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const showCreateModal = ref(false);
 const editingItem = ref<BankAssociationText | null>(null);
-const showVariantsModal = ref(false);
 const currentItem = ref<BankAssociationText | null>(null);
+const showAnswersModal = ref(false);
+const answers = ref<Answer[]>([]);
+const answersLoading = ref(false);
+const answersError = ref<string | null>(null);
+const answersTotal = ref(0);
+const currentAnswersPage = ref(1);
+const answersLimit = 50;
 
 const formData = ref<Partial<BankAssociationText>>({
   question: '',
   status: true,
-});
-
-const newVariant = ref<{ variant: string; score: number }>({
-  variant: '',
-  score: 0,
 });
 
 const loadItems = async () => {
@@ -164,59 +211,97 @@ const deleteItem = async (id: string) => {
   }
 };
 
-const manageVariants = (item: BankAssociationText) => {
-  currentItem.value = { ...item };
-  showVariantsModal.value = true;
-};
-
-const addVariant = async () => {
-  if (!newVariant.value.variant || !currentItem.value?._id) return;
-  try {
-    const updated = await bankAssociationTextApi.addVariant(currentItem.value._id, newVariant.value);
-    currentItem.value = updated;
-    newVariant.value = { variant: '', score: 0 };
-    await loadItems();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to add variant';
-  }
-};
-
-const removeVariant = async (variantId: string) => {
-  if (!currentItem.value?._id) return;
-  try {
-    const updated = await bankAssociationTextApi.removeVariant(currentItem.value._id, variantId);
-    currentItem.value = updated;
-    await loadItems();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to remove variant';
-  }
-};
-
-const updateVariant = async (variant: Variant) => {
-  if (!currentItem.value?._id || !variant._id) return;
-  try {
-    const updated = await bankAssociationTextApi.updateVariant(
-      currentItem.value._id,
-      variant._id,
-      { variant: variant.variant, score: variant.score }
-    );
-    currentItem.value = updated;
-    await loadItems();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to update variant';
-  }
-};
-
 const closeModal = () => {
   showCreateModal.value = false;
   editingItem.value = null;
   formData.value = { question: '', status: true };
 };
 
-const closeVariantsModal = () => {
-  showVariantsModal.value = false;
+const manageAnswers = (item: BankAssociationText) => {
+  currentItem.value = item;
+  showAnswersModal.value = true;
+  currentAnswersPage.value = 1;
+  loadAnswers(1);
+};
+
+const loadAnswers = async (page: number) => {
+  if (!currentItem.value?.question) return;
+  
+  answersLoading.value = true;
+  answersError.value = null;
+  try {
+    const response = await answersApi.getByQuestion(
+      currentItem.value.question,
+      page,
+      answersLimit
+    );
+    answers.value = response.answers;
+    answersTotal.value = response.total;
+    currentAnswersPage.value = page;
+  } catch (err) {
+    answersError.value = err instanceof Error ? err.message : 'Failed to load answers';
+  } finally {
+    answersLoading.value = false;
+  }
+};
+
+const updateAnswer = async (answer: Answer) => {
+  try {
+    await answersApi.update(answer._id, {
+      text: answer.text,
+      score: answer.score,
+    });
+    // Обновляем локальный список
+    const index = answers.value.findIndex(a => a._id === answer._id);
+    if (index !== -1) {
+      answers.value[index] = answer;
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to update answer';
+  }
+};
+
+const deleteAnswer = async (answerId: string) => {
+  if (!confirm('Are you sure you want to delete this answer?')) {
+    return;
+  }
+  try {
+    await answersApi.delete(answerId);
+    answers.value = answers.value.filter(a => a._id !== answerId);
+    answersTotal.value--;
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to delete answer';
+  }
+};
+
+const getUserName = (answer: Answer): string => {
+  if (!answer.user) {
+    return 'Неизвестный';
+  }
+  if (typeof answer.user === 'string') {
+    return 'Неизвестный';
+  }
+  if (answer.user.telegramFirstName) {
+    return answer.user.telegramFirstName;
+  }
+  if (answer.user.name) {
+    return answer.user.name;
+  }
+  return 'Неизвестный';
+};
+
+const formatDate = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleString('ru-RU');
+};
+
+const closeAnswersModal = () => {
+  showAnswersModal.value = false;
   currentItem.value = null;
-  newVariant.value = { variant: '', score: 0 };
+  answers.value = [];
+  answersTotal.value = 0;
+  currentAnswersPage.value = 1;
+  answersError.value = null;
 };
 
 onMounted(() => {
@@ -433,31 +518,6 @@ onMounted(() => {
   border-color: #2196f3;
 }
 
-.variants-list {
-  margin-bottom: 20px;
-}
-
-.variant-item {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  align-items: center;
-}
-
-.variant-item .form-control {
-  flex: 1;
-}
-
-.add-variant {
-  padding-top: 20px;
-  border-top: 1px solid #ddd;
-}
-
-.add-variant h3 {
-  margin-top: 0;
-  margin-bottom: 12px;
-}
-
 .form-row {
   display: flex;
   gap: 8px;
@@ -466,6 +526,90 @@ onMounted(() => {
 
 .form-row .form-control {
   flex: 1;
+}
+
+.answers-container {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.answers-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+.answers-header p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.answers-list {
+  margin-bottom: 20px;
+}
+
+.answer-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  align-items: flex-start;
+}
+
+.answer-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.answer-text {
+  width: 100%;
+}
+
+.answer-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #666;
+  align-items: center;
+}
+
+.answer-user,
+.answer-score,
+.answer-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.form-control-small {
+  width: 80px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.no-answers {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
 

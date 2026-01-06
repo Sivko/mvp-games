@@ -170,13 +170,16 @@ const loadOtherAnswers = async (page: number) => {
 };
 
 const getUserName = (answer: Answer): string => {
+  if (!answer.user) {
+    return 'Неизвестный';
+  }
   if (typeof answer.user === 'string') {
     return 'Неизвестный';
   }
-  if (answer.user?.telegramFirstName) {
+  if (answer.user.telegramFirstName) {
     return answer.user.telegramFirstName;
   }
-  if (answer.user?.name) {
+  if (answer.user.name) {
     return answer.user.name;
   }
   return 'Неизвестный';
