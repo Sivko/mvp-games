@@ -35,7 +35,7 @@
       <!-- Фрейм 1: Ввод ответа -->
       <Step1Input v-if="phase === 'input'" :question="currentQuestion" :timer-ends-at="timerEndsAt"
         :ready-count="readyCount" :online-users-count="onlineUsersCount" :answer-submitted="answerSubmitted"
-        :current-time="currentTime" @submit="handleSubmitAnswer" />
+        :current-time="currentTime" :bank-association-text-id="bankAssociationTextId" @submit="handleSubmitAnswer" />
 
       <!-- Фрейм 2: Результаты -->
       <Step2Result v-if="phase === 'results'" :timer-ends-at="timerEndsAt" :ready-count="readyCount"
@@ -94,6 +94,7 @@ const readyCount = ref(0);
 const readyForNextRound = ref(false);
 const recentActions = ref<string[]>([]);
 const MAX_ACTIONS = 10; // Максимальное количество отображаемых событий
+const bankAssociationTextId = ref<string | undefined>(undefined);
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -111,6 +112,21 @@ onMounted(async () => {
     reactionTypes.value = await reactionTypesApi.getAll();
   } catch (error) {
     console.error('Failed to load reaction types:', error);
+  }
+
+  // Загружаем игру для получения bankAssociationTextId
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
+    if (gameResponse.ok) {
+      const game = await gameResponse.json();
+      // Получаем последний использованный вопрос (последний элемент массива usedQuestions)
+      if (game.usedQuestions && game.usedQuestions.length > 0) {
+        bankAssociationTextId.value = game.usedQuestions[game.usedQuestions.length - 1];
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load game:', error);
   }
 
   // Подключаемся к WebSocket

@@ -1,7 +1,10 @@
 <template>
   <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
     <div class="mb-4">
-      <h2 class="text-2xl font-bold text-telegram-text mb-4">
+      <h2 
+        class="text-2xl font-bold text-telegram-text mb-4 cursor-pointer hover:opacity-80 transition-opacity"
+        @click="showComplainModal = true"
+      >
         {{ question }}
       </h2>
       <div class="text-telegram-text-secondary mb-4">
@@ -24,12 +27,23 @@
         <BsSend />
       </button>
     </div>
+
+    <!-- Модальное окно для жалобы -->
+    <ComplainModal
+      v-model:visible="showComplainModal"
+      :question="question"
+      :user-id="userId || ''"
+      :bank-association-text-id="bankAssociationTextId"
+      @complained="handleComplained"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { BsSend } from 'vue-icons-plus/bs';
+import ComplainModal from './ComplainModal.vue';
+import { useUser } from '../../composables/useUser';
 
 const props = defineProps<{
   question: string;
@@ -38,7 +52,12 @@ const props = defineProps<{
   onlineUsersCount: number;
   answerSubmitted: boolean;
   currentTime: number;
+  bankAssociationTextId?: string;
 }>();
+
+const { getCurrentUserId } = useUser();
+const userId = ref<string | null>(getCurrentUserId());
+const showComplainModal = ref(false);
 
 const emit = defineEmits<{
   (e: 'submit', text: string): void;
@@ -65,6 +84,11 @@ watch(() => props.answerSubmitted, (newVal) => {
     answerText.value = '';
   }
 });
+
+const handleComplained = () => {
+  // Можно добавить уведомление об успешной отправке жалобы
+  console.log('Жалоба отправлена');
+};
 </script>
 
 <style scoped></style>

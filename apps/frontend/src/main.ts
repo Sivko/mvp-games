@@ -3,6 +3,8 @@ import App from './App.vue'
 import router from './router'
 import './assets/main.css'
 import { initTelegramTheme } from './utils/telegramTheme'
+import { createBottomSheet } from 'bottom-sheet-vue3'
+import 'bottom-sheet-vue3/style.css'
 
 // Инициализируем тему Telegram перед монтированием приложения
 initTelegramTheme()
@@ -10,5 +12,6 @@ initTelegramTheme()
 const app = createApp(App)
 
 app.use(router)
+app.use(createBottomSheet())
 
 app.mount('#app')
