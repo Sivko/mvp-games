@@ -33,4 +33,21 @@ export const gamesApi = {
     const data = await response.json()
     return data || []
   },
+
+  async getActiveGamesByParticipant(userId: string): Promise<Game[]> {
+    const response = await fetch(`${API_BASE_URL}/games/user/${userId}/participant`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch games')
+    }
+    const data = await response.json()
+    return data || []
+  },
+
+  async getGameByInvite(inviteUserId: string, typeGame: string): Promise<Game> {
+    const response = await fetch(`${API_BASE_URL}/games/invite/${inviteUserId}/${typeGame}`)
+    if (!response.ok) {
+      throw new Error('Game not found')
+    }
+    return response.json()
+  },
 }

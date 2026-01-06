@@ -71,5 +71,39 @@ export class GamesController {
     };
   }
 
+  @Get('user/:userId/participant')
+  async getActiveGamesByParticipant(@Param('userId') userId: string) {
+    const games = await this.gamesService.findActiveGamesByParticipant(userId);
+    return games.map((game) => ({
+      _id: game._id.toString(),
+      typeGame: game.typeGame,
+      createdBy: game.createdBy.toString(),
+      status: game.status,
+      gamesCount: game.gamesCount,
+      question: game.question,
+      usedQuestions: game.usedQuestions,
+    }));
+  }
+
+  @Get('invite/:inviteUserId/:typeGame')
+  async getGameByInvite(
+    @Param('inviteUserId') inviteUserId: string,
+    @Param('typeGame') typeGame: string,
+  ) {
+    const game = await this.gamesService.findActiveGameByInvite(inviteUserId, typeGame);
+    if (!game) {
+      throw new Error('Game not found');
+    }
+    return {
+      _id: game._id.toString(),
+      typeGame: game.typeGame,
+      createdBy: game.createdBy.toString(),
+      status: game.status,
+      gamesCount: game.gamesCount,
+      question: game.question,
+      usedQuestions: game.usedQuestions,
+    };
+  }
+
 }
 

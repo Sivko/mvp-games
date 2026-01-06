@@ -215,5 +215,33 @@ export class GamesService {
 
     return game;
   }
+
+  /**
+   * Находит все активные игры, где пользователь является участником (в массиве users)
+   */
+  async findActiveGamesByParticipant(userId: string): Promise<GameDocument[]> {
+    return this.gameModel
+      .find({
+        users: userId as any,
+        status: { $ne: 'disabled' },
+      })
+      .sort({ createdAt: -1 }) // Сортируем по дате создания (новые первыми)
+      .exec();
+  }
+
+  /**
+   * Проверяет существование активной игры по invite-коду (формат: userId/game/typeGame)
+   * Возвращает игру, если она существует и активна
+   */
+  async findActiveGameByInvite(inviteUserId: string, typeGame: string): Promise<GameDocument | null> {
+    return this.gameModel
+      .findOne({
+        createdBy: inviteUserId as any,
+        typeGame,
+        status: { $ne: 'disabled' },
+      })
+      .sort({ createdAt: -1 }) // Берем самую новую игру
+      .exec();
+  }
 }
 
