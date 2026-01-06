@@ -15,6 +15,21 @@ export class AnswersController {
     return this.answersService.create(createDto);
   }
 
+  @Post('by-question')
+  async createByQuestion(@Body() createDto: {
+    question: string;
+    text: string;
+    bankAssociationTextId?: string;
+    score?: number;
+  }) {
+    return this.answersService.createByQuestion(
+      createDto.question,
+      createDto.text,
+      createDto.bankAssociationTextId,
+      createDto.score,
+    );
+  }
+
   @Get('game/:gameId')
   async findByGameId(@Param('gameId') gameId: string) {
     return this.answersService.findByGameId(gameId);

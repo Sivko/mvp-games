@@ -172,5 +172,55 @@ export class AnswersService {
   async delete(id: string): Promise<void> {
     await this.answerModel.findByIdAndDelete(id).exec();
   }
+
+  /**
+   * Создает ответ по вопросу (находит или создает игру автоматически)
+   * @param question - текст вопроса
+   * @param text - текст ответа
+   * @param bankAssociationTextId - ID записи из банка (опционально)
+   * @param score - оценка ответа (опционально)
+   * @returns созданный ответ
+   */
+  async createByQuestion(
+    question: string,
+    text: string,
+    bankAssociationTextId?: string,
+    score?: number,
+  ): Promise<AnswerDocument> {
+    // Находим первую игру с таким вопросом
+    let game = await this.gameModel
+      .findOne({ question })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Если игры нет, создаем новую
+    if (!game) {
+      // Нужно создать игру, но для этого нужен createdBy
+      // Используем системный ID или создаем без пользователя
+      // Для простоты создадим игру с пустым createdBy (но это может вызвать проблемы)
+      // Лучше использовать специальный системный пользователь или сделать createdBy опциональным
+      // Пока создадим игру с временным ID
+      const tempUserId = '000000000000000000000000'; // Временный ObjectId
+      game = new this.gameModel({
+        typeGame: 'association-text',
+        createdBy: tempUserId as any,
+        status: 'active',
+        question,
+        usedQuestions: bankAssociationTextId ? [bankAssociationTextId] : [],
+      });
+      await game.save();
+    }
+
+    // Создаем ответ
+    const created = new this.answerModel({
+      gameId: game._id as any,
+      text,
+      ...(bankAssociationTextId && {
+        bankAssociationTextId: bankAssociationTextId as any,
+      }),
+      ...(score !== undefined && { score }),
+    });
+    return created.save();
+  }
 }
 

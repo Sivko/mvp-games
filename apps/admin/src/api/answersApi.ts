@@ -70,5 +70,24 @@ export const answersApi = {
       throw new Error('Failed to delete answer');
     }
   },
+
+  async createByQuestion(data: {
+    question: string;
+    text: string;
+    bankAssociationTextId?: string;
+    score?: number;
+  }): Promise<Answer> {
+    const response = await fetch(`${API_BASE_URL}/answers/by-question`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create answer');
+    }
+    return response.json();
+  },
 };
 

@@ -76,6 +76,26 @@
             <div class="answers-header">
               <p>Всего ответов: {{ answersTotal }}</p>
             </div>
+
+            <!-- Add New Answer Form -->
+            <div class="add-answer">
+              <h3>Добавить новый ответ</h3>
+              <div class="form-row">
+                <input 
+                  v-model="newAnswer.text" 
+                  placeholder="Текст ответа" 
+                  class="form-control" 
+                  @keyup.enter="createAnswer"
+                />
+                <input 
+                  v-model.number="newAnswer.score" 
+                  type="number" 
+                  placeholder="Оценка" 
+                  class="form-control form-control-small" 
+                />
+                <button @click="createAnswer" class="btn btn-primary">Добавить</button>
+              </div>
+            </div>
             
             <div class="answers-list">
               <div v-for="answer in answers" :key="answer._id" class="answer-item">
@@ -162,6 +182,11 @@ const answersLimit = 50;
 const formData = ref<Partial<BankAssociationText>>({
   question: '',
   status: true,
+});
+
+const newAnswer = ref<{ text: string; score: number }>({
+  text: '',
+  score: 0,
 });
 
 const loadItems = async () => {
@@ -274,6 +299,28 @@ const deleteAnswer = async (answerId: string) => {
   }
 };
 
+const createAnswer = async () => {
+  if (!newAnswer.value.text || !currentItem.value?.question) return;
+  
+  try {
+    const created = await answersApi.createByQuestion({
+      question: currentItem.value.question,
+      text: newAnswer.value.text,
+      bankAssociationTextId: currentItem.value._id,
+      score: newAnswer.value.score || 0,
+    });
+    
+    // Добавляем новый ответ в начало списка
+    answers.value.unshift(created);
+    answersTotal.value++;
+    
+    // Очищаем форму
+    newAnswer.value = { text: '', score: 0 };
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to create answer';
+  }
+};
+
 const getUserName = (answer: Answer): string => {
   if (!answer.user) {
     return 'Неизвестный';
@@ -302,6 +349,7 @@ const closeAnswersModal = () => {
   answersTotal.value = 0;
   currentAnswersPage.value = 1;
   answersError.value = null;
+  newAnswer.value = { text: '', score: 0 };
 };
 
 onMounted(() => {
@@ -542,6 +590,20 @@ onMounted(() => {
 .answers-header p {
   margin: 0;
   font-weight: 500;
+}
+
+.add-answer {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.add-answer h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 16px;
 }
 
 .answers-list {
