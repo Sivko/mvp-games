@@ -63,6 +63,21 @@ export class AnswersController {
     return this.answersService.findByQuestion(question, pageNum, limitNum);
   }
 
+  @Get('by-bank-association-text-id/:bankAssociationTextId')
+  async findByBankAssociationTextId(
+    @Param('bankAssociationTextId') bankAssociationTextId: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '50',
+  ) {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 50;
+    return this.answersService.findByBankAssociationTextId(
+      bankAssociationTextId,
+      pageNum,
+      limitNum,
+    );
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string) {
     return this.answersService.findById(id);

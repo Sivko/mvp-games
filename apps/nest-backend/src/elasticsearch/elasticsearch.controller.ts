@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body } from '@nestjs/common';
 import { ElasticsearchService } from './elasticsearch.service';
 
 @Controller('elasticsearch')
@@ -14,6 +14,21 @@ export class ElasticsearchController {
     return this.elasticsearchService.getUniqueWords(
       sizeNumber,
       bankAssociationTextId,
+    );
+  }
+
+  @Post('calculate-score')
+  async calculateScore(
+    @Body() body: {
+      bankAssociationTextId: string;
+      text: string;
+      answerId?: string;
+    },
+  ) {
+    return this.elasticsearchService.calculateScore(
+      body.bankAssociationTextId,
+      body.text,
+      body.answerId,
     );
   }
 

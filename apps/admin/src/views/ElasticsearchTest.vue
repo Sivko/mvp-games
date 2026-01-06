@@ -40,6 +40,55 @@
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="initMessage" class="success">{{ initMessage }}</div>
 
+    <!-- Форма для тестирования Score -->
+    <div class="form-container">
+      <h2>Тестирование Score</h2>
+      <div class="form-group">
+        <label>Bank Association Text ID <span class="required">*</span></label>
+        <input
+          v-model="scoreForm.bankAssociationTextId"
+          type="text"
+          class="form-control"
+          placeholder="Введите ID вопроса"
+        />
+      </div>
+      <div class="form-group">
+        <label>Text (текст ответа) <span class="required">*</span></label>
+        <input
+          v-model="scoreForm.text"
+          type="text"
+          class="form-control"
+          placeholder="Введите текст ответа"
+        />
+      </div>
+      <div class="form-group">
+        <label>Answer ID (опционально)</label>
+        <input
+          v-model="scoreForm.answerId"
+          type="text"
+          class="form-control"
+          placeholder="Введите ID ответа (необязательно)"
+        />
+      </div>
+      <div class="form-actions">
+        <button @click="calculateScore" class="btn btn-success" :disabled="scoreLoading || !scoreForm.bankAssociationTextId || !scoreForm.text">
+          {{ scoreLoading ? 'Вычисление...' : 'Вычислить Score' }}
+        </button>
+        <button @click="clearScoreData" class="btn btn-secondary" :disabled="!scoreResult">
+          Очистить
+        </button>
+      </div>
+    </div>
+
+    <div v-if="scoreError" class="error">{{ scoreError }}</div>
+    <div v-if="scoreResult" class="response-container">
+      <div class="response-header">
+        <h2>Результат Score</h2>
+        <button @click="copyScoreToClipboard" class="btn btn-sm btn-secondary">Копировать JSON</button>
+      </div>
+      <pre class="json-output">{{ formattedScoreJson }}</pre>
+    </div>
+
     <div v-if="responseData" class="response-container">
       <div class="response-header">
         <h2>Ответ (JSON)</h2>
@@ -52,19 +101,34 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { elasticsearchApi } from '@/api/elasticsearchApi';
+import { elasticsearchApi, type WordCount } from '@/api/elasticsearchApi';
 
 const bankAssociationTextId = ref<string>('');
 const size = ref<number | undefined>(undefined);
 const loading = ref(false);
 const initializing = ref(false);
 const error = ref<string | null>(null);
-const responseData = ref<any>(null);
+const responseData = ref<WordCount[] | null>(null);
 const initMessage = ref<string | null>(null);
+
+// Score form
+const scoreForm = ref({
+  bankAssociationTextId: '',
+  text: '',
+  answerId: '',
+});
+const scoreLoading = ref(false);
+const scoreError = ref<string | null>(null);
+const scoreResult = ref<{ score: number } | null>(null);
 
 const formattedJson = computed(() => {
   if (!responseData.value) return '';
   return JSON.stringify(responseData.value, null, 2);
+});
+
+const formattedScoreJson = computed(() => {
+  if (!scoreResult.value) return '';
+  return JSON.stringify(scoreResult.value, null, 2);
 });
 
 const fetchData = async () => {
@@ -115,6 +179,44 @@ const clearData = () => {
 const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(formattedJson.value);
+    alert('JSON скопирован в буфер обмена');
+  } catch (err) {
+    console.error('Failed to copy to clipboard:', err);
+  }
+};
+
+const calculateScore = async () => {
+  if (!scoreForm.value.bankAssociationTextId || !scoreForm.value.text) {
+    scoreError.value = 'Пожалуйста, заполните обязательные поля';
+    return;
+  }
+
+  scoreLoading.value = true;
+  scoreError.value = null;
+  scoreResult.value = null;
+
+  try {
+    const result = await elasticsearchApi.calculateScore({
+      bankAssociationTextId: scoreForm.value.bankAssociationTextId,
+      text: scoreForm.value.text,
+      answerId: scoreForm.value.answerId || undefined,
+    });
+    scoreResult.value = result;
+  } catch (err) {
+    scoreError.value = err instanceof Error ? err.message : 'Failed to calculate score';
+  } finally {
+    scoreLoading.value = false;
+  }
+};
+
+const clearScoreData = () => {
+  scoreResult.value = null;
+  scoreError.value = null;
+};
+
+const copyScoreToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(formattedScoreJson.value);
     alert('JSON скопирован в буфер обмена');
   } catch (err) {
     console.error('Failed to copy to clipboard:', err);
@@ -266,9 +368,29 @@ const copyToClipboard = async () => {
   background-color: #f57c00;
 }
 
+.btn-success {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
 .btn-sm {
   padding: 4px 8px;
   font-size: 12px;
+}
+
+.required {
+  color: #f44336;
+}
+
+.form-container h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 20px;
+  color: #333;
 }
 </style>
 

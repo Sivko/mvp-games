@@ -89,5 +89,23 @@ export const answersApi = {
     }
     return response.json();
   },
+
+  async getByBankAssociationTextId(
+    bankAssociationTextId: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<AnswersByQuestionResponse> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    const response = await fetch(
+      `${API_BASE_URL}/answers/by-bank-association-text-id/${bankAssociationTextId}?${params}`,
+    );
+    if (!response.ok) {
+      throw new Error('Failed to fetch answers by bank association text id');
+    }
+    return response.json();
+  },
 };
 

@@ -93,6 +93,9 @@ export class ElasticsearchService implements OnModuleInit {
         mappings: {
           properties: {
             text: {
+              type: 'keyword', // Исходное значение как keyword для получения точного текста
+            },
+            elastiText: {
               type: 'text',
               analyzer: 'russian_analyzer',
               fielddata: true, // Включаем fielddata для агрегаций по токенам
@@ -134,7 +137,8 @@ export class ElasticsearchService implements OnModuleInit {
             },
           },
           {
-            text: answer.text,
+            text: answer.text, // Исходное значение
+            elastiText: answer.text, // Анализируемое значение для агрегации
             bankAssociationTextId: answer.bankAssociationTextId
               ? answer.bankAssociationTextId.toString()
               : null,
@@ -181,10 +185,10 @@ export class ElasticsearchService implements OnModuleInit {
                 bankAssociationTextId: bankAssociationTextId,
               },
             },
-            // Не строгая проверка text с fuzzy
+            // Не строгая проверка elastiText с fuzzy
             {
               match: {
-                text: {
+                elastiText: {
                   query: text,
                   fuzziness: 1,
                 },
@@ -240,10 +244,21 @@ export class ElasticsearchService implements OnModuleInit {
         aggs: {
           unique_words: {
             terms: {
-              field: 'text',
+              field: 'elastiText', // Используем elastiText для агрегации
               size: size,
               order: {
                 _count: 'desc', // Сортировка по количеству (от большего к меньшему)
+              },
+            },
+            aggs: {
+              // Вложенная агрегация для получения первого исходного документа
+              top_text_hits: {
+                top_hits: {
+                  size: 1, // Берем только первый документ
+                  _source: {
+                    includes: ['text'], // Получаем только поле text из исходного документа
+                  },
+                },
               },
             },
           },
@@ -252,16 +267,98 @@ export class ElasticsearchService implements OnModuleInit {
 
       const buckets = (response.aggregations?.unique_words as any)?.buckets || [];
 
-      return buckets.map((bucket: any) => ({
-        text: bucket.key as string,
-        count: bucket.doc_count as number,
-      }));
+      // Используем Map для дедупликации по исходному тексту
+      const uniqueTextsMap = new Map<string, number>();
+
+      buckets.forEach((bucket: any) => {
+        // Получаем первый исходный текст из top_hits
+        const topHit = bucket.top_text_hits?.hits?.hits?.[0];
+        const originalText = topHit?._source?.text || bucket.key;
+
+        // Если текст уже есть, суммируем счетчики
+        const currentCount = uniqueTextsMap.get(originalText) || 0;
+        uniqueTextsMap.set(originalText, currentCount + bucket.doc_count);
+      });
+
+      // Преобразуем Map в массив и сортируем по убыванию count
+      return Array.from(uniqueTextsMap.entries())
+        .map(([text, count]) => ({
+          text,
+          count,
+        }))
+        .sort((a, b) => b.count - a.count);
     } catch (error) {
       this.logger.error(
         `Ошибка при получении уникальных слов из Elasticsearch: ${error.message}`,
         error.stack,
       );
       throw error;
+    }
+  }
+
+  /**
+   * Подсчитывает score для ответа на основе его популярности среди топ-20 вариантов
+   * @param bankAssociationTextId - ID вопроса из банка
+   * @param text - текст ответа
+   * @param answerId - ID ответа (не используется, но может быть полезен для логирования)
+   * @returns объект с score (процент от 0 до 100)
+   */
+  async calculateScore(
+    bankAssociationTextId: string,
+    text: string,
+    answerId?: string,
+  ): Promise<{ score: number }> {
+    try {
+      // Получаем топ-20 уникальных слов для данного bankAssociationTextId
+      const top20 = await this.getUniqueWords(20, bankAssociationTextId);
+
+      if (top20.length === 0) {
+        return { score: 0 };
+      }
+
+      // Ищем текущий текст в топ-20
+      const currentItem = top20.find((item) => item.text === text);
+
+      if (!currentItem) {
+        return { score: 0 };
+      }
+
+      // Вычисляем общую сумму count для топ-20
+      const totalCount = top20.reduce((sum, item) => sum + item.count, 0);
+
+      if (totalCount === 0) {
+        return { score: 0 };
+      }
+
+      // Вычисляем процент текущего count от общего
+      const countPercent = (currentItem.count / totalCount) * 100;
+      const finalScore = Math.round(countPercent * 100) / 100; // Округляем до 2 знаков после запятой
+
+      // Если указан answerId, обновляем запись в БД
+      if (answerId) {
+        try {
+          await this.answerModel.findByIdAndUpdate(
+            answerId,
+            { score: finalScore },
+            { new: true },
+          ).exec();
+          this.logger.log(`Score ${finalScore} сохранен для answerId: ${answerId}`);
+        } catch (dbError) {
+          this.logger.warn(
+            `Не удалось сохранить score в БД для answerId ${answerId}: ${dbError.message}`,
+          );
+          // Продолжаем выполнение, даже если не удалось сохранить в БД
+        }
+      }
+
+      return { score: finalScore };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при подсчете score: ${error.message}`,
+        error.stack,
+      );
+      // В случае ошибки возвращаем score: 0
+      return { score: 0 };
     }
   }
 }

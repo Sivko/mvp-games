@@ -261,13 +261,14 @@ const manageAnswers = (item: BankAssociationText) => {
 };
 
 const loadAnswers = async (page: number) => {
-  if (!currentItem.value?.question) return;
+  if (!currentItem.value?._id) return;
   
   answersLoading.value = true;
   answersError.value = null;
   try {
-    const response = await answersApi.getByQuestion(
-      currentItem.value.question,
+    // Используем поиск по bankAssociationTextId вместо поиска по вопросу
+    const response = await answersApi.getByBankAssociationTextId(
+      currentItem.value._id,
       page,
       answersLimit
     );

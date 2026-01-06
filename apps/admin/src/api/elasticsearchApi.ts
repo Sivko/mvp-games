@@ -42,5 +42,24 @@ export const elasticsearchApi = {
     }
     return response.json();
   },
+
+  async calculateScore(data: {
+    bankAssociationTextId: string;
+    text: string;
+    answerId?: string;
+  }): Promise<{ score: number }> {
+    const response = await fetch(`${API_BASE_URL}/elasticsearch/calculate-score`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to calculate score' }));
+      throw new Error(error.message || 'Failed to calculate score');
+    }
+    return response.json();
+  },
 };
 

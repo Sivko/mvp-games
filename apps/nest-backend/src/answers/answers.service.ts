@@ -107,6 +107,7 @@ export class AnswersService {
 
   /**
    * Получает все ответы по вопросу (для админки)
+   * Ищет ответы через игры и также напрямую по bankAssociationTextId
    * @param question - текст вопроса
    * @param page - номер страницы (начиная с 1)
    * @param limit - количество ответов на странице
@@ -127,16 +128,21 @@ export class AnswersService {
 
     const matchingGameIds = matchingGames.map((game) => game._id);
 
-    if (matchingGameIds.length === 0) {
-      return { answers: [], total: 0 };
-    }
-
     // Вычисляем skip для пагинации
     const skip = (page - 1) * limit;
 
-    // Получаем ответы из найденных игр с пагинацией
+    // Создаем запрос: ответы из игр ИЛИ ответы без gameId (но с bankAssociationTextId)
+    const query: any = {
+      $or: [
+        ...(matchingGameIds.length > 0 ? [{ gameId: { $in: matchingGameIds as any } }] : []),
+        { gameId: { $exists: false } },
+        { gameId: null },
+      ],
+    };
+
+    // Получаем ответы с пагинацией
     const answers = await this.answerModel
-      .find({ gameId: { $in: matchingGameIds as any } })
+      .find(query)
       .populate('user', 'name telegramUsername telegramFirstName')
       .skip(skip)
       .limit(limit)
@@ -145,7 +151,39 @@ export class AnswersService {
 
     // Получаем общее количество ответов
     const total = await this.answerModel
-      .countDocuments({ gameId: { $in: matchingGameIds as any } })
+      .countDocuments(query)
+      .exec();
+
+    return { answers, total };
+  }
+
+  /**
+   * Получает все ответы по bankAssociationTextId (для админки)
+   * @param bankAssociationTextId - ID записи из банка
+   * @param page - номер страницы (начиная с 1)
+   * @param limit - количество ответов на странице
+   * @returns объект с ответами и общим количеством
+   */
+  async findByBankAssociationTextId(
+    bankAssociationTextId: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{ answers: AnswerDocument[]; total: number }> {
+    // Вычисляем skip для пагинации
+    const skip = (page - 1) * limit;
+
+    // Получаем ответы напрямую по bankAssociationTextId
+    const answers = await this.answerModel
+      .find({ bankAssociationTextId: bankAssociationTextId as any })
+      .populate('user', 'name telegramUsername telegramFirstName')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 }) // Сортируем по дате создания (новые первыми)
+      .exec();
+
+    // Получаем общее количество ответов
+    const total = await this.answerModel
+      .countDocuments({ bankAssociationTextId: bankAssociationTextId as any })
       .exec();
 
     return { answers, total };
