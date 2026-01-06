@@ -12,6 +12,9 @@
           <router-link to="/reaction-types" class="nav-link">
             Reaction Types
           </router-link>
+          <router-link to="/elasticsearch-test" class="nav-link">
+            Elasticsearch Test
+          </router-link>
         </div>
       </div>
     </nav>

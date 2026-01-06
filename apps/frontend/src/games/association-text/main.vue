@@ -61,6 +61,7 @@
         :online-users-count="onlineUsersCount" :ready-for-next-round="readyForNextRound" :answers="answers"
         :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactionsObject"
         :current-time="currentTime" :game-id="props.gameId" :question="currentQuestion"
+        :bank-association-text-id="bankAssociationTextId"
         @toggle-reaction="toggleReaction" @mark-ready="markReady" />
     </div>
   </div>

@@ -66,6 +66,24 @@
             </div>
           </div>
 
+          <!-- Уникальные слова с подсчетом -->
+          <div v-if="uniqueWords.length > 0" class="mt-4">
+            <div class="text-center mb-2 text-telegram-text-secondary text-sm">
+              Популярные слова
+            </div>
+            <div class="space-y-2">
+              <div v-for="word in uniqueWords" :key="word.text"
+                class="px-2 pt-2 bg-telegram-bg-secondary rounded-lg flex justify-between">
+                <div class="text-telegram-text font-semibold">
+                  {{ word.text }}
+                </div>
+                <div class="text-telegram-text-secondary">
+                  {{ word.count }}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Пагинация -->
           <div v-if="totalOtherAnswers > limit" class="flex justify-center items-center gap-2 mt-4">
             <button
@@ -105,6 +123,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { getReactionImageUrl } from '../../utils/reactions';
 import { answersApi, type Answer } from '../../api/answersApi';
+import { elasticsearchApi, type WordCount } from '../../api/elasticsearchApi';
 
 const props = defineProps<{
   timerEndsAt: number | null;
@@ -117,6 +136,7 @@ const props = defineProps<{
   currentTime: number;
   gameId: string;
   question: string;
+  bankAssociationTextId?: string;
 }>();
 
 // Состояние для ответов других пользователей
@@ -125,6 +145,10 @@ const loadingOtherAnswers = ref(false);
 const currentPage = ref(1);
 const totalOtherAnswers = ref(0);
 const limit = 10;
+
+// Состояние для уникальных слов
+const uniqueWords = ref<WordCount[]>([]);
+const loadingUniqueWords = ref(false);
 
 const totalPages = computed(() => Math.ceil(totalOtherAnswers.value / limit));
 
@@ -135,14 +159,16 @@ onMounted(() => {
   // Загружаем ответы других пользователей при монтировании
   if (props.question && props.gameId) {
     loadOtherAnswers(1);
+    loadUniqueWords();
   }
 });
 
 // Загружаем ответы при изменении вопроса или gameId
-watch([() => props.question, () => props.gameId], () => {
+watch([() => props.question, () => props.gameId, () => props.bankAssociationTextId], () => {
   if (props.question && props.gameId) {
     currentPage.value = 1;
     loadOtherAnswers(1);
+    loadUniqueWords();
   }
 });
 
@@ -183,6 +209,22 @@ const getUserName = (answer: Answer): string => {
     return answer.user.name;
   }
   return 'Неизвестный';
+};
+
+const loadUniqueWords = async () => {
+  loadingUniqueWords.value = true;
+  try {
+    const words = await elasticsearchApi.getUniqueWords(
+      100, // Максимум 100 слов
+      props.bankAssociationTextId,
+    );
+    uniqueWords.value = words;
+  } catch (error) {
+    console.error('Failed to load unique words:', error);
+    uniqueWords.value = [];
+  } finally {
+    loadingUniqueWords.value = false;
+  }
 };
 
 const emit = defineEmits<{

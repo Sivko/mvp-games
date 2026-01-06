@@ -14,7 +14,7 @@ export interface WordCount {
 export class ElasticsearchService implements OnModuleInit {
   private readonly logger = new Logger(ElasticsearchService.name);
   private client: Client;
-  private readonly indexName = 'popularAnswers';
+  private readonly indexName = 'popularanswers';
 
   constructor(
     private configService: ConfigService,
@@ -36,7 +36,7 @@ export class ElasticsearchService implements OnModuleInit {
 
   /**
    * Метод инициализации:
-   * - Удаляет индекс "popularAnswers"
+   * - Удаляет индекс "popularanswers"
    * - Сохраняет все answers из MongoDB (только поля text и bankAssociationTextId)
    * - Настраивает индекс для text: русские синонимы, корень слова, фуззи 1
    */
@@ -95,6 +95,7 @@ export class ElasticsearchService implements OnModuleInit {
             text: {
               type: 'text',
               analyzer: 'russian_analyzer',
+              fielddata: true, // Включаем fielddata для агрегаций по токенам
               fields: {
                 fuzzy: {
                   type: 'text',
@@ -209,13 +210,33 @@ export class ElasticsearchService implements OnModuleInit {
    * Получает уникальный список слов из индекса с подсчетом их использования
    * Слова приводятся к базовой форме благодаря русскому стеммеру
    * @param size - максимальное количество уникальных слов (по умолчанию 10000)
+   * @param bankAssociationTextId - опциональный фильтр по bankAssociationTextId (строгая проверка)
    * @returns массив объектов {text: string, count: number}
    */
-  async getUniqueWords(size: number = 10000): Promise<WordCount[]> {
+  async getUniqueWords(
+    size: number = 10000,
+    bankAssociationTextId?: string,
+  ): Promise<WordCount[]> {
     try {
+      const query: any = {};
+
+      // Добавляем фильтр по bankAssociationTextId, если он передан
+      if (bankAssociationTextId) {
+        query.bool = {
+          must: [
+            {
+              term: {
+                bankAssociationTextId: bankAssociationTextId,
+              },
+            },
+          ],
+        };
+      }
+
       const response = await this.client.search({
         index: this.indexName,
         size: 0, // Не возвращаем документы, только агрегации
+        ...(Object.keys(query).length > 0 && { query }),
         aggs: {
           unique_words: {
             terms: {

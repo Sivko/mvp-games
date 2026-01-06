@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import BankAssociationText from '@/views/BankAssociationText.vue'
 import ReactionTypes from '@/views/ReactionTypes.vue'
+import ElasticsearchTest from '@/views/ElasticsearchTest.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,6 +19,11 @@ const router = createRouter({
       path: '/reaction-types',
       name: 'ReactionTypes',
       component: ReactionTypes,
+    },
+    {
+      path: '/elasticsearch-test',
+      name: 'ElasticsearchTest',
+      component: ElasticsearchTest,
     },
   ],
 })

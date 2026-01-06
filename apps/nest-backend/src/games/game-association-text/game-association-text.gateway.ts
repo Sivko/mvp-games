@@ -367,11 +367,12 @@ export class GameAssociationTextGateway
     // Загружаем имена пользователей для ответов
     const answersWithUserNames = await Promise.all(
       answers.map(async (a) => {
-        const user = await this.usersService.findById(a.user.toString());
+        const userId = a.user?.toString() || null;
+        const user = userId ? await this.usersService.findById(userId) : null;
         const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
         return {
           id: a._id.toString(),
-          userId: a.user.toString(),
+          userId: userId || '',
           text: a.text,
           userName,
         };

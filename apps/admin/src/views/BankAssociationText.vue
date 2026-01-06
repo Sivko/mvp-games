@@ -39,7 +39,12 @@
     <div v-if="showCreateModal || editingItem" class="modal-overlay" @click="closeModal">
       <div class="modal" @click.stop>
         <div class="modal-header">
-          <h2>{{ editingItem ? 'Edit' : 'Create' }} Bank Association Text</h2>
+          <div>
+            <h2>{{ editingItem ? 'Edit' : 'Create' }} Bank Association Text</h2>
+            <div v-if="editingItem?._id" class="item-id">
+              ID: {{ editingItem._id }}
+            </div>
+          </div>
           <button @click="closeModal" class="close-btn">&times;</button>
         </div>
         <div class="modal-body">
@@ -517,6 +522,13 @@ onMounted(() => {
 
 .modal-header h2 {
   margin: 0;
+}
+
+.modal-header .item-id {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #757575;
+  font-family: monospace;
 }
 
 .close-btn {
