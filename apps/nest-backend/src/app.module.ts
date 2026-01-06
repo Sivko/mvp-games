@@ -20,6 +20,8 @@ import { BankAssociationText, BankAssociationTextSchema } from './games/bank-ass
 import { ReactionsModule } from './reactions/reactions.module';
 import { Reaction, ReactionSchema } from './reactions/schemas/reaction.schema';
 import { GameAssociationTextModule } from './games/game-association-text/game-association-text.module';
+import { ComplainAssociationTextModule } from './games/complain-association-text/complain-association-text.module';
+import { ComplainAssociationText, ComplainAssociationTextSchema } from './games/complain-association-text/schemas/complain-association-text.schema';
 
 @Module({
   imports: [
@@ -44,6 +46,7 @@ import { GameAssociationTextModule } from './games/game-association-text/game-as
       { name: User.name, schema: UserSchema },
       { name: BankAssociationText.name, schema: BankAssociationTextSchema },
       { name: Reaction.name, schema: ReactionSchema },
+      { name: ComplainAssociationText.name, schema: ComplainAssociationTextSchema },
     ]),
     HttpModule,
     ReactionTypesModule,
@@ -53,6 +56,7 @@ import { GameAssociationTextModule } from './games/game-association-text/game-as
     BankAssociationTextModule,
     ReactionsModule,
     GameAssociationTextModule,
+    ComplainAssociationTextModule,
   ],
   controllers: [AppController, GamesController],
   providers: [AppService, EventsGateway, GamesService],

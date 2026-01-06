@@ -12,29 +12,24 @@
       </div>
     </div>
 
-    <div class="mb-4">
-      <input
-        v-model="answerText"
-        type="text"
-        placeholder="Введите ваш вариант ответа"
+    <div class="flex gap-2">
+      <input v-model="answerText" type="text" placeholder="Введите ваш вариант ответа"
         class="w-full px-4 py-2 border border-telegram-section-separator rounded-lg bg-telegram-bg text-telegram-text focus:outline-none focus:ring-2 focus:ring-telegram-button"
-        :disabled="answerSubmitted"
-        @keyup.enter="handleSubmit"
-      />
-    </div>
+        :disabled="answerSubmitted" @keyup.enter="handleSubmit" />
 
-    <button
-      @click="handleSubmit"
-      :disabled="!answerText.trim() || answerSubmitted"
-      class="px-6 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-    >
-      {{ answerSubmitted ? 'Ответ отправлен' : 'Отправить ответ' }}
-    </button>
+
+      <button @click="handleSubmit" :disabled="!answerText.trim() || answerSubmitted"
+        class="px-4 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold">
+        <!-- {{ answerSubmitted ? 'Ответ отправлен' : 'Отправить ответ' }} -->
+        <BsSend />
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { BsSend } from 'vue-icons-plus/bs';
 
 const props = defineProps<{
   question: string;
@@ -73,4 +68,3 @@ watch(() => props.answerSubmitted, (newVal) => {
 </script>
 
 <style scoped></style>
-

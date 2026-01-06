@@ -10,8 +10,11 @@
             </router-link>
             Игра в слова
           </h1>
-          <div class="text-white text-sm pr-4">
+          <div class="text-white text-sm pr-4 flex items-center gap-2">
             <span class="bg-green-500 rounded-full px-2 py-1 text-xs"> {{ onlineUsersCount }} </span>
+            <button>
+              <Io5SettingsOutline />
+            </button>
           </div>
         </div>
       </div>
@@ -22,8 +25,10 @@
           Последние события
         </h3>
         <div class="space-y-1 max-h-32 overflow-y-auto">
-          <div v-for="(action, index) in recentActions" :key="index" class="text-sm text-telegram-text-secondary"
-            v-html="action"></div>
+          <template v-for="(action, index) in recentActions" :key="index">
+            <span class="text-sm text-telegram-text-secondary" v-html="action"></span><span
+              v-if="index < recentActions.length - 1">, </span>
+          </template>
         </div>
       </div>
 
@@ -50,6 +55,7 @@ import { useUser } from '../../composables/useUser';
 import Step1Input from './Step1Input.vue';
 import Step2Result from './Step2Result.vue';
 import { AiOutlineArrowLeft } from 'vue-icons-plus/ai';
+import { Io5SettingsOutline } from 'vue-icons-plus/io5';
 
 const props = defineProps<{
   gameId: string;
