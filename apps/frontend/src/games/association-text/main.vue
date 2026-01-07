@@ -71,7 +71,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-// @ts-expect-error - socket.io-client types may not be available
+
 import { io, Socket } from 'socket.io-client';
 import { reactionTypesApi } from '../../api/reactionTypesApi';
 import { useUser } from '../../composables/useUser';
@@ -182,7 +182,7 @@ onMounted(async () => {
 
   // Загружаем игру для получения bankAssociationTextId
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const API_BASE_URL = import.meta.env.VITE_API_URL;
     const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
     if (gameResponse.ok) {
       const game = await gameResponse.json();
@@ -251,7 +251,7 @@ onMounted(async () => {
       } else {
         // Если bankAssociationTextId не пришел в событии, загружаем его из игры
         try {
-          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          const API_BASE_URL = import.meta.env.VITE_API_URL;
           const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
           if (gameResponse.ok) {
             const game = await gameResponse.json();
@@ -302,7 +302,7 @@ onMounted(async () => {
       if (data.question) {
         console.log('[game-state] Загрузка bankAssociationTextId для вопроса:', data.question);
         try {
-          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          const API_BASE_URL = import.meta.env.VITE_API_URL;
           const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
           if (gameResponse.ok) {
             const game = await gameResponse.json();
