@@ -796,8 +796,12 @@ export class GameAssociationTextGateway
       // Сбрасываем раунд к 1 и сохраняем статус active
       game.currentRound = 1;
       game.status = 'active'; // Явно сохраняем статус active
+      // Очищаем статистику очков для нового цикла раундов
+      game.stats = new Map<string, number>();
       await game.save();
-      console.log('[startNewRound] Счетчик раундов сброшен к 1, статус остался active');
+      // Очищаем очки в комнате для нового цикла раундов
+      room.userScores.clear();
+      console.log('[startNewRound] Счетчик раундов сброшен к 1, статистика очков очищена, статус остался active');
     } else {
       // Увеличиваем раунд в базе данных
       await this.gamesService.incrementRound(gameId);
