@@ -32,8 +32,8 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
       // и относительный путь от скомпилированного файла
       envFilePath: process.env.NODE_ENV === 'production'
         ? [
-            join(`${process.cwd()}/../../.env.production`), // Production окружение
-            join(`${process.cwd()}/../../.env`), // Fallback
+            join(process.cwd(), '.env.production'), // Production окружение
+            join(process.cwd(), '.env'), // Fallback
           ]
         : [
             join(`${process.cwd()}/../../.env`), // Development окружение

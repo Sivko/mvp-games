@@ -66,6 +66,32 @@ services:
     profiles:
       - production
 
+  nest-backend:
+    build:
+      context: .
+      dockerfile: ./apps/nest-backend/Dockerfile
+    container_name: nest-backend
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      - NEST_URL=https://mvp-games.limpopo113.ru/bff/api
+    volumes:
+      - ./.env.production:/app/.env.production:ro
+    networks:
+      - app-network
+    depends_on:
+      - mongodb
+      - elasticsearch-prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nest-backend.rule=Host(`mvp-games.limpopo113.ru`) && PathPrefix(`/bff/api`)"
+      - "traefik.http.routers.nest-backend.entrypoints=websecure"
+      - "traefik.http.routers.nest-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nest-backend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.nest-backend.middlewares=nest-backend-stripprefix"
+      - "traefik.http.middlewares.nest-backend-stripprefix.stripprefix.prefixes=/bff/api"
+
   traefik:
     image: traefik:v2.11
     container_name: traefik
