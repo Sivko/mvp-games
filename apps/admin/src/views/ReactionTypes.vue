@@ -14,7 +14,7 @@
           <tr>
             <th>Name</th>
             <th>Image</th>
-            <th>Weight</th>
+            <th>Text from Final Round</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -25,7 +25,10 @@
               <span v-if="item.image" class="image-url">{{ item.image }}</span>
               <span v-else class="no-image">No image</span>
             </td>
-            <td>{{ item.weight }}</td>
+            <td>
+              <span v-if="item.textFromFinalRound" class="text-content">{{ item.textFromFinalRound }}</span>
+              <span v-else class="no-text">No text</span>
+            </td>
             <td class="actions">
               <button @click="editItem(item)" class="btn btn-sm btn-secondary">Edit</button>
               <button @click="deleteItem(item._id!)" class="btn btn-sm btn-danger">Delete</button>
@@ -52,9 +55,9 @@
             <input v-model="formData.image" type="text" class="form-control" placeholder="Enter image URL (optional)" />
           </div>
           <div class="form-group">
-            <label>Weight *</label>
-            <input v-model.number="formData.weight" type="number" class="form-control" placeholder="Enter weight (for sorting)" />
-            <small class="form-hint">Lower weight = appears first</small>
+            <label>Text from Final Round</label>
+            <input v-model="formData.textFromFinalRound" type="text" class="form-control" placeholder="Enter text from final round (optional)" />
+            <small class="form-hint">Например: "Самый смешной комментарий"</small>
           </div>
         </div>
         <div class="modal-footer">
@@ -79,12 +82,11 @@ const editingItem = ref<ReactionType | null>(null);
 const formData = ref<Partial<ReactionType>>({
   name: '',
   image: null,
-  weight: 0,
+  textFromFinalRound: null,
 });
 
 const isFormValid = computed(() => {
-  return formData.value.name && formData.value.name.trim() !== '' && 
-         formData.value.weight !== undefined && formData.value.weight !== null;
+  return formData.value.name && formData.value.name.trim() !== '';
 });
 
 const loadItems = async () => {
@@ -104,7 +106,7 @@ const editItem = (item: ReactionType) => {
   formData.value = {
     name: item.name,
     image: item.image,
-    weight: item.weight,
+    textFromFinalRound: item.textFromFinalRound,
   };
   showCreateModal.value = true;
 };
@@ -119,7 +121,7 @@ const saveItem = async () => {
     const dataToSave = {
       name: formData.value.name!,
       image: formData.value.image || null,
-      weight: formData.value.weight!,
+      textFromFinalRound: formData.value.textFromFinalRound || null,
     };
 
     if (editingItem.value?._id) {
@@ -152,7 +154,7 @@ const closeModal = () => {
   formData.value = {
     name: '',
     image: null,
-    weight: 0,
+    textFromFinalRound: null,
   };
   error.value = null;
 };
@@ -224,6 +226,20 @@ onMounted(() => {
 }
 
 .no-image {
+  color: #999;
+  font-style: italic;
+}
+
+.text-content {
+  color: #333;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.no-text {
   color: #999;
   font-style: italic;
 }

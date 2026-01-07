@@ -10,19 +10,19 @@ export class ReactionTypesService {
   ) {}
 
   async findAll(): Promise<ReactionTypeDocument[]> {
-    return this.reactionTypeModel.find().sort({ weight: 1 }).exec();
+    return this.reactionTypeModel.find().exec();
   }
 
   async findOne(id: string): Promise<ReactionTypeDocument | null> {
     return this.reactionTypeModel.findById(id).exec();
   }
 
-  async create(data: { name: string; image?: string | null; weight: number }): Promise<ReactionTypeDocument> {
+  async create(data: { name: string; image?: string | null; textFromFinalRound?: string | null }): Promise<ReactionTypeDocument> {
     const created = new this.reactionTypeModel(data);
     return created.save();
   }
 
-  async update(id: string, data: Partial<{ name: string; image: string | null; weight: number }>): Promise<ReactionTypeDocument | null> {
+  async update(id: string, data: Partial<{ name: string; image: string | null; textFromFinalRound: string | null }>): Promise<ReactionTypeDocument | null> {
     return this.reactionTypeModel.findByIdAndUpdate(id, data, { new: true }).exec();
   }
 

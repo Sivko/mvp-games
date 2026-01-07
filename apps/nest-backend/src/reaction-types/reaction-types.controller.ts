@@ -16,12 +16,12 @@ export class ReactionTypesController {
   }
 
   @Post()
-  async create(@Body() data: { name: string; image?: string | null; weight: number }) {
+  async create(@Body() data: { name: string; image?: string | null; textFromFinalRound?: string | null }) {
     return this.reactionTypesService.create(data);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() data: Partial<{ name: string; image: string | null; weight: number }>) {
+  async update(@Param('id') id: string, @Body() data: Partial<{ name: string; image: string | null; textFromFinalRound: string | null }>) {
     return this.reactionTypesService.update(id, data);
   }
 

@@ -8,11 +8,12 @@ export class ReactionType {
   @Prop({ required: true, type: String })
   name: string;
 
+  // Например: "Самый смешной комментарий"
+  @Prop({ type: String, default: null })
+  textFromFinalRound: string | null;
+
   @Prop({ type: String, default: null })
   image: string | null;
-
-  @Prop({ required: true, type: Number })
-  weight: number;
 }
 
 export const ReactionTypeSchema = SchemaFactory.createForClass(ReactionType);

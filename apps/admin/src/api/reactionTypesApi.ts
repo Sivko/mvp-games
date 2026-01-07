@@ -4,7 +4,7 @@ export interface ReactionType {
   _id?: string;
   name: string;
   image: string | null;
-  weight: number;
+  textFromFinalRound: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
