@@ -5,6 +5,7 @@
       :game-id="game._id"
       :user-id="gameOwnerId"
       :question="game.question"
+      @new-game-id="handleNewGameId"
     />
     <div v-else-if="!currentUser" class="min-h-screen bg-telegram-bg flex items-center justify-center p-8">
       <div class="max-w-md mx-auto text-center">
@@ -84,6 +85,17 @@ const loadGame = async () => {
     console.log(game);
   } catch (error) {
     console.error('Error loading game:', error);
+  }
+};
+
+const handleNewGameId = async (newGameId: string) => {
+  console.log('[GamePage] Получен новый gameId, загрузка новой игры:', newGameId);
+  try {
+    // Загружаем новую игру по ID
+    game.value = await gamesApi.getGameById(newGameId);
+    console.log('[GamePage] Новая игра загружена:', game.value);
+  } catch (error) {
+    console.error('[GamePage] Ошибка загрузки новой игры:', error);
   }
 };
 

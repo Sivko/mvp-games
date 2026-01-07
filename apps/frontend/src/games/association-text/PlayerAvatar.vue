@@ -13,6 +13,12 @@
       class="w-3 h-3 rounded-full bg-green-500 mt-1"
       title="Готов"
     ></div>
+    <div
+      v-if="score !== undefined && score > 0"
+      class="text-xs text-telegram-text-secondary mt-1 font-semibold"
+    >
+      {{ score }}
+    </div>
   </div>
   <Teleport to="body">
     <div
@@ -36,6 +42,7 @@ const props = defineProps<{
   userName: string;
   initial: string;
   isReady?: boolean;
+  score?: number;
 }>();
 
 const referenceRef = ref<HTMLElement | null>(null);

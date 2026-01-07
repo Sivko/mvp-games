@@ -13,12 +13,19 @@ export class ReactionsService {
     answerId: string;
     userId: string;
     reactionId: string;
+    gameId?: string;
   }): Promise<ReactionDocument> {
-    const created = new this.reactionModel({
+    const reactionData: any = {
       answerId: new Types.ObjectId(createDto.answerId),
       userId: new Types.ObjectId(createDto.userId),
       reactionId: new Types.ObjectId(createDto.reactionId),
-    });
+    };
+    
+    if (createDto.gameId) {
+      reactionData.gameId = new Types.ObjectId(createDto.gameId);
+    }
+    
+    const created = new this.reactionModel(reactionData);
     return created.save();
   }
 

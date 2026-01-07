@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { ConfigService } from '@nestjs/config';
 import { Game, GameDocument } from './game.schema';
 import { BankAssociationTextService } from './bank-association-text/bank-association-text.service';
 
@@ -9,6 +10,7 @@ export class GamesService {
   constructor(
     @InjectModel(Game.name) private gameModel: Model<GameDocument>,
     private bankAssociationTextService: BankAssociationTextService,
+    private configService: ConfigService,
   ) {}
 
   /**
@@ -36,12 +38,20 @@ export class GamesService {
       }
     }
 
+    // Получаем максимальное количество раундов из ENV или используем значение по умолчанию
+    const maxRounds = parseInt(
+      this.configService.get<string>('DEFAULT_COUNT_RAUNDS') || '10',
+      10,
+    );
+
     const newGame = new this.gameModel({
       typeGame: gameData.typeGame,
       createdBy: gameData.createdBy,
       status: 'active',
       question,
       usedQuestions,
+      currentRound: 1,
+      maxRounds,
     });
 
     return newGame.save();
@@ -190,6 +200,47 @@ export class GamesService {
   }
 
   /**
+   * Увеличивает текущий раунд игры
+   */
+  async incrementRound(gameId: string): Promise<GameDocument | null> {
+    const game = await this.findById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    game.currentRound = (game.currentRound || 1) + 1;
+    return game.save();
+  }
+
+  /**
+   * Сохраняет статистику игры и завершает её
+   * @param gameId - ID игры
+   * @param userScores - объект с очками пользователей { userId: score }
+   * @returns обновленная игра
+   */
+  async finishGame(
+    gameId: string,
+    userScores: Record<string, number>,
+  ): Promise<GameDocument | null> {
+    const game = await this.findById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    // Сохраняем статистику (очки по пользователям)
+    const statsMap = new Map<string, number>();
+    Object.entries(userScores).forEach(([userId, score]) => {
+      statsMap.set(userId, score);
+    });
+    game.stats = statsMap;
+
+    // Выставляем статус 'finish'
+    game.status = 'finish';
+
+    return game.save();
+  }
+
+  /**
    * Добавляет пользователя в массив users игры, если его там еще нет
    */
   async addUserToGame(gameId: string, userId: string): Promise<GameDocument | null> {
@@ -238,7 +289,7 @@ export class GamesService {
       .findOne({
         createdBy: inviteUserId as any,
         typeGame,
-        status: { $ne: 'disabled' },
+        status: { $nin: ['disabled', 'finish'] },
       })
       .sort({ createdAt: -1 }) // Берем самую новую игру
       .exec();

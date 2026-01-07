@@ -46,6 +46,22 @@ export class Game {
     default: [],
   })
   blackListUsers: MongooseSchema.Types.ObjectId[];
+
+  // текущий раунд
+  @Prop({ type: Number, default: 1 })
+  currentRound: number;
+
+  // максимальное количество раундов
+  @Prop({ type: Number, default: 3 })
+  maxRounds: number;
+
+  // статистика игры: очки по пользователям
+  @Prop({
+    type: Map,
+    of: Number,
+    default: {},
+  })
+  stats: Map<string, number>; // Map<userId, totalScore> - итоговые очки пользователей за всю игру
 }
 
 export const GameSchema = SchemaFactory.createForClass(Game);

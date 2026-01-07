@@ -50,4 +50,12 @@ export const gamesApi = {
     }
     return response.json()
   },
+
+  async getGameById(gameId: string): Promise<Game> {
+    const response = await fetch(`${API_BASE_URL}/games/${gameId}`)
+    if (!response.ok) {
+      throw new Error('Game not found')
+    }
+    return response.json()
+  },
 }

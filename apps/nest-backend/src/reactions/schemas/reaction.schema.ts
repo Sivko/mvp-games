@@ -26,6 +26,13 @@ export class Reaction {
   })
   reactionId: MongooseSchema.Types.ObjectId;
 
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'Game',
+    required: false,
+  })
+  gameId?: MongooseSchema.Types.ObjectId;
+
   // createdAt автоматически добавляется через timestamps: true
 }
 

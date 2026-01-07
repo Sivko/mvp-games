@@ -18,10 +18,11 @@ import { ElasticsearchService } from '../../elasticsearch/elasticsearch.service'
 interface GameRoom {
   gameId: string;
   users: Map<string, { userId: string; socketId: string }>;
-  phase: 'input' | 'results'; // Фрейм 1 или Фрейм 2
+  phase: 'input' | 'results' | 'finish'; // Фрейм 1, Фрейм 2 или Фрейм 3 (финал раунда)
   timer: NodeJS.Timeout | null;
   timerEndsAt: number | null;
   readyUsers: Set<string>; // Set of userIds who are ready
+  userScores: Map<string, number>; // Map<userId, totalScore> - общие очки пользователей
 }
 
 @WebSocketGateway({
@@ -81,6 +82,7 @@ export class GameAssociationTextGateway
         timer: null,
         timerEndsAt: null,
         readyUsers: new Set(),
+        userScores: new Map(),
       });
     }
 
@@ -95,9 +97,66 @@ export class GameAssociationTextGateway
     // Отправляем событие о присоединении пользователя
     await this.sendNewAction(gameId, userId, 'присоединился к игре');
 
+    // Если комната в фазе finish, отправляем состояние finish
+    if (room.phase === 'finish') {
+      // Преобразуем Map очков в объект для отправки клиентам
+      const userScoresObject: Record<string, number> = {};
+      room.userScores.forEach((score, userId) => {
+        userScoresObject[userId] = score;
+      });
+
+      // Загружаем имена всех игроков из userScores
+      const playersWithNames = await Promise.all(
+        Array.from(room.userScores.keys()).map(async (userId) => {
+          const user = await this.usersService.findById(userId);
+          const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+          return {
+            userId,
+            userName,
+            initial: userName.charAt(0).toUpperCase(),
+          };
+        })
+      );
+
+      // Получаем информацию о раундах из игры
+      const game = await this.gamesService.findById(gameId);
+
+      const currentRound = game?.currentRound || 1;
+      const maxRounds = game?.maxRounds || 4;
+      const isGameFinished = currentRound >= maxRounds;
+
+      // Отправляем текущую фазу finish
+      client.emit('game-state', {
+        phase: room.phase,
+        onlineUsersCount: room.users.size,
+        readyCount: room.readyUsers.size,
+        readyUsers: Array.from(room.readyUsers),
+        userScores: userScoresObject,
+        players: playersWithNames,
+        currentRound,
+        maxRounds,
+        isGameFinished,
+      });
+    }
     // Если комната в фазе results, загружаем ответы и реакции
-    if (room.phase === 'results') {
+    else if (room.phase === 'results') {
       const answers = await this.answersService.findByGameId(gameId);
+      
+      // Пересчитываем очки всех пользователей из их ответов
+      // Это гарантирует правильность очков при присоединении к игре
+      const userScoresMap = new Map<string, number>();
+      answers.forEach((a) => {
+        const userId = a.user?.toString();
+        if (userId) {
+          const currentScore = userScoresMap.get(userId) || 0;
+          userScoresMap.set(userId, currentScore + (a.score || 0));
+        }
+      });
+      
+      // Обновляем очки в комнате
+      userScoresMap.forEach((score, userId) => {
+        room.userScores.set(userId, score);
+      });
       
       // Загружаем имена пользователей для ответов
       const answersWithUserNames = await Promise.all(
@@ -114,6 +173,15 @@ export class GameAssociationTextGateway
         })
       );
       
+      // Преобразуем Map очков в объект для отправки клиентам
+      const userScoresObject: Record<string, number> = {};
+      room.userScores.forEach((score, userId) => {
+        userScoresObject[userId] = score;
+      });
+
+      // Получаем информацию о раундах из игры
+      const game = await this.gamesService.findById(gameId);
+      
       // Отправляем текущую фазу с ответами
       client.emit('game-state', {
         phase: room.phase,
@@ -122,6 +190,9 @@ export class GameAssociationTextGateway
         readyCount: room.readyUsers.size,
         readyUsers: Array.from(room.readyUsers),
         answers: answersWithUserNames,
+        userScores: userScoresObject,
+        currentRound: game?.currentRound || 1,
+        maxRounds: game?.maxRounds || 10,
       });
 
       // Загружаем и отправляем все существующие реакции для каждого ответа
@@ -138,6 +209,15 @@ export class GameAssociationTextGateway
         });
       }
     } else {
+      // Преобразуем Map очков в объект для отправки клиентам
+      const userScoresObject: Record<string, number> = {};
+      room.userScores.forEach((score, userId) => {
+        userScoresObject[userId] = score;
+      });
+
+      // Получаем информацию о раундах из игры
+      const game = await this.gamesService.findById(gameId);
+
       // Отправляем текущую фазу и количество онлайн пользователей
       this.server.to(gameId).emit('game-state', {
         phase: room.phase,
@@ -145,6 +225,9 @@ export class GameAssociationTextGateway
         timerEndsAt: room.timerEndsAt,
         readyCount: room.readyUsers.size,
         readyUsers: Array.from(room.readyUsers),
+        userScores: userScoresObject,
+        currentRound: game?.currentRound || 1,
+        maxRounds: game?.maxRounds || 10,
       });
     }
   }
@@ -196,11 +279,31 @@ export class GameAssociationTextGateway
     // Вычисляем и сохраняем score, если есть bankAssociationTextId
     if (bankAssociationTextId) {
       try {
-        await this.elasticsearchService.calculateScore(
+        const scoreResult = await this.elasticsearchService.calculateScore(
           bankAssociationTextId.toString(),
           text,
           answerId,
         );
+        
+        // Пересчитываем очки пользователя из всех его ответов в текущем раунде
+        // Это гарантирует правильность очков даже при множественных обновлениях
+        const userAnswers = await this.answersService.findByGameId(gameId);
+        const userTotalScore = userAnswers
+          .filter((a) => a.user?.toString() === userId)
+          .reduce((sum, a) => sum + (a.score || 0), 0);
+        
+        // Обновляем очки пользователя в комнате
+        room.userScores.set(userId, userTotalScore);
+
+        // Отправляем обновленные очки всем клиентам
+        const userScoresObject: Record<string, number> = {};
+        room.userScores.forEach((score, uid) => {
+          userScoresObject[uid] = score;
+        });
+
+        this.server.to(gameId).emit('user-scores-update', {
+          userScores: userScoresObject,
+        });
       } catch (error) {
         console.error('Failed to calculate score:', error);
         // Продолжаем выполнение даже если не удалось вычислить score
@@ -273,11 +376,12 @@ export class GameAssociationTextGateway
     );
 
     if (!hasReaction) {
-      // Создаем реакцию
+      // Создаем реакцию с gameId
       await this.reactionsService.create({
         answerId,
         userId,
         reactionId,
+        gameId: data.gameId,
       });
       // Отправляем событие о новой реакции
       await this.sendNewAction(data.gameId, userId, 'поставил реакцию');
@@ -312,7 +416,13 @@ export class GameAssociationTextGateway
     const { gameId, userId } = data;
     const room = this.gameRooms.get(gameId);
 
-    if (!room || room.phase !== 'results') {
+    console.log('[handleReadyForNextRound] Получен запрос:', { gameId, userId, roomPhase: room?.phase });
+
+    if (!room || (room.phase !== 'results' && room.phase !== 'finish')) {
+      console.log('[handleReadyForNextRound] Выход: комната не найдена или неправильная фаза', {
+        roomExists: !!room,
+        roomPhase: room?.phase,
+      });
       return;
     }
 
@@ -324,6 +434,14 @@ export class GameAssociationTextGateway
     const readyCount = room.readyUsers.size;
     const halfUsers = Math.ceil(totalUsers / 2);
 
+    console.log('[handleReadyForNextRound] Статистика готовности:', {
+      phase: room.phase,
+      totalUsers,
+      readyCount,
+      halfUsers,
+      readyUsers: Array.from(room.readyUsers),
+    });
+
     // Отправляем обновление готовности с списком готовых пользователей
     this.server.to(gameId).emit('ready-update', {
       readyCount,
@@ -331,21 +449,42 @@ export class GameAssociationTextGateway
       readyUsers: Array.from(room.readyUsers),
     });
 
-    // Если все пользователи нажали "Готово", сразу переходим к новому раунду
+    // Если фаза results - переходим к finish
     if (readyCount >= totalUsers && room.phase === 'results') {
+      console.log('[handleReadyForNextRound] Все готовы в results, переходим к finish');
       // Очищаем таймер, если он был запущен
       if (room.timer) {
         clearTimeout(room.timer);
         room.timer = null;
       }
-      // Сразу переходим к новому раунду
+      // Переходим к фазе finish
+      await this.switchToFinishPhase(gameId);
+      return;
+    }
+
+    // Если фаза finish - переходим к новому раунду (сбрасываем раунд к 1, если достигнут максимум)
+    if (readyCount >= totalUsers && room.phase === 'finish') {
+      console.log('[handleReadyForNextRound] Все готовы в finish, переходим к новому раунду');
+      // Очищаем таймер, если он был запущен
+      if (room.timer) {
+        clearTimeout(room.timer);
+        room.timer = null;
+      }
+      
+      // Всегда переходим к новому раунду (startNewRound сам сбросит раунд к 1, если достигнут максимум)
       await this.startNewRound(gameId);
       return;
     }
 
+    console.log('[handleReadyForNextRound] Не все готовы, продолжаем ждать');
+
     // Если больше половины готовы и таймер не запущен, запускаем его
     if (readyCount > halfUsers && !room.timer) {
-      this.startResultsPhaseTimer(gameId);
+      if (room.phase === 'results') {
+        this.startResultsPhaseTimer(gameId);
+      } else if (room.phase === 'finish') {
+        // В фазе finish таймер не нужен, просто ждем готовности всех
+      }
     }
   }
 
@@ -384,6 +523,8 @@ export class GameAssociationTextGateway
     // Получаем все ответы для этой игры
     const answers = await this.answersService.findByGameId(gameId);
 
+    // Очки уже суммируются при отправке ответов, поэтому здесь просто отправляем текущие очки
+
     // Загружаем имена пользователей для ответов
     const answersWithUserNames = await Promise.all(
       answers.map(async (a) => {
@@ -400,6 +541,15 @@ export class GameAssociationTextGateway
       })
     );
 
+    // Преобразуем Map очков в объект для отправки клиентам
+    const userScoresObject: Record<string, number> = {};
+    room.userScores.forEach((score, userId) => {
+      userScoresObject[userId] = score;
+    });
+
+    // Получаем информацию о раундах из игры
+    const game = await this.gamesService.findById(gameId);
+
     // Отправляем результаты всем в комнате
     this.server.to(gameId).emit('game-state', {
       phase: 'results',
@@ -407,6 +557,9 @@ export class GameAssociationTextGateway
       answers: answersWithUserNames,
       readyCount: 0,
       readyUsers: Array.from(room.readyUsers),
+      userScores: userScoresObject,
+      currentRound: game?.currentRound || 1,
+      maxRounds: game?.maxRounds || 10,
     });
 
     // Загружаем и отправляем все существующие реакции для каждого ответа
@@ -432,7 +585,7 @@ export class GameAssociationTextGateway
     room.timerEndsAt = Date.now() + duration;
 
     room.timer = setTimeout(async () => {
-      await this.startNewRound(gameId);
+      await this.switchToFinishPhase(gameId);
     }, duration);
 
     // Отправляем обновление таймера всем в комнате
@@ -441,7 +594,7 @@ export class GameAssociationTextGateway
     });
   }
 
-  private async startNewRound(gameId: string) {
+  private async switchToFinishPhase(gameId: string) {
     const room = this.gameRooms.get(gameId);
     if (!room) return;
 
@@ -451,30 +604,149 @@ export class GameAssociationTextGateway
       room.timer = null;
     }
 
+    // Переключаемся на фазу finish
+    room.phase = 'finish';
+    // Сбрасываем готовность пользователей для новой фазы
+    room.readyUsers.clear();
+
+    // Преобразуем Map очков в объект для отправки клиентам
+    const userScoresObject: Record<string, number> = {};
+    room.userScores.forEach((score, userId) => {
+      userScoresObject[userId] = score;
+    });
+
+    // Загружаем имена всех игроков из userScores
+    const playersWithNames = await Promise.all(
+      Array.from(room.userScores.keys()).map(async (userId) => {
+        const user = await this.usersService.findById(userId);
+        const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+        return {
+          userId,
+          userName,
+          initial: userName.charAt(0).toUpperCase(),
+        };
+      })
+    );
+
+    // Получаем информацию о раундах из игры
+    const game = await this.gamesService.findById(gameId);
+    const currentRound = game?.currentRound || 1;
+    const maxRounds = game?.maxRounds || 10;
+    
+    // Проверяем, был ли это последний раунд
+    const isGameFinished = currentRound >= maxRounds;
+
+    console.log('[switchToFinishPhase] Переход к finish', {
+      currentRound,
+      maxRounds,
+      isGameFinished,
+    });
+
+    // Отправляем состояние finish всем в комнате
+    this.server.to(gameId).emit('game-state', {
+      phase: 'finish',
+      onlineUsersCount: room.users.size,
+      readyCount: 0,
+      readyUsers: Array.from(room.readyUsers),
+      userScores: userScoresObject,
+      players: playersWithNames,
+      currentRound,
+      maxRounds,
+      isGameFinished,
+    });
+  }
+
+  private async startNewRound(gameId: string) {
+    console.log('[startNewRound] Начало нового раунда для игры:', gameId);
+    const room = this.gameRooms.get(gameId);
+    if (!room) {
+      console.error('[startNewRound] Комната не найдена для игры:', gameId);
+      return;
+    }
+
+    console.log('[startNewRound] Текущее состояние комнаты:', {
+      phase: room.phase,
+      usersCount: room.users.size,
+      userScoresSize: room.userScores.size,
+    });
+
+    // Очищаем таймер фазы results
+    if (room.timer) {
+      clearTimeout(room.timer);
+      room.timer = null;
+      console.log('[startNewRound] Таймер очищен');
+    }
+
+    // Получаем игру для проверки раундов
+    const game = await this.gamesService.findById(gameId);
+    if (!game) {
+      console.error('[startNewRound] Игра не найдена:', gameId);
+      return;
+    }
+
+    // Проверяем, достигнут ли максимальный раунд
+    const currentRound = game.currentRound || 1;
+    const maxRounds = game.maxRounds || 10;
+
+    console.log('[startNewRound] Информация о раундах:', { currentRound, maxRounds });
+
+    // Обнуляем очки пользователей для нового раунда
+    room.userScores.clear();
+    console.log('[startNewRound] Очки пользователей обнулены');
+
+    // Если текущий раунд уже равен или больше максимального, сбрасываем счетчик раундов к 1
+    if (currentRound >= maxRounds) {
+      console.log('[startNewRound] Текущий раунд достиг или превысил максимум, сбрасываем счетчик к 1');
+      // Сбрасываем раунд к 1 и сохраняем статус active
+      game.currentRound = 1;
+      game.status = 'active'; // Явно сохраняем статус active
+      await game.save();
+      console.log('[startNewRound] Счетчик раундов сброшен к 1, статус остался active');
+    } else {
+      // Увеличиваем раунд в базе данных
+      await this.gamesService.incrementRound(gameId);
+      console.log('[startNewRound] Раунд увеличен в БД');
+    }
+
     // Обновляем вопрос в игре
     await this.gamesService.updateQuestion(gameId);
+    console.log('[startNewRound] Вопрос обновлен в БД');
 
     // Удаляем все ответы для этой игры
     await this.answersService.deleteByGameId(gameId);
+    console.log('[startNewRound] Ответы удалены из БД');
 
     // Переключаемся обратно на фазу input
     room.phase = 'input';
     // Сбрасываем готовность пользователей для новой фазы
     room.readyUsers.clear();
+    console.log('[startNewRound] Фаза переключена на input, готовность сброшена');
 
     // Получаем обновленную игру
-    const game = await this.gamesService.findById(gameId);
+    const updatedGame = await this.gamesService.findById(gameId);
 
-    // Отправляем новое состояние игры
-    this.server.to(gameId).emit('game-state', {
+    // Преобразуем Map очков в объект (все очки обнулены)
+    const userScoresObject: Record<string, number> = {};
+
+    const gameStateData = {
       phase: 'input',
       onlineUsersCount: room.users.size,
-      question: game?.question || '',
+      question: updatedGame?.question || '',
       timerEndsAt: null,
       readyCount: 0,
       readyUsers: Array.from(room.readyUsers),
-    });
+      userScores: userScoresObject,
+      currentRound: updatedGame?.currentRound || 1,
+      maxRounds: updatedGame?.maxRounds || 10,
+    };
+
+    console.log('[startNewRound] Отправка game-state:', gameStateData);
+
+    // Отправляем новое состояние игры
+    this.server.to(gameId).emit('game-state', gameStateData);
+    console.log('[startNewRound] game-state отправлен клиентам');
   }
+
 
   private broadcastOnlineUsers(gameId: string) {
     const room = this.gameRooms.get(gameId);

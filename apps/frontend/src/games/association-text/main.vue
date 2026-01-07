@@ -9,6 +9,7 @@
               <AiOutlineArrowLeft />
             </router-link>
             Игра в слова
+            <span class="text-lg ml-4 font-normal">Раунд {{ currentRound }}/{{ maxRounds }}</span>
           </h1>
           <div class="text-white text-sm pr-4 flex items-center gap-2">
             <span class="bg-green-500 rounded-full px-2 py-1 text-xs"> {{ onlineUsersCount }} </span>
@@ -47,6 +48,7 @@
             :user-name="player.userName"
             :initial="player.initial"
             :is-ready="player.isReady"
+            :score="player.score"
           />
         </div>
       </div>
@@ -65,6 +67,14 @@
         :current-time="currentTime" :game-id="props.gameId" :question="currentQuestion"
         :bank-association-text-id="bankAssociationTextId"
         @toggle-reaction="toggleReaction" @mark-ready="markReady" />
+
+      <!-- Фрейм 3: Финал раунда или финал игры -->
+      <Step3Finish v-if="phase === 'finish'" :key="`finish-${currentRound}`"
+        :user-scores="userScores" :players="finishPlayers.length > 0 ? finishPlayers : uniquePlayers" :current-round="currentRound"
+        :online-users-count="onlineUsersCount" :ready-count="readyUsers.size"
+        :ready-for-next-round="readyForNextRound" :current-user-id="currentUserId"
+        :is-game-finished="isGameFinished"
+        @ready-for-next-round="markReady" />
     </div>
   </div>
 </template>
@@ -77,6 +87,7 @@ import { reactionTypesApi } from '../../api/reactionTypesApi';
 import { useUser } from '../../composables/useUser';
 import Step1Input from './Step1Input.vue';
 import Step2Result from './Step2Result.vue';
+import Step3Finish from './Step3Finish.vue';
 import PlayerAvatar from './PlayerAvatar.vue';
 import { AiOutlineArrowLeft } from 'vue-icons-plus/ai';
 import { Io5SettingsOutline } from 'vue-icons-plus/io5';
@@ -90,6 +101,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'question-updated', question: string): void;
+  (e: 'new-game-id', gameId: string): void;
 }>();
 
 const currentQuestion = ref(props.question);
@@ -99,7 +111,7 @@ const { getCurrentUserId } = useUser();
 const currentUserId = ref<string | null>(null);
 
 const socket = ref<Socket | null>(null);
-const phase = ref<'input' | 'results'>('input');
+const phase = ref<'input' | 'results' | 'finish'>('input');
 const onlineUsersCount = ref(0);
 const answerSubmitted = ref(false);
 const answers = ref<Array<{ id: string; userId: string; text: string; userName?: string; score?: number }>>([]);
@@ -115,7 +127,7 @@ const reactionsObject = computed(() => {
 
 // Уникальные игроки из ответов
 const uniquePlayers = computed(() => {
-  const playersMap = new Map<string, { userId: string; userName: string; initial: string; isReady: boolean }>();
+  const playersMap = new Map<string, { userId: string; userName: string; initial: string; isReady: boolean; score: number }>();
   
   // В фазе input: игрок готов, если у него есть ответ
   // В фазе results: игрок готов, если он в readyUsers Set
@@ -128,11 +140,13 @@ const uniquePlayers = computed(() => {
       const isReady = isInputPhase 
         ? true // В фазе input все игроки с ответами считаются готовыми
         : readyUsers.value.has(answer.userId); // В фазе results проверяем Set
+      const score = userScores.value[answer.userId] || 0;
       playersMap.set(answer.userId, {
         userId: answer.userId,
         userName,
         initial,
         isReady,
+        score,
       });
     }
   });
@@ -148,6 +162,11 @@ const readyUsers = ref<Set<string>>(new Set()); // Set готовых польз
 const recentActions = ref<string[]>([]);
 const MAX_ACTIONS = 10; // Максимальное количество отображаемых событий
 const bankAssociationTextId = ref<string | undefined>(undefined);
+const userScores = ref<Record<string, number>>({}); // Очки пользователей
+const currentRound = ref<number>(1);
+const maxRounds = ref<number>(10);
+const finishPlayers = ref<Array<{ userId: string; userName: string; initial: string }>>([]);
+const isGameFinished = ref<boolean>(false);
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -196,15 +215,32 @@ onMounted(async () => {
 
   // Слушаем события
   socket.value.on('game-state', async (data: {
-    phase: 'input' | 'results';
+    phase: 'input' | 'results' | 'finish';
     onlineUsersCount: number;
     timerEndsAt?: number;
     question?: string;
     bankAssociationTextId?: string;
     answers?: Array<{ id: string; userId: string; text: string; userName?: string; score?: number }>;
     readyUsers?: string[];
+    userScores?: Record<string, number>;
+    currentRound?: number;
+    maxRounds?: number;
+    players?: Array<{ userId: string; userName: string; initial: string }>;
+    isGameFinished?: boolean;
+    newGameId?: string;
   }) => {
+    console.log('[game-state] Получено событие game-state:', {
+      phase: data.phase,
+      question: data.question,
+      currentRound: data.currentRound,
+      maxRounds: data.maxRounds,
+      userScores: data.userScores,
+      onlineUsersCount: data.onlineUsersCount,
+    });
+    
+    const oldPhase = phase.value;
     phase.value = data.phase;
+    console.log('[game-state] Фаза изменена:', { oldPhase, newPhase: phase.value });
     onlineUsersCount.value = data.onlineUsersCount;
     if (data.timerEndsAt !== undefined) {
       timerEndsAt.value = data.timerEndsAt;
@@ -235,8 +271,45 @@ onMounted(async () => {
       }
     }
     if (data.phase === 'input') {
+      console.log('[game-state] Обработка фазы input');
       // Сброс состояния при переходе к новой фазе ввода
       answerSubmitted.value = false;
+      readyForNextRound.value = false;
+      // Очищаем ответы при переходе к новому раунду
+      answers.value = [];
+      console.log('[game-state] Ответы очищены');
+      // Обнуляем очки если они пришли пустыми (новый раунд)
+      if (data.userScores) {
+        userScores.value = data.userScores;
+        console.log('[game-state] Очки обновлены:', userScores.value);
+      }
+      // Обновляем готовых пользователей из данных WebSocket
+      if (data.readyUsers) {
+        readyUsers.value = new Set(data.readyUsers);
+      } else {
+        readyUsers.value.clear();
+      }
+      console.log('[game-state] Готовые пользователи обновлены:', Array.from(readyUsers.value));
+      // Загружаем bankAssociationTextId для нового раунда
+      if (data.question) {
+        console.log('[game-state] Загрузка bankAssociationTextId для вопроса:', data.question);
+        try {
+          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
+          if (gameResponse.ok) {
+            const game = await gameResponse.json();
+            if (game.usedQuestions && game.usedQuestions.length > 0) {
+              bankAssociationTextId.value = game.usedQuestions[game.usedQuestions.length - 1];
+              console.log('[game-state] bankAssociationTextId загружен:', bankAssociationTextId.value);
+            }
+          }
+        } catch (error) {
+          console.error('[game-state] Ошибка загрузки bankAssociationTextId:', error);
+        }
+      }
+      console.log('[game-state] Фаза input обработана, текущий вопрос:', currentQuestion.value);
+    }
+    if (data.phase === 'results') {
       readyForNextRound.value = false;
       // Обновляем готовых пользователей из данных WebSocket
       if (data.readyUsers) {
@@ -245,7 +318,7 @@ onMounted(async () => {
         readyUsers.value.clear();
       }
     }
-    if (data.phase === 'results') {
+    if (data.phase === 'finish') {
       readyForNextRound.value = false;
       // Обновляем готовых пользователей из данных WebSocket
       if (data.readyUsers) {
@@ -258,6 +331,46 @@ onMounted(async () => {
       answers.value = data.answers;
       // Реакции загружаются через WebSocket события reactions-updated
     }
+    if (data.userScores) {
+      userScores.value = data.userScores;
+    }
+    if (data.currentRound !== undefined) {
+      currentRound.value = data.currentRound;
+    }
+    if (data.maxRounds !== undefined) {
+      maxRounds.value = data.maxRounds;
+    }
+    if (data.players) {
+      finishPlayers.value = data.players;
+    }
+    if (data.isGameFinished !== undefined) {
+      isGameFinished.value = data.isGameFinished;
+    }
+    // Если пришел новый gameId, переподключаемся к новой игре
+    if (data.newGameId && data.newGameId !== props.gameId) {
+      console.log('[game-state] Получен новый gameId, переподключение к новой игре:', data.newGameId);
+      // Отключаемся от старой игры
+      if (socket.value) {
+        socket.value.disconnect();
+      }
+      
+      // Переподключаемся к новой игре
+      const socketUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
+      socket.value = io(`${socketUrl}/association-text`, {
+        transports: ['websocket'],
+      });
+      
+      const userId = getCurrentUserId();
+      if (userId) {
+        socket.value.emit('join-game', {
+          gameId: data.newGameId,
+          userId: userId,
+        });
+      }
+      
+      // Уведомляем родительский компонент о новом gameId для обновления game
+      emit('new-game-id', data.newGameId);
+    }
   });
 
   socket.value.on('timer-update', (data: { endsAt: number }) => {
@@ -266,6 +379,10 @@ onMounted(async () => {
 
   socket.value.on('online-users-update', (data: { count: number }) => {
     onlineUsersCount.value = data.count;
+  });
+
+  socket.value.on('user-scores-update', (data: { userScores: Record<string, number> }) => {
+    userScores.value = data.userScores;
   });
 
   socket.value.on('answer-submitted', () => {
@@ -290,8 +407,15 @@ onMounted(async () => {
     totalUsers: number;
     readyUsers: string[];
   }) => {
+    console.log('[ready-update] Получено обновление готовности:', {
+      readyCount: data.readyCount,
+      totalUsers: data.totalUsers,
+      readyUsers: data.readyUsers,
+      currentPhase: phase.value,
+    });
     // Обновляем Set готовых пользователей из данных WebSocket
     readyUsers.value = new Set(data.readyUsers || []);
+    console.log('[ready-update] Готовые пользователи обновлены:', Array.from(readyUsers.value));
   });
 
   socket.value.on('new-action', (data: { message: string }) => {
@@ -352,16 +476,35 @@ const toggleReaction = (answerId: string, reactionId: string) => {
 };
 
 const markReady = () => {
-  if (!socket.value || readyForNextRound.value || !currentUserId.value) return;
+  console.log('[markReady] Вызвана функция markReady', {
+    hasSocket: !!socket.value,
+    readyForNextRound: readyForNextRound.value,
+    currentUserId: currentUserId.value,
+    currentPhase: phase.value,
+  });
 
-  if (phase.value === 'results') {
-    socket.value.emit('ready-for-next-round', {
+  if (!socket.value || readyForNextRound.value || !currentUserId.value) {
+    console.log('[markReady] Выход: условия не выполнены', {
+      hasSocket: !!socket.value,
+      readyForNextRound: readyForNextRound.value,
+      hasUserId: !!currentUserId.value,
+    });
+    return;
+  }
+
+  if (phase.value === 'results' || phase.value === 'finish') {
+    const emitData = {
       gameId: props.gameId,
       userId: currentUserId.value,
-    });
+    };
+    console.log('[markReady] Отправка ready-for-next-round:', emitData);
+    socket.value.emit('ready-for-next-round', emitData);
     readyForNextRound.value = true;
     // Добавляем текущего пользователя в готовые
     readyUsers.value.add(currentUserId.value);
+    console.log('[markReady] Состояние обновлено, готовые пользователи:', Array.from(readyUsers.value));
+  } else {
+    console.log('[markReady] Неправильная фаза для готовности:', phase.value);
   }
 };
 </script>
