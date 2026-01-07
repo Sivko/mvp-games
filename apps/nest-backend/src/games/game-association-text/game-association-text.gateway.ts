@@ -17,7 +17,8 @@ import { ElasticsearchService } from '../../elasticsearch/elasticsearch.service'
 
 interface GameRoom {
   gameId: string;
-  users: Map<string, { userId: string; socketId: string }>;
+  users: Map<string, { userId: string; socketId: string }>; // Map<socketId, { userId, socketId }>
+  uniqueUserIds: Set<string>; // Set уникальных userId для правильного подсчета пользователей
   phase: 'input' | 'results' | 'finish'; // Фрейм 1, Фрейм 2 или Фрейм 3 (финал раунда)
   timer: NodeJS.Timeout | null;
   timerEndsAt: number | null;
@@ -56,8 +57,17 @@ export class GameAssociationTextGateway
     console.log(`Client disconnected: ${client.id}`);
     // Удаляем пользователя из всех комнат
     this.gameRooms.forEach((room, gameId) => {
-      if (room.users.has(client.id)) {
+      const userInfo = room.users.get(client.id);
+      if (userInfo) {
         room.users.delete(client.id);
+        // Проверяем, остались ли еще соединения для этого userId
+        const hasOtherConnections = Array.from(room.users.values()).some(
+          (u) => u.userId === userInfo.userId
+        );
+        // Если больше нет соединений для этого userId, удаляем его из уникальных пользователей
+        if (!hasOtherConnections) {
+          room.uniqueUserIds.delete(userInfo.userId);
+        }
         this.broadcastOnlineUsers(gameId);
       }
     });
@@ -89,6 +99,7 @@ export class GameAssociationTextGateway
       this.gameRooms.set(gameId, {
         gameId,
         users: new Map(),
+        uniqueUserIds: new Set(),
         phase: 'input',
         timer: null,
         timerEndsAt: null,
@@ -100,13 +111,17 @@ export class GameAssociationTextGateway
     const room = this.gameRooms.get(gameId)!;
 
     // Добавляем пользователя в комнату
+    const isNewUser = !room.uniqueUserIds.has(userId);
     room.users.set(client.id, { userId, socketId: client.id });
+    room.uniqueUserIds.add(userId);
 
     // Добавляем пользователя в массив users игры в базе данных
     await this.gamesService.addUserToGame(gameId, userId);
 
-    // Отправляем событие о присоединении пользователя
-    await this.sendNewAction(gameId, userId, 'присоединился к игре');
+    // Отправляем событие о присоединении пользователя только если это новый пользователь
+    if (isNewUser) {
+      await this.sendNewAction(gameId, userId, 'присоединился к игре');
+    }
 
     // Если комната в фазе finish, отправляем состояние finish
     if (room.phase === 'finish') {
@@ -139,7 +154,7 @@ export class GameAssociationTextGateway
       // Отправляем текущую фазу finish
       client.emit('game-state', {
         phase: room.phase,
-        onlineUsersCount: room.users.size,
+        onlineUsersCount: room.uniqueUserIds.size,
         readyCount: room.readyUsers.size,
         readyUsers: Array.from(room.readyUsers),
         userScores: userScoresObject,
@@ -211,7 +226,7 @@ export class GameAssociationTextGateway
       // Отправляем текущую фазу с ответами
       client.emit('game-state', {
         phase: room.phase,
-        onlineUsersCount: room.users.size,
+        onlineUsersCount: room.uniqueUserIds.size,
         timerEndsAt: room.timerEndsAt,
         readyCount: room.readyUsers.size,
         readyUsers: Array.from(room.readyUsers),
@@ -247,7 +262,7 @@ export class GameAssociationTextGateway
       // Отправляем текущую фазу и количество онлайн пользователей
       this.server.to(gameId).emit('game-state', {
         phase: room.phase,
-        onlineUsersCount: room.users.size,
+        onlineUsersCount: room.uniqueUserIds.size,
         timerEndsAt: room.timerEndsAt,
         readyCount: room.readyUsers.size,
         readyUsers: Array.from(room.readyUsers),
@@ -353,7 +368,7 @@ export class GameAssociationTextGateway
     room.readyUsers.add(userId);
 
     // Проверяем, готово ли больше половины пользователей
-    const totalUsers = room.users.size;
+    const totalUsers = room.uniqueUserIds.size;
     const readyCount = room.readyUsers.size;
     const halfUsers = Math.ceil(totalUsers / 2);
 
@@ -463,7 +478,7 @@ export class GameAssociationTextGateway
     room.readyUsers.add(userId);
 
     // Проверяем, готово ли больше половины пользователей
-    const totalUsers = room.users.size;
+    const totalUsers = room.uniqueUserIds.size;
     const readyCount = room.readyUsers.size;
     const halfUsers = Math.ceil(totalUsers / 2);
 
@@ -606,7 +621,7 @@ export class GameAssociationTextGateway
     // Отправляем результаты всем в комнате
     this.server.to(gameId).emit('game-state', {
       phase: 'results',
-      onlineUsersCount: room.users.size,
+      onlineUsersCount: room.uniqueUserIds.size,
       answers: answersWithUserNames,
       readyCount: 0,
       readyUsers: Array.from(room.readyUsers),
@@ -718,7 +733,7 @@ export class GameAssociationTextGateway
     // Отправляем состояние finish всем в комнате
     this.server.to(gameId).emit('game-state', {
       phase: 'finish',
-      onlineUsersCount: room.users.size,
+      onlineUsersCount: room.uniqueUserIds.size,
       readyCount: 0,
       readyUsers: Array.from(room.readyUsers),
       userScores: userScoresObject,
@@ -739,7 +754,7 @@ export class GameAssociationTextGateway
 
     console.log('[startNewRound] Текущее состояние комнаты:', {
       phase: room.phase,
-      usersCount: room.users.size,
+      usersCount: room.uniqueUserIds.size,
       userScoresSize: room.userScores.size,
     });
 
@@ -839,7 +854,7 @@ export class GameAssociationTextGateway
 
     const gameStateData = {
       phase: 'input',
-      onlineUsersCount: room.users.size,
+      onlineUsersCount: room.uniqueUserIds.size,
       question: finalGame?.question || '',
       timerEndsAt: null,
       readyCount: 0,
@@ -861,7 +876,7 @@ export class GameAssociationTextGateway
     const room = this.gameRooms.get(gameId);
     if (room) {
       this.server.to(gameId).emit('online-users-update', {
-        count: room.users.size,
+        count: room.uniqueUserIds.size,
       });
     }
   }
