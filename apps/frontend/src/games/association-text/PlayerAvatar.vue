@@ -2,22 +2,17 @@
   <div class="flex flex-col items-center">
     <div
       ref="referenceRef"
-      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer relative border-telegram-section"
+      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer relative border-2 border-telegram-section"
+      :class="{ 'border-green-500': isReady }"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
       {{ initial }}
     </div>
     <div
-      v-if="isReady"
-      class="w-3 h-3 rounded-full bg-green-500 mt-1"
-      title="Готов"
-    ></div>
-    <div
-      v-if="score !== undefined && score > 0"
-      class="text-xs text-telegram-text-secondary mt-1 font-semibold"
+      class="text-xs text-telegram-text mt-1 font-semibold bg-telegram-bg-secondary rounded px-4 py-1"
     >
-      {{ score }}
+      {{ score || 0 }}
     </div>
   </div>
   <Teleport to="body">
@@ -38,7 +33,7 @@ import { ref, watch, onUnmounted } from 'vue';
 import { useFloating, autoUpdate } from '@floating-ui/vue';
 import { offset, shift, flip } from '@floating-ui/core';
 
-const props = defineProps<{
+defineProps<{
   userName: string;
   initial: string;
   isReady?: boolean;

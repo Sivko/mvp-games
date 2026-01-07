@@ -33,8 +33,8 @@
             <span class="text-sm text-telegram-text-secondary" v-html="action"></span><span
               v-if="index < recentActions.length - 1">, </span>
           </template>
-        </div>
-      </div> -->
+</div>
+</div> -->
 
       <!-- Игроки в игре -->
       <div v-if="uniquePlayers.length > 0" class="bg-telegram-section rounded-lg shadow p-4 mb-4">
@@ -42,39 +42,29 @@
           Игроки ({{ uniquePlayers.length }})
         </h3>
         <div class="flex flex-wrap gap-2">
-          <PlayerAvatar
-            v-for="player in uniquePlayers"
-            :key="player.userId"
-            :user-name="player.userName"
-            :initial="player.initial"
-            :is-ready="player.isReady"
-            :score="player.score"
-          />
+          <PlayerAvatar v-for="player in uniquePlayers" :key="player.userId" :user-name="player.userName"
+            :initial="player.initial" :is-ready="player.isReady" :score="player.score" />
         </div>
       </div>
 
       <!-- Фрейм 1: Ввод ответа -->
       <Step1Input v-if="phase === 'input'" :key="`${currentQuestion}-${bankAssociationTextId}`"
-        :question="currentQuestion" :timer-ends-at="timerEndsAt"
-        :online-users-count="onlineUsersCount" :answer-submitted="answerSubmitted"
-        :current-time="currentTime" :bank-association-text-id="bankAssociationTextId" @submit="handleSubmitAnswer" />
+        :question="currentQuestion" :timer-ends-at="timerEndsAt" :online-users-count="onlineUsersCount"
+        :answer-submitted="answerSubmitted" :current-time="currentTime"
+        :bank-association-text-id="bankAssociationTextId" @submit="handleSubmitAnswer" />
 
       <!-- Фрейм 2: Результаты -->
       <Step2Result v-if="phase === 'results'" :key="`${currentQuestion}-${bankAssociationTextId}`"
-        :timer-ends-at="timerEndsAt"
-        :online-users-count="onlineUsersCount" :ready-for-next-round="readyForNextRound" :answers="answers"
-        :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactionsObject"
+        :timer-ends-at="timerEndsAt" :online-users-count="onlineUsersCount" :ready-for-next-round="readyForNextRound"
+        :answers="answers" :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactionsObject"
         :current-time="currentTime" :game-id="props.gameId" :question="currentQuestion"
-        :bank-association-text-id="bankAssociationTextId"
-        @toggle-reaction="toggleReaction" @mark-ready="markReady" />
+        :bank-association-text-id="bankAssociationTextId" @toggle-reaction="toggleReaction" @mark-ready="markReady" />
 
       <!-- Фрейм 3: Финал игры (только когда игра завершена) -->
-      <Step3Finish v-if="phase === 'finish' && isGameFinished" :key="`finish-${currentRound}`"
-        :user-scores="userScores" :players="finishPlayers.length > 0 ? finishPlayers : uniquePlayers" :current-round="currentRound"
-        :online-users-count="onlineUsersCount" :ready-count="readyUsers.size"
-        :ready-for-next-round="readyForNextRound" :current-user-id="currentUserId"
-        :is-game-finished="isGameFinished"
-        @ready-for-next-round="markReady" />
+      <Step3Finish v-if="phase === 'finish' && isGameFinished" :key="`finish-${currentRound}`" :user-scores="userScores"
+        :players="finishPlayers.length > 0 ? finishPlayers : uniquePlayers" :current-round="currentRound"
+        :online-users-count="onlineUsersCount" :ready-count="readyUsers.size" :ready-for-next-round="readyForNextRound"
+        :current-user-id="currentUserId" :is-game-finished="isGameFinished" @ready-for-next-round="markReady" />
     </div>
   </div>
 </template>
@@ -128,20 +118,20 @@ const reactionsObject = computed(() => {
 // Уникальные игроки - показываем всех онлайн игроков из onlinePlayers
 const uniquePlayers = computed(() => {
   const playersMap = new Map<string, { userId: string; userName: string; initial: string; isReady: boolean; score: number }>();
-  
+
   // В фазе input: игрок готов, если у него есть ответ
   // В фазе results: игрок готов, если он в readyUsers Set
   const isInputPhase = phase.value === 'input';
-  
+
   // Показываем всех онлайн игроков из onlinePlayers
   onlinePlayers.value.forEach((player) => {
     const score = userScores.value[player.userId] || 0;
-    
+
     // Определяем готовность
-    const isReady = isInputPhase 
+    const isReady = isInputPhase
       ? answers.value.some(answer => answer.userId === player.userId) // В фазе input готов, если отправил ответ
       : readyUsers.value.has(player.userId); // В фазе results проверяем Set
-    
+
     playersMap.set(player.userId, {
       userId: player.userId,
       userName: player.userName,
@@ -150,7 +140,7 @@ const uniquePlayers = computed(() => {
       score,
     });
   });
-  
+
   return Array.from(playersMap.values());
 });
 
@@ -241,7 +231,7 @@ onMounted(async () => {
       userScores: data.userScores,
       onlineUsersCount: data.onlineUsersCount,
     });
-    
+
     const oldPhase = phase.value;
     phase.value = data.phase;
     console.log('[game-state] Фаза изменена:', { oldPhase, newPhase: phase.value });
@@ -254,7 +244,7 @@ onMounted(async () => {
     if (data.question) {
       currentQuestion.value = data.question;
       emit('question-updated', data.question);
-      
+
       // Обновляем bankAssociationTextId при изменении вопроса
       if (data.bankAssociationTextId) {
         bankAssociationTextId.value = data.bankAssociationTextId;
@@ -286,13 +276,13 @@ onMounted(async () => {
       if (data.userScores) {
         userScores.value = data.userScores;
         console.log('[game-state] Очки обновлены:', userScores.value);
-        
+
         // Если это начало новой игры (раунд 1 и очки пустые или все равны 0), 
         // обновляем очки в savedPlayers на 0, но сохраняем имена игроков
-        const isNewGame = (data.currentRound === 1 || currentRound.value === 1) && 
-          (Object.keys(data.userScores).length === 0 || 
-           Object.values(data.userScores).every(score => score === 0));
-        
+        const isNewGame = (data.currentRound === 1 || currentRound.value === 1) &&
+          (Object.keys(data.userScores).length === 0 ||
+            Object.values(data.userScores).every(score => score === 0));
+
         if (isNewGame) {
           console.log('[game-state] Начало новой игры, обновляем очки в savedPlayers на 0');
           // Обновляем очки всех игроков в savedPlayers на 0, но сохраняем имена
@@ -374,7 +364,7 @@ onMounted(async () => {
     if (data.userScores) {
       const userScoresData = data.userScores;
       userScores.value = userScoresData;
-      
+
       // Обновляем очки в сохраненном списке игроков и добавляем новых игроков из userScores
       Object.keys(userScoresData).forEach((userId) => {
         if (savedPlayers.value.has(userId)) {
@@ -396,12 +386,12 @@ onMounted(async () => {
           });
         }
       });
-      
+
       // Если это начало новой игры (раунд 1 и все очки равны 0), 
       // обновляем очки всех игроков в savedPlayers на 0
-      const isNewGame = (data.currentRound === 1 || currentRound.value === 1) && 
+      const isNewGame = (data.currentRound === 1 || currentRound.value === 1) &&
         Object.values(userScoresData).every(score => score === 0);
-      
+
       if (isNewGame) {
         console.log('[game-state] Начало новой игры, обновляем очки всех игроков на 0');
         savedPlayers.value.forEach((player) => {
@@ -429,13 +419,13 @@ onMounted(async () => {
       if (socket.value) {
         socket.value.disconnect();
       }
-      
+
       // Переподключаемся к новой игре
       const socketUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
       socket.value = io(`${socketUrl}/association-text`, {
         transports: ['websocket'],
       });
-      
+
       const userId = getCurrentUserId();
       if (userId) {
         socket.value.emit('join-game', {
@@ -443,7 +433,7 @@ onMounted(async () => {
           userId: userId,
         });
       }
-      
+
       // Уведомляем родительский компонент о новом gameId для обновления game
       emit('new-game-id', data.newGameId);
     }
@@ -457,8 +447,8 @@ onMounted(async () => {
     onlineUsersCount.value = data.count;
   });
 
-  socket.value.on('online-players-update', (data: { 
-    players: Array<{ userId: string; userName: string; initial: string }> 
+  socket.value.on('online-players-update', (data: {
+    players: Array<{ userId: string; userName: string; initial: string }>
   }) => {
     console.log('[online-players-update] Получен список онлайн игроков:', data.players);
     onlinePlayers.value = data.players;
