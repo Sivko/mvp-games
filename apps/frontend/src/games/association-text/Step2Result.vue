@@ -31,17 +31,17 @@
           </div>
         </div>
 
-        <div class="flex mt-2">
+        <div class="flex mt-2 gap-1">
           <button v-for="reactionType in reactionTypes" :key="reactionType._id"
             @click="handleToggleReaction(answer.id, reactionType._id)" :class="[
-              'rounded-lg text-sm transition-opacity',
+              'relative rounded-lg text-sm transition-opacity -mt-2',
               isReactionActive(answer.id, reactionType._id)
                 ? 'bg-telegram-button text-telegram-button-text'
                 : 'bg-telegram-bg-secondary text-telegram-text hover:opacity-90',
             ]">
-            <img :src="getReactionImageUrl(reactionType.name)" :alt="reactionType.name" class="h-10">
+            <img :src="getReactionImageUrl(reactionType.name)" :alt="reactionType.name" class="w-[60px]">
             <span v-if="getReactionCount(answer.id, reactionType._id) > 0"
-              class="bg-telegram-button text-telegram-button-text rounded-full px-2 text-xs">
+              class="absolute bottom-0 right-0 bg-telegram-button text-telegram-button-text rounded-full px-2 text-xs">
               {{ getReactionCount(answer.id, reactionType._id) }}
             </span>
           </button>
