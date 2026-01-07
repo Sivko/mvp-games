@@ -25,7 +25,7 @@
               <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
               <div>
                 <div class="text-telegram-text font-medium">{{ getGameName(game.typeGame) }}</div>
-                <div class="text-telegram-text-secondary text-sm">ID: {{ game._id }}</div>
+                <div class="text-telegram-text-secondary text-sm">Количество игр: {{ game.gamesCount }}</div>
               </div>
             </div>
             <button
