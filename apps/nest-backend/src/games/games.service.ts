@@ -213,6 +213,19 @@ export class GamesService {
   }
 
   /**
+   * Увеличивает счетчик завершенных игр (циклов раундов)
+   */
+  async incrementGamesCount(gameId: string): Promise<GameDocument | null> {
+    const game = await this.findById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    game.gamesCount = (game.gamesCount || 0) + 1;
+    return game.save();
+  }
+
+  /**
    * Обновляет статистику игры, суммируя новые очки с уже существующими
    * @param gameId - ID игры
    * @param userScores - объект с очками пользователей за текущий раунд { userId: score }

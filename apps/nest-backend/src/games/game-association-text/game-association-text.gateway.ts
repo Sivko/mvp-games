@@ -813,6 +813,9 @@ export class GameAssociationTextGateway
     // Если текущий раунд уже равен или больше максимального, сбрасываем счетчик раундов к 1
     if (currentRound >= maxRounds) {
       console.log('[startNewRound] Текущий раунд достиг или превысил максимум, сбрасываем счетчик к 1');
+      // Увеличиваем счетчик завершенных игр (циклов раундов)
+      await this.gamesService.incrementGamesCount(gameId);
+      console.log('[startNewRound] Счетчик завершенных игр увеличен');
       // Сбрасываем раунд к 1 и сохраняем статус active
       game.currentRound = 1;
       game.status = 'active'; // Явно сохраняем статус active
