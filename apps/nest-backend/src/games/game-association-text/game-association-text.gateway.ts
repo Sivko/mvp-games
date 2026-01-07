@@ -56,7 +56,7 @@ export class GameAssociationTextGateway
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
     // Удаляем пользователя из всех комнат
-    this.gameRooms.forEach((room, gameId) => {
+    this.gameRooms.forEach(async (room, gameId) => {
       const userInfo = room.users.get(client.id);
       if (userInfo) {
         room.users.delete(client.id);
@@ -69,6 +69,7 @@ export class GameAssociationTextGateway
           room.uniqueUserIds.delete(userInfo.userId);
         }
         this.broadcastOnlineUsers(gameId);
+        await this.broadcastOnlinePlayers(gameId);
       }
     });
   }
@@ -122,6 +123,10 @@ export class GameAssociationTextGateway
     if (isNewUser) {
       await this.sendNewAction(gameId, userId, 'присоединился к игре');
     }
+
+    // Отправляем обновленный список онлайн игроков
+    this.broadcastOnlineUsers(gameId);
+    await this.broadcastOnlinePlayers(gameId);
 
     // Если комната в фазе finish, отправляем состояние finish
     if (room.phase === 'finish') {
@@ -878,6 +883,39 @@ export class GameAssociationTextGateway
       this.server.to(gameId).emit('online-users-update', {
         count: room.uniqueUserIds.size,
       });
+    }
+  }
+
+  /**
+   * Отправляет список всех онлайн игроков с их именами
+   * @param gameId - ID игры
+   */
+  private async broadcastOnlinePlayers(gameId: string) {
+    const room = this.gameRooms.get(gameId);
+    if (!room) {
+      return;
+    }
+
+    try {
+      // Загружаем имена всех онлайн игроков
+      const onlinePlayers = await Promise.all(
+        Array.from(room.uniqueUserIds).map(async (userId) => {
+          const user = await this.usersService.findById(userId);
+          const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+          return {
+            userId,
+            userName,
+            initial: userName.charAt(0).toUpperCase(),
+          };
+        })
+      );
+
+      // Отправляем список онлайн игроков
+      this.server.to(gameId).emit('online-players-update', {
+        players: onlinePlayers,
+      });
+    } catch (error) {
+      console.error('Error broadcasting online players:', error);
     }
   }
 

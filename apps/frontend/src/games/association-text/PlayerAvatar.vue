@@ -2,7 +2,7 @@
   <div class="flex flex-col items-center">
     <div
       ref="referenceRef"
-      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer relative"
+      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer relative border-telegram-section"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >

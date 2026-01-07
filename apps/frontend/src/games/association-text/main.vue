@@ -125,7 +125,7 @@ const reactionsObject = computed(() => {
   return obj;
 });
 
-// Уникальные игроки из ответов
+// Уникальные игроки - показываем всех онлайн игроков из onlinePlayers
 const uniquePlayers = computed(() => {
   const playersMap = new Map<string, { userId: string; userName: string; initial: string; isReady: boolean; score: number }>();
   
@@ -133,22 +133,22 @@ const uniquePlayers = computed(() => {
   // В фазе results: игрок готов, если он в readyUsers Set
   const isInputPhase = phase.value === 'input';
   
-  answers.value.forEach((answer) => {
-    if (!playersMap.has(answer.userId)) {
-      const userName = answer.userName || 'Неизвестный';
-      const initial = userName.charAt(0).toUpperCase();
-      const isReady = isInputPhase 
-        ? true // В фазе input все игроки с ответами считаются готовыми
-        : readyUsers.value.has(answer.userId); // В фазе results проверяем Set
-      const score = userScores.value[answer.userId] || 0;
-      playersMap.set(answer.userId, {
-        userId: answer.userId,
-        userName,
-        initial,
-        isReady,
-        score,
-      });
-    }
+  // Показываем всех онлайн игроков из onlinePlayers
+  onlinePlayers.value.forEach((player) => {
+    const score = userScores.value[player.userId] || 0;
+    
+    // Определяем готовность
+    const isReady = isInputPhase 
+      ? answers.value.some(answer => answer.userId === player.userId) // В фазе input готов, если отправил ответ
+      : readyUsers.value.has(player.userId); // В фазе results проверяем Set
+    
+    playersMap.set(player.userId, {
+      userId: player.userId,
+      userName: player.userName,
+      initial: player.initial,
+      isReady,
+      score,
+    });
   });
   
   return Array.from(playersMap.values());
@@ -167,6 +167,10 @@ const currentRound = ref<number>(1);
 const maxRounds = ref<number>(10);
 const finishPlayers = ref<Array<{ userId: string; userName: string; initial: string }>>([]);
 const isGameFinished = ref<boolean>(false);
+// Сохраняем список игроков из предыдущих раундов, чтобы показывать их даже когда ответов еще нет
+const savedPlayers = ref<Map<string, { userId: string; userName: string; initial: string; score: number }>>(new Map());
+// Список всех онлайн игроков (обновляется через WebSocket события)
+const onlinePlayers = ref<Array<{ userId: string; userName: string; initial: string }>>([]);
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -278,10 +282,24 @@ onMounted(async () => {
       // Очищаем ответы при переходе к новому раунду
       answers.value = [];
       console.log('[game-state] Ответы очищены');
-      // Обнуляем очки если они пришли пустыми (новый раунд)
+      // Обновляем очки
       if (data.userScores) {
         userScores.value = data.userScores;
         console.log('[game-state] Очки обновлены:', userScores.value);
+        
+        // Если это начало новой игры (раунд 1 и очки пустые или все равны 0), 
+        // обновляем очки в savedPlayers на 0, но сохраняем имена игроков
+        const isNewGame = (data.currentRound === 1 || currentRound.value === 1) && 
+          (Object.keys(data.userScores).length === 0 || 
+           Object.values(data.userScores).every(score => score === 0));
+        
+        if (isNewGame) {
+          console.log('[game-state] Начало новой игры, обновляем очки в savedPlayers на 0');
+          // Обновляем очки всех игроков в savedPlayers на 0, но сохраняем имена
+          savedPlayers.value.forEach((player) => {
+            player.score = 0;
+          });
+        }
       }
       // Обновляем готовых пользователей из данных WebSocket
       if (data.readyUsers) {
@@ -329,10 +347,68 @@ onMounted(async () => {
     }
     if (data.answers) {
       answers.value = data.answers;
+      // Сохраняем список игроков из ответов для отображения в следующем раунде
+      data.answers.forEach((answer) => {
+        if (!savedPlayers.value.has(answer.userId)) {
+          const userName = answer.userName || 'Неизвестный';
+          const initial = userName.charAt(0).toUpperCase();
+          const score = userScores.value[answer.userId] || 0;
+          savedPlayers.value.set(answer.userId, {
+            userId: answer.userId,
+            userName,
+            initial,
+            score,
+          });
+        } else {
+          // Обновляем имя и очки, если они изменились
+          const player = savedPlayers.value.get(answer.userId);
+          if (player) {
+            player.userName = answer.userName || player.userName;
+            player.initial = (answer.userName || player.userName).charAt(0).toUpperCase();
+            player.score = userScores.value[answer.userId] || player.score || 0;
+          }
+        }
+      });
       // Реакции загружаются через WebSocket события reactions-updated
     }
     if (data.userScores) {
-      userScores.value = data.userScores;
+      const userScoresData = data.userScores;
+      userScores.value = userScoresData;
+      
+      // Обновляем очки в сохраненном списке игроков и добавляем новых игроков из userScores
+      Object.keys(userScoresData).forEach((userId) => {
+        if (savedPlayers.value.has(userId)) {
+          // Обновляем очки существующего игрока из userScores
+          const player = savedPlayers.value.get(userId);
+          if (player) {
+            player.score = userScoresData[userId] ?? 0;
+          }
+        } else {
+          // Добавляем нового игрока из userScores (если его еще нет в savedPlayers)
+          // Имя будет обновлено, когда придет ответ от этого игрока
+          const userName = `Игрок ${userId.slice(0, 6)}`;
+          const initial = userId.charAt(0).toUpperCase();
+          savedPlayers.value.set(userId, {
+            userId,
+            userName,
+            initial,
+            score: userScoresData[userId] ?? 0,
+          });
+        }
+      });
+      
+      // Если это начало новой игры (раунд 1 и все очки равны 0), 
+      // обновляем очки всех игроков в savedPlayers на 0
+      const isNewGame = (data.currentRound === 1 || currentRound.value === 1) && 
+        Object.values(userScoresData).every(score => score === 0);
+      
+      if (isNewGame) {
+        console.log('[game-state] Начало новой игры, обновляем очки всех игроков на 0');
+        savedPlayers.value.forEach((player) => {
+          // Обновляем очки из userScores, если игрок там есть, иначе устанавливаем 0
+          player.score = userScoresData[player.userId] ?? 0;
+        });
+      }
     }
     if (data.currentRound !== undefined) {
       currentRound.value = data.currentRound;
@@ -379,6 +455,13 @@ onMounted(async () => {
 
   socket.value.on('online-users-update', (data: { count: number }) => {
     onlineUsersCount.value = data.count;
+  });
+
+  socket.value.on('online-players-update', (data: { 
+    players: Array<{ userId: string; userName: string; initial: string }> 
+  }) => {
+    console.log('[online-players-update] Получен список онлайн игроков:', data.players);
+    onlinePlayers.value = data.players;
   });
 
   socket.value.on('user-scores-update', (data: { userScores: Record<string, number> }) => {
