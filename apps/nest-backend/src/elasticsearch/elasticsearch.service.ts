@@ -368,9 +368,9 @@ export class ElasticsearchService implements OnModuleInit {
         return { score: 0, text: undefined };
       }
 
-      this.logger.debug(
-        `Топ-20 для bankAssociationTextId=${bankAssociationTextId}: ${top20.map((item) => `"${item.text}" (${item.count})`).join(', ')}`,
-      );
+      // this.logger.debug(
+      //   `Топ-20 для bankAssociationTextId=${bankAssociationTextId}: ${top20.map((item) => `"${item.text}" (${item.count})`).join(', ')}`,
+      // );
 
       // Шаг 2: Находим варианты, которые соответствуют поисковому запросу через elastiText
       const searchQuery: any = {
@@ -455,7 +455,7 @@ export class ElasticsearchService implements OnModuleInit {
             { score: finalScore },
             { new: true },
           ).exec();
-          this.logger.log(`Score ${finalScore} сохранен для answerId: ${answerId}`);
+          // this.logger.log(`Score ${finalScore} сохранен для answerId: ${answerId}`);
         } catch (dbError) {
           this.logger.warn(
             `Не удалось сохранить score в БД для answerId ${answerId}: ${dbError.message}`,
