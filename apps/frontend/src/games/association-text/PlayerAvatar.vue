@@ -3,16 +3,17 @@
     <div
       ref="referenceRef"
       class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer relative border-2 border-telegram-section"
-      :class="{ 'border-green-500': isReady }"
+      :class="{ 'border-green-500': props.isReady }"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
-      {{ initial }}
+      {{ props.initial }}
     </div>
     <div
+      v-if="props.isShowScore"
       class="text-xs text-telegram-text mt-1 font-semibold bg-telegram-bg-secondary rounded px-4 py-1"
     >
-      {{ score || 0 }}
+      {{ props.score || 0 }}
     </div>
   </div>
   <Teleport to="body">
@@ -23,7 +24,7 @@
       class="bg-telegram-header text-white px-3 py-2 rounded-lg shadow-lg text-sm z-50 pointer-events-none transition-opacity duration-150"
       :class="{ 'opacity-0': !isVisible }"
     >
-      {{ userName }}
+      {{ props.userName }}
     </div>
   </Teleport>
 </template>
@@ -33,12 +34,15 @@ import { ref, watch, onUnmounted } from 'vue';
 import { useFloating, autoUpdate } from '@floating-ui/vue';
 import { offset, shift, flip } from '@floating-ui/core';
 
-defineProps<{
+const props = withDefaults(defineProps<{
   userName: string;
   initial: string;
   isReady?: boolean;
   score?: number;
-}>();
+  isShowScore?: boolean;
+}>(), {
+  isShowScore: true,
+});
 
 const referenceRef = ref<HTMLElement | null>(null);
 const floatingRef = ref<HTMLElement | null>(null);

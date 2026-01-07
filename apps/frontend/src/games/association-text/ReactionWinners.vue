@@ -10,14 +10,19 @@
         <div class="text-telegram-text font-semibold text-lg mb-3">
           {{ winner.title }}
         </div>
-        <div v-if="winner.question" class="text-telegram-text-secondary text-sm mb-2">
-          <span class="font-medium">Вопрос:</span> {{ winner.question }}
+        <div v-if="winner.question" class="text-telegram-text-secondary mb-2">
+          {{ winner.question }}
         </div>
-        <div class="text-telegram-text mb-2">
-          <span class="font-medium">Ответ:</span> {{ winner.answerText }}
-        </div>
-        <div v-if="winner.author" class="text-telegram-text-secondary text-sm">
-          <span class="font-medium">Автор:</span> {{ winner.author }}
+        <div v-if="winner.author" class="flex items-center gap-2">
+          <PlayerAvatar 
+            :user-name="winner.author" 
+            :initial="winner.author.charAt(0).toUpperCase()"
+            :is-show-score="false"
+          />
+          <div class="flex flex-col text-telegram-text font-medium">
+            <span class="font-bold">{{ winner.author }}</span>
+            <span>{{ winner.answerText }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -26,6 +31,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import PlayerAvatar from './PlayerAvatar.vue';
 
 interface ReactionWithPopulate {
   _id: string;
