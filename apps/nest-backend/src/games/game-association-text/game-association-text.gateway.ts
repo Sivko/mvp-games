@@ -13,6 +13,7 @@ import { AnswersService } from '../../answers/answers.service';
 import { ReactionsService } from '../../reactions/reactions.service';
 import { GamesService } from '../games.service';
 import { UsersService } from '../../users/users.service';
+import { ElasticsearchService } from '../../elasticsearch/elasticsearch.service';
 
 interface GameRoom {
   gameId: string;
@@ -43,6 +44,7 @@ export class GameAssociationTextGateway
     private reactionsService: ReactionsService,
     private gamesService: GamesService,
     private usersService: UsersService,
+    private elasticsearchService: ElasticsearchService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -107,6 +109,7 @@ export class GameAssociationTextGateway
             userId: a.user.toString(),
             text: a.text,
             userName,
+            score: a.score || 0,
           };
         })
       );
@@ -170,6 +173,7 @@ export class GameAssociationTextGateway
       userId,
     );
 
+    let answerId: string;
     if (existingAnswer) {
       // Обновляем существующий ответ
       existingAnswer.text = text;
@@ -177,14 +181,30 @@ export class GameAssociationTextGateway
         existingAnswer.bankAssociationTextId = bankAssociationTextId as any;
       }
       await existingAnswer.save();
+      answerId = existingAnswer._id.toString();
     } else {
       // Создаем новый ответ
-      await this.answersService.create({
+      const newAnswer = await this.answersService.create({
         gameId,
         userId,
         text,
         bankAssociationTextId,
       });
+      answerId = newAnswer._id.toString();
+    }
+
+    // Вычисляем и сохраняем score, если есть bankAssociationTextId
+    if (bankAssociationTextId) {
+      try {
+        await this.elasticsearchService.calculateScore(
+          bankAssociationTextId.toString(),
+          text,
+          answerId,
+        );
+      } catch (error) {
+        console.error('Failed to calculate score:', error);
+        // Продолжаем выполнение даже если не удалось вычислить score
+      }
     }
 
     // Отправляем подтверждение
@@ -375,6 +395,7 @@ export class GameAssociationTextGateway
           userId: userId || '',
           text: a.text,
           userName,
+          score: a.score || 0,
         };
       })
     );

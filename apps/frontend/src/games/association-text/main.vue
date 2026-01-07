@@ -102,7 +102,7 @@ const socket = ref<Socket | null>(null);
 const phase = ref<'input' | 'results'>('input');
 const onlineUsersCount = ref(0);
 const answerSubmitted = ref(false);
-const answers = ref<Array<{ id: string; userId: string; text: string; userName?: string }>>([]);
+const answers = ref<Array<{ id: string; userId: string; text: string; userName?: string; score?: number }>>([]);
 const reactions = ref<Map<string, Array<{ userId: string; reactionId: string }>>>(new Map());
 // Преобразуем Map в объект для лучшей реактивности при передаче в дочерний компонент
 const reactionsObject = computed(() => {
@@ -201,7 +201,7 @@ onMounted(async () => {
     timerEndsAt?: number;
     question?: string;
     bankAssociationTextId?: string;
-    answers?: Array<{ id: string; userId: string; text: string; userName?: string }>;
+    answers?: Array<{ id: string; userId: string; text: string; userName?: string; score?: number }>;
     readyUsers?: string[];
   }) => {
     phase.value = data.phase;

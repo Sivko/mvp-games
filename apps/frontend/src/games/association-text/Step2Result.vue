@@ -23,8 +23,11 @@
             <span v-if="answer.userId === currentUserId">Ваш ответ</span>
             <span v-else>{{ answer.userName || 'Неизвестный' }}</span>
           </div>
-          <div class="text-telegram-text font-semibold">
-            {{ answer.text }}
+          <div class="text-telegram-text font-semibold flex items-center gap-2">
+            <span>{{ answer.text }}</span>
+            <span v-if="answer.score !== undefined" class="text-telegram-text-secondary text-xs bg-telegram-bg-secondary px-2 py-1 rounded">
+              {{ answer.score }}%
+            </span>
           </div>
         </div>
 
@@ -51,7 +54,7 @@
         <div class="mt-4">
           <div class="text-center mb-2 text-telegram-text-secondary text-sm">
             Популярные слова
-            <span class="text-xs">({{ uniqueWords.length }} items, bankId: {{ bankAssociationTextId }})</span>
+            <span class="text-xs">({{ uniqueWords.length }})</span>
           </div>
           <!-- Загрузка -->
           <div v-if="loadingUniqueWords" class="text-center text-telegram-text-secondary py-4">
@@ -101,7 +104,7 @@ const props = defineProps<{
   timerEndsAt: number | null;
   onlineUsersCount: number;
   readyForNextRound: boolean;
-  answers: Array<{ id: string; userId: string; text: string; userName?: string }>;
+  answers: Array<{ id: string; userId: string; text: string; userName?: string; score?: number }>;
   currentUserId: string | null;
   reactionTypes: Array<{ _id: string; name: string }>;
   reactions: Record<string, Array<{ userId: string; reactionId: string }>>;

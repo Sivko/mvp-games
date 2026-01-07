@@ -7,6 +7,7 @@ import { GamesService } from '../games.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Game, GameSchema } from '../game.schema';
 import { BankAssociationTextModule } from '../bank-association-text/bank-association-text.module';
+import { ElasticsearchModule } from '../../elasticsearch/elasticsearch.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { BankAssociationTextModule } from '../bank-association-text/bank-associa
     ReactionsModule,
     UsersModule,
     BankAssociationTextModule,
+    ElasticsearchModule,
     MongooseModule.forFeature([{ name: Game.name, schema: GameSchema }]),
   ],
   providers: [GameAssociationTextGateway, GamesService],
