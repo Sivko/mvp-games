@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   mongodb:
@@ -63,13 +62,9 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    profiles:
-      - production
 
   nest-backend:
-    build:
-      context: .
-      dockerfile: ./apps/nest-backend/Dockerfile
+    image: nest-backend:latest
     container_name: nest-backend
     restart: unless-stopped
     env_file:
@@ -91,28 +86,6 @@ services:
       - "traefik.http.services.nest-backend.loadbalancer.server.port=3000"
       - "traefik.http.routers.nest-backend.middlewares=nest-backend-stripprefix"
       - "traefik.http.middlewares.nest-backend-stripprefix.stripprefix.prefixes=/bff/api"
-
-  traefik:
-    image: traefik:v2.11
-    container_name: traefik
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    command: --configFile=/traefik.yml
-    environment:
-      - REGRU_USERNAME=${REGRU_USERNAME}
-      - REGRU_PASSWORD=${REGRU_PASSWORD}
-      - REGRU_PROPAGATION_TIMEOUT=${REGRU_PROPAGATION_TIMEOUT}
-      - REGRU_POLLING_INTERVAL=${REGRU_POLLING_INTERVAL}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/traefik.yml:ro
-      - ./traefik/acme.json:/acme.json
-    networks:
-      - app-network
-    labels:
-      - "traefik.enable=true"
 
 volumes:
   mongodb_data:

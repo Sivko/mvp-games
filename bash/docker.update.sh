@@ -37,3 +37,14 @@ done
 
 echo "Все файлы успешно отправлены!"
 
+# Создаем .env файл из .env.production на сервере для docker-compose
+echo "Создание .env файла из .env.production на сервере..."
+ssh "$REMOTE_HOST" "cd $REMOTE_PATH && cp .env.production .env"
+
+if [ $? -eq 0 ]; then
+  echo "✓ Файл .env создан на сервере"
+else
+  echo "✗ Ошибка при создании .env файла"
+  exit 1
+fi
+
