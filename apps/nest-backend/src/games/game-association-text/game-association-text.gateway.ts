@@ -449,16 +449,36 @@ export class GameAssociationTextGateway
       readyUsers: Array.from(room.readyUsers),
     });
 
-    // Если фаза results - переходим к finish
+    // Если фаза results - проверяем, нужно ли показывать итоги раунда
     if (readyCount >= totalUsers && room.phase === 'results') {
-      console.log('[handleReadyForNextRound] Все готовы в results, переходим к finish');
+      console.log('[handleReadyForNextRound] Все готовы в results');
       // Очищаем таймер, если он был запущен
       if (room.timer) {
         clearTimeout(room.timer);
         room.timer = null;
       }
-      // Переходим к фазе finish
-      await this.switchToFinishPhase(gameId);
+      
+      // Проверяем, будет ли следующий раунд последним
+      const game = await this.gamesService.findById(gameId);
+      const currentRound = game?.currentRound || 1;
+      const maxRounds = game?.maxRounds || 10;
+      const isNextRoundLast = currentRound >= maxRounds;
+      
+      console.log('[handleReadyForNextRound] Проверка итогов:', {
+        currentRound,
+        maxRounds,
+        isNextRoundLast,
+      });
+      
+      // Если следующий раунд будет последним - показываем итоги игры
+      if (isNextRoundLast) {
+        console.log('[handleReadyForNextRound] Следующий раунд последний, переходим к finish');
+        await this.switchToFinishPhase(gameId);
+      } else {
+        // Иначе сразу переходим к новому раунду
+        console.log('[handleReadyForNextRound] Следующий раунд не последний, сразу переходим к новому раунду');
+        await this.startNewRound(gameId);
+      }
       return;
     }
 
@@ -585,7 +605,27 @@ export class GameAssociationTextGateway
     room.timerEndsAt = Date.now() + duration;
 
     room.timer = setTimeout(async () => {
-      await this.switchToFinishPhase(gameId);
+      // Проверяем, будет ли следующий раунд последним
+      const game = await this.gamesService.findById(gameId);
+      const currentRound = game?.currentRound || 1;
+      const maxRounds = game?.maxRounds || 10;
+      const isNextRoundLast = currentRound >= maxRounds;
+      
+      console.log('[startResultsPhaseTimer] Таймер истек, проверка итогов:', {
+        currentRound,
+        maxRounds,
+        isNextRoundLast,
+      });
+      
+      // Если следующий раунд будет последним - показываем итоги игры
+      if (isNextRoundLast) {
+        console.log('[startResultsPhaseTimer] Следующий раунд последний, переходим к finish');
+        await this.switchToFinishPhase(gameId);
+      } else {
+        // Иначе сразу переходим к новому раунду
+        console.log('[startResultsPhaseTimer] Следующий раунд не последний, сразу переходим к новому раунду');
+        await this.startNewRound(gameId);
+      }
     }, duration);
 
     // Отправляем обновление таймера всем в комнате

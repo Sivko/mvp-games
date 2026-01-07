@@ -68,8 +68,8 @@
         :bank-association-text-id="bankAssociationTextId"
         @toggle-reaction="toggleReaction" @mark-ready="markReady" />
 
-      <!-- Фрейм 3: Финал раунда или финал игры -->
-      <Step3Finish v-if="phase === 'finish'" :key="`finish-${currentRound}`"
+      <!-- Фрейм 3: Финал игры (только когда игра завершена) -->
+      <Step3Finish v-if="phase === 'finish' && isGameFinished" :key="`finish-${currentRound}`"
         :user-scores="userScores" :players="finishPlayers.length > 0 ? finishPlayers : uniquePlayers" :current-round="currentRound"
         :online-users-count="onlineUsersCount" :ready-count="readyUsers.size"
         :ready-for-next-round="readyForNextRound" :current-user-id="currentUserId"
