@@ -33,11 +33,15 @@
 
         <div class="flex mt-2 gap-1">
           <button v-for="reactionType in reactionTypes" :key="reactionType._id"
-            @click="handleToggleReaction(answer.id, reactionType._id)" :class="[
+            @click="handleToggleReaction(answer.id, reactionType._id)"
+            :disabled="answer.userId === currentUserId"
+            :class="[
               'relative rounded-lg text-sm transition-opacity -mt-2',
-              isReactionActive(answer.id, reactionType._id)
-                ? 'bg-telegram-button text-telegram-button-text'
-                : 'bg-telegram-bg-secondary text-telegram-text hover:opacity-90',
+              answer.userId === currentUserId
+                ? 'opacity-50 cursor-not-allowed'
+                : isReactionActive(answer.id, reactionType._id)
+                  ? 'bg-telegram-button text-telegram-button-text'
+                  : 'bg-telegram-bg-secondary text-telegram-text hover:opacity-90',
             ]">
             <img :src="getReactionImageUrl(reactionType.name)" :alt="reactionType.name" class="w-[60px]">
             <span v-if="getReactionCount(answer.id, reactionType._id) > 0"
@@ -257,6 +261,11 @@ const timeLeft = computed(() => {
 });
 
 const handleToggleReaction = (answerId: string, reactionId: string) => {
+  // Проверяем, не является ли ответ собственным ответом пользователя
+  const answer = props.answers.find(a => a.id === answerId);
+  if (answer && answer.userId === props.currentUserId) {
+    return; // За себя голосовать нельзя
+  }
   emit('toggle-reaction', answerId, reactionId);
 };
 
