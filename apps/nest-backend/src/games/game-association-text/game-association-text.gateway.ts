@@ -75,6 +75,17 @@ export class GameAssociationTextGateway
 
     // Инициализируем комнату, если её нет
     if (!this.gameRooms.has(gameId)) {
+      // Загружаем игру для получения сохраненных очков
+      const game = await this.gamesService.findById(gameId);
+      const userScores = new Map<string, number>();
+      
+      // Загружаем очки из game.stats, если они есть
+      if (game?.stats) {
+        game.stats.forEach((score, userId) => {
+          userScores.set(userId, score);
+        });
+      }
+      
       this.gameRooms.set(gameId, {
         gameId,
         users: new Map(),
@@ -82,7 +93,7 @@ export class GameAssociationTextGateway
         timer: null,
         timerEndsAt: null,
         readyUsers: new Set(),
-        userScores: new Map(),
+        userScores,
       });
     }
 
@@ -142,7 +153,7 @@ export class GameAssociationTextGateway
     else if (room.phase === 'results') {
       const answers = await this.answersService.findByGameId(gameId);
       
-      // Пересчитываем очки всех пользователей из их ответов
+      // Пересчитываем очки всех пользователей из их ответов текущего раунда
       // Это гарантирует правильность очков при присоединении к игре
       const userScoresMap = new Map<string, number>();
       answers.forEach((a) => {
@@ -153,10 +164,25 @@ export class GameAssociationTextGateway
         }
       });
       
-      // Обновляем очки в комнате
-      userScoresMap.forEach((score, userId) => {
-        room.userScores.set(userId, score);
+      // Получаем игру для получения очков из предыдущих раундов
+      const gameForStats = await this.gamesService.findById(gameId);
+      
+      // Обновляем очки в комнате, суммируя очки из предыдущих раундов и текущего раунда
+      userScoresMap.forEach((currentRoundScore, userId) => {
+        const previousRoundsScore = gameForStats?.stats?.get(userId) || 0;
+        const totalScore = previousRoundsScore + currentRoundScore;
+        room.userScores.set(userId, totalScore);
       });
+      
+      // Также добавляем пользователей, которые есть в game.stats, но нет в текущих ответах
+      if (gameForStats?.stats) {
+        gameForStats.stats.forEach((previousScore, userId) => {
+          if (!userScoresMap.has(userId)) {
+            // Если пользователь есть в предыдущих раундах, но нет в текущем раунде
+            room.userScores.set(userId, previousScore);
+          }
+        });
+      }
       
       // Загружаем имена пользователей для ответов
       const answersWithUserNames = await Promise.all(
@@ -179,8 +205,8 @@ export class GameAssociationTextGateway
         userScoresObject[userId] = score;
       });
 
-      // Получаем информацию о раундах из игры
-      const game = await this.gamesService.findById(gameId);
+      // Получаем информацию о раундах из игры (используем gameForStats, если он уже загружен, иначе загружаем заново)
+      const gameForRounds = gameForStats || await this.gamesService.findById(gameId);
       
       // Отправляем текущую фазу с ответами
       client.emit('game-state', {
@@ -191,8 +217,8 @@ export class GameAssociationTextGateway
         readyUsers: Array.from(room.readyUsers),
         answers: answersWithUserNames,
         userScores: userScoresObject,
-        currentRound: game?.currentRound || 1,
-        maxRounds: game?.maxRounds || 10,
+        currentRound: gameForRounds?.currentRound || 1,
+        maxRounds: gameForRounds?.maxRounds || 10,
       });
 
       // Загружаем и отправляем все существующие реакции для каждого ответа
@@ -288,9 +314,16 @@ export class GameAssociationTextGateway
         // Пересчитываем очки пользователя из всех его ответов в текущем раунде
         // Это гарантирует правильность очков даже при множественных обновлениях
         const userAnswers = await this.answersService.findByGameId(gameId);
-        const userTotalScore = userAnswers
+        const currentRoundScore = userAnswers
           .filter((a) => a.user?.toString() === userId)
           .reduce((sum, a) => sum + (a.score || 0), 0);
+        
+        // Получаем очки из предыдущих раундов из game.stats
+        const game = await this.gamesService.findById(gameId);
+        const previousRoundsScore = game?.stats?.get(userId) || 0;
+        
+        // Суммируем очки из предыдущих раундов и текущего раунда
+        const userTotalScore = previousRoundsScore + currentRoundScore;
         
         // Обновляем очки пользователя в комнате
         room.userScores.set(userId, userTotalScore);
@@ -730,9 +763,32 @@ export class GameAssociationTextGateway
 
     console.log('[startNewRound] Информация о раундах:', { currentRound, maxRounds });
 
-    // Обнуляем очки пользователей для нового раунда
+    // Вычисляем очки текущего раунда из ответов перед их удалением
+    const answers = await this.answersService.findByGameId(gameId);
+    const currentRoundScores: Record<string, number> = {};
+    
+    answers.forEach((a) => {
+      const userId = a.user?.toString();
+      if (userId) {
+        const currentScore = currentRoundScores[userId] || 0;
+        currentRoundScores[userId] = currentScore + (a.score || 0);
+      }
+    });
+    
+    // Сохраняем очки текущего раунда в game.stats перед удалением ответов
+    if (Object.keys(currentRoundScores).length > 0) {
+      await this.gamesService.updateStats(gameId, currentRoundScores);
+      console.log('[startNewRound] Очки текущего раунда сохранены в game.stats');
+    }
+
+    // Загружаем очки из game.stats обратно в room.userScores для нового раунда
     room.userScores.clear();
-    console.log('[startNewRound] Очки пользователей обнулены');
+    if (game?.stats) {
+      game.stats.forEach((score, userId) => {
+        room.userScores.set(userId, score);
+      });
+    }
+    console.log('[startNewRound] Очки пользователей загружены из game.stats для нового раунда');
 
     // Если текущий раунд уже равен или больше максимального, сбрасываем счетчик раундов к 1
     if (currentRound >= maxRounds) {
@@ -762,22 +818,31 @@ export class GameAssociationTextGateway
     room.readyUsers.clear();
     console.log('[startNewRound] Фаза переключена на input, готовность сброшена');
 
-    // Получаем обновленную игру
-    const updatedGame = await this.gamesService.findById(gameId);
+    // Загружаем финальную версию игры после всех обновлений
+    const finalGame = await this.gamesService.findById(gameId);
+    
+    console.log('[startNewRound] Финальная версия игры:', {
+      currentRound: finalGame?.currentRound,
+      maxRounds: finalGame?.maxRounds,
+      status: finalGame?.status,
+    });
 
-    // Преобразуем Map очков в объект (все очки обнулены)
+    // Преобразуем Map очков в объект
     const userScoresObject: Record<string, number> = {};
+    room.userScores.forEach((score, userId) => {
+      userScoresObject[userId] = score;
+    });
 
     const gameStateData = {
       phase: 'input',
       onlineUsersCount: room.users.size,
-      question: updatedGame?.question || '',
+      question: finalGame?.question || '',
       timerEndsAt: null,
       readyCount: 0,
       readyUsers: Array.from(room.readyUsers),
       userScores: userScoresObject,
-      currentRound: updatedGame?.currentRound || 1,
-      maxRounds: updatedGame?.maxRounds || 10,
+      currentRound: finalGame?.currentRound || 1,
+      maxRounds: finalGame?.maxRounds || 10,
     };
 
     console.log('[startNewRound] Отправка game-state:', gameStateData);
