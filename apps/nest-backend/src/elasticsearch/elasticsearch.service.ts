@@ -298,41 +298,154 @@ export class ElasticsearchService implements OnModuleInit {
 
   /**
    * Подсчитывает score для ответа на основе его популярности среди топ-20 вариантов
+   * Сначала получает топ-20 уникальных слов для bankAssociationTextId,
+   * затем находит среди них варианты, соответствующие поисковому запросу через elastiText,
+   * и вычисляет score найденных вариантов относительно всех топ-20
    * @param bankAssociationTextId - ID вопроса из банка
-   * @param text - текст ответа
+   * @param text - текст ответа для поиска (например, "карты" найдет "играют в карты")
    * @param answerId - ID ответа (не используется, но может быть полезен для логирования)
-   * @returns объект с score (процент от 0 до 100)
+   * @returns объект с score (процент от 0 до 100) и text (найденный документ)
    */
   async calculateScore(
     bankAssociationTextId: string,
     text: string,
     answerId?: string,
-  ): Promise<{ score: number }> {
+  ): Promise<{ score: number; text?: string }> {
     try {
-      // Получаем топ-20 уникальных слов для данного bankAssociationTextId
-      const top20 = await this.getUniqueWords(20, bankAssociationTextId);
+      // Шаг 1: Получаем топ-20 уникальных слов для данного bankAssociationTextId
+      const queryForTop20: any = {
+        bool: {
+          must: [
+            {
+              term: {
+                bankAssociationTextId: bankAssociationTextId,
+              },
+            },
+          ],
+        },
+      };
 
-      if (top20.length === 0) {
-        return { score: 0 };
+      const top20Response = await this.client.search({
+        index: this.indexName,
+        size: 0,
+        query: queryForTop20,
+        aggs: {
+          top_texts: {
+            terms: {
+              field: 'text', // Агрегируем по точному полю text (keyword)
+              size: 20, // Топ-20
+              order: {
+                _count: 'desc',
+              },
+            },
+          },
+        },
+      });
+
+      const top20Buckets =
+        (top20Response.aggregations?.top_texts as any)?.buckets || [];
+
+      if (top20Buckets.length === 0) {
+        this.logger.warn(
+          `Нет результатов для bankAssociationTextId=${bankAssociationTextId}`,
+        );
+        return { score: 0, text: undefined };
       }
 
-      // Ищем текущий текст в топ-20
-      const currentItem = top20.find((item) => item.text === text);
+      // Преобразуем в массив WordCount
+      const top20: WordCount[] = top20Buckets.map((bucket: any) => ({
+        text: bucket.key,
+        count: bucket.doc_count,
+      }));
 
-      if (!currentItem) {
-        return { score: 0 };
-      }
-
-      // Вычисляем общую сумму count для топ-20
+      // Вычисляем общую сумму count для всех топ-20 вариантов
       const totalCount = top20.reduce((sum, item) => sum + item.count, 0);
 
       if (totalCount === 0) {
-        return { score: 0 };
+        this.logger.warn(
+          `TotalCount равен 0 для bankAssociationTextId=${bankAssociationTextId}`,
+        );
+        return { score: 0, text: undefined };
       }
 
-      // Вычисляем процент текущего count от общего
-      const countPercent = (currentItem.count / totalCount) * 100;
-      const finalScore = Math.round(countPercent * 100) / 100; // Округляем до 2 знаков после запятой
+      this.logger.debug(
+        `Топ-20 для bankAssociationTextId=${bankAssociationTextId}: ${top20.map((item) => `"${item.text}" (${item.count})`).join(', ')}`,
+      );
+
+      // Шаг 2: Находим варианты, которые соответствуют поисковому запросу через elastiText
+      const searchQuery: any = {
+        bool: {
+          must: [
+            {
+              term: {
+                bankAssociationTextId: bankAssociationTextId,
+              },
+            },
+            {
+              match: {
+                elastiText: {
+                  query: text,
+                  fuzziness: 1, // Разрешаем опечатки
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      const matchingResponse = await this.client.search({
+        index: this.indexName,
+        size: 0,
+        query: searchQuery,
+        aggs: {
+          matching_texts: {
+            terms: {
+              field: 'text', // Агрегируем по точному полю text
+              size: 100, // Достаточно большое число, чтобы покрыть все возможные варианты
+            },
+          },
+        },
+      });
+
+      const matchingBuckets =
+        (matchingResponse.aggregations?.matching_texts as any)?.buckets || [];
+
+      // Создаем Set из текстов найденных вариантов для быстрого поиска
+      const matchingTextsSet = new Set(
+        matchingBuckets.map((bucket: any) => bucket.key),
+      );
+
+      // Шаг 3: Находим пересечение топ-20 и найденных вариантов
+      const matchingVariants = top20.filter((variant) =>
+        matchingTextsSet.has(variant.text),
+      );
+
+      this.logger.debug(
+        `Поиск по "${text}" нашел варианты: ${matchingVariants.map((item) => `"${item.text}" (${item.count})`).join(', ')}`,
+      );
+
+      if (matchingVariants.length === 0) {
+        this.logger.warn(
+          `Не найдено вариантов для bankAssociationTextId=${bankAssociationTextId} с поисковым запросом "${text}"`,
+        );
+        return { score: 0, text: undefined };
+      }
+
+      // Шаг 4: Вычисляем score как процент от общего количества всех топ-20 вариантов
+      // Берем сумму count всех найденных вариантов из топ-20
+      const matchingCount = matchingVariants.reduce(
+        (sum, item) => sum + item.count,
+        0,
+      );
+      const countPercent = (matchingCount / totalCount) * 100;
+      const finalScore = Math.round(countPercent); // Округляем до целого числа
+
+      // Берем самый популярный найденный вариант (первый в списке, так как они отсортированы по count)
+      const foundText = matchingVariants[0]?.text;
+
+      this.logger.log(
+        `Score вычислен: ${finalScore}% (${matchingCount}/${totalCount}) для поискового запроса "${text}". Найденные варианты: ${matchingVariants.map((item) => `"${item.text}" (${item.count})`).join(', ')}`,
+      );
 
       // Если указан answerId, обновляем запись в БД
       if (answerId) {
@@ -351,14 +464,14 @@ export class ElasticsearchService implements OnModuleInit {
         }
       }
 
-      return { score: finalScore };
+      return { score: finalScore, text: foundText };
     } catch (error) {
       this.logger.error(
         `Ошибка при подсчете score: ${error.message}`,
         error.stack,
       );
       // В случае ошибки возвращаем score: 0
-      return { score: 0 };
+      return { score: 0, text: undefined };
     }
   }
 }

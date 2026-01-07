@@ -1,10 +1,8 @@
 <template>
   <div class="bg-telegram-section rounded-lg shadow p-4 mb-4 overflow-scroll h-full flex flex-col justify-between">
     <div class="mb-4">
-      <h2 
-        class="text-2xl font-bold text-telegram-text mb-4 cursor-pointer hover:opacity-80 transition-opacity"
-        @click="showComplainModal = true"
-      >
+      <h2 class="text-2xl font-bold text-telegram-text mb-4 cursor-pointer hover:opacity-80 transition-opacity"
+        @click="showComplainModal = true">
         {{ question }}
       </h2>
       <div class="text-telegram-text-secondary mb-4">
@@ -26,13 +24,8 @@
     </div>
 
     <!-- Модальное окно для жалобы -->
-    <ComplainModal
-      v-model:visible="showComplainModal"
-      :question="question"
-      :user-id="userId || ''"
-      :bank-association-text-id="bankAssociationTextId"
-      @complained="handleComplained"
-    />
+    <ComplainModal v-model:visible="showComplainModal" :question="question" :user-id="userId || ''"
+      :bank-association-text-id="bankAssociationTextId" @complained="handleComplained" />
   </div>
 </template>
 

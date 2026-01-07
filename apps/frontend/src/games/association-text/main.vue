@@ -52,12 +52,14 @@
       </div>
 
       <!-- Фрейм 1: Ввод ответа -->
-      <Step1Input v-if="phase === 'input'" :question="currentQuestion" :timer-ends-at="timerEndsAt"
+      <Step1Input v-if="phase === 'input'" :key="`${currentQuestion}-${bankAssociationTextId}`"
+        :question="currentQuestion" :timer-ends-at="timerEndsAt"
         :online-users-count="onlineUsersCount" :answer-submitted="answerSubmitted"
         :current-time="currentTime" :bank-association-text-id="bankAssociationTextId" @submit="handleSubmitAnswer" />
 
       <!-- Фрейм 2: Результаты -->
-      <Step2Result v-if="phase === 'results'" :timer-ends-at="timerEndsAt"
+      <Step2Result v-if="phase === 'results'" :key="`${currentQuestion}-${bankAssociationTextId}`"
+        :timer-ends-at="timerEndsAt"
         :online-users-count="onlineUsersCount" :ready-for-next-round="readyForNextRound" :answers="answers"
         :current-user-id="currentUserId" :reaction-types="reactionTypes" :reactions="reactionsObject"
         :current-time="currentTime" :game-id="props.gameId" :question="currentQuestion"
@@ -193,11 +195,12 @@ onMounted(async () => {
   });
 
   // Слушаем события
-  socket.value.on('game-state', (data: {
+  socket.value.on('game-state', async (data: {
     phase: 'input' | 'results';
     onlineUsersCount: number;
     timerEndsAt?: number;
     question?: string;
+    bankAssociationTextId?: string;
     answers?: Array<{ id: string; userId: string; text: string; userName?: string }>;
     readyUsers?: string[];
   }) => {
@@ -211,6 +214,25 @@ onMounted(async () => {
     if (data.question) {
       currentQuestion.value = data.question;
       emit('question-updated', data.question);
+      
+      // Обновляем bankAssociationTextId при изменении вопроса
+      if (data.bankAssociationTextId) {
+        bankAssociationTextId.value = data.bankAssociationTextId;
+      } else {
+        // Если bankAssociationTextId не пришел в событии, загружаем его из игры
+        try {
+          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
+          if (gameResponse.ok) {
+            const game = await gameResponse.json();
+            if (game.usedQuestions && game.usedQuestions.length > 0) {
+              bankAssociationTextId.value = game.usedQuestions[game.usedQuestions.length - 1];
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load bankAssociationTextId:', error);
+        }
+      }
     }
     if (data.phase === 'input') {
       // Сброс состояния при переходе к новой фазе ввода

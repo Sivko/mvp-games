@@ -1,8 +1,9 @@
 <template>
   <div class="bg-telegram-section rounded-lg shadow p-4 mb-4 overflow-scroll h-full">
     <div class="mb-4">
-      <h2 class="text-2xl font-bold text-telegram-text mb-4">
-        Результаты
+      <h2 class="text-2xl font-bold text-telegram-text mb-4 cursor-pointer hover:opacity-80 transition-opacity"
+        @click="showComplainModal = true">
+        {{ question }}
       </h2>
       <div class="text-telegram-text-secondary mb-4">
         <span v-if="timerEndsAt">Время: {{ timeLeft }} сек</span>
@@ -45,68 +46,34 @@
       </div>
       <div v-if="!readyForNextRound" class="mb-4">
         <hr />
-        <div class="text-center mt-4 mb-4">Ответы других пользователей</div>
-        
-        <!-- Загрузка -->
-        <div v-if="loadingOtherAnswers" class="text-center text-telegram-text-secondary py-4">
-          Загрузка...
-        </div>
 
-        <!-- Список ответов других пользователей -->
-        <div v-else-if="otherAnswers.length > 0" class="space-y-4">
-          <div v-for="answer in otherAnswers" :key="answer._id"
-            class="px-2 pt-2 bg-telegram-bg-secondary rounded-lg flex justify-between">
-            <div class="flex flex-col">
-              <div class="text-telegram-text-secondary text-sm">
-                {{ getUserName(answer) }}
-              </div>
+        <!-- Популярные слова -->
+        <div class="mt-4">
+          <div class="text-center mb-2 text-telegram-text-secondary text-sm">
+            Популярные слова
+            <span class="text-xs">({{ uniqueWords.length }} items, bankId: {{ bankAssociationTextId }})</span>
+          </div>
+          <!-- Загрузка -->
+          <div v-if="loadingUniqueWords" class="text-center text-telegram-text-secondary py-4">
+            Загрузка...
+          </div>
+          <!-- Список слов -->
+          <div v-else-if="uniqueWords.length > 0" class="space-y-2">
+            <div v-for="(word, index) in uniqueWords"
+              :key="`${bankAssociationTextId}-${question}-${word.text}-${index}`"
+              class="px-2 pt-2 bg-telegram-bg-secondary rounded-lg flex justify-between">
               <div class="text-telegram-text font-semibold">
-                {{ answer.text }}
+                {{ word.text }}
+              </div>
+              <div class="text-telegram-text-secondary">
+                {{ word.count }}
               </div>
             </div>
           </div>
-
-          <!-- Уникальные слова с подсчетом -->
-          <div v-if="uniqueWords.length > 0" class="mt-4">
-            <div class="text-center mb-2 text-telegram-text-secondary text-sm">
-              Популярные слова
-            </div>
-            <div class="space-y-2">
-              <div v-for="word in uniqueWords" :key="word.text"
-                class="px-2 pt-2 bg-telegram-bg-secondary rounded-lg flex justify-between">
-                <div class="text-telegram-text font-semibold">
-                  {{ word.text }}
-                </div>
-                <div class="text-telegram-text-secondary">
-                  {{ word.count }}
-                </div>
-              </div>
-            </div>
+          <!-- Нет данных -->
+          <div v-else class="text-center text-telegram-text-secondary py-4">
+            Нет данных
           </div>
-
-          <!-- Пагинация -->
-          <div v-if="totalOtherAnswers > limit" class="flex justify-center items-center gap-2 mt-4">
-            <button
-              @click="loadOtherAnswers(currentPage - 1)"
-              :disabled="currentPage === 1"
-              class="px-4 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
-              Назад
-            </button>
-            <span class="text-telegram-text">
-              Страница {{ currentPage }} из {{ totalPages }}
-            </span>
-            <button
-              @click="loadOtherAnswers(currentPage + 1)"
-              :disabled="currentPage >= totalPages"
-              class="px-4 py-2 rounded-lg bg-telegram-button text-telegram-button-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
-              Вперед
-            </button>
-          </div>
-        </div>
-
-        <!-- Нет ответов -->
-        <div v-else class="text-center text-telegram-text-secondary py-4">
-          Нет других ответов по этому вопросу
         </div>
       </div>
     </div>
@@ -117,13 +84,18 @@
       Далее
     </button>
   </div>
+
+  <!-- Модальное окно для жалобы -->
+  <ComplainModal v-model:visible="showComplainModal" :question="question" :user-id="userId || ''"
+    :bank-association-text-id="bankAssociationTextId" @complained="handleComplained" />
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { getReactionImageUrl } from '../../utils/reactions';
-import { answersApi, type Answer } from '../../api/answersApi';
 import { elasticsearchApi, type WordCount } from '../../api/elasticsearchApi';
+import ComplainModal from './ComplainModal.vue';
+import { useUser } from '../../composables/useUser';
 
 const props = defineProps<{
   timerEndsAt: number | null;
@@ -139,91 +111,134 @@ const props = defineProps<{
   bankAssociationTextId?: string;
 }>();
 
-// Состояние для ответов других пользователей
-const otherAnswers = ref<Answer[]>([]);
-const loadingOtherAnswers = ref(false);
-const currentPage = ref(1);
-const totalOtherAnswers = ref(0);
-const limit = 10;
-
 // Состояние для уникальных слов
 const uniqueWords = ref<WordCount[]>([]);
 const loadingUniqueWords = ref(false);
 
-const totalPages = computed(() => Math.ceil(totalOtherAnswers.value / limit));
+// Храним последний загруженный bankAssociationTextId и question для предотвращения повторной загрузки
+const lastLoadedBankAssociationTextId = ref<string | undefined>(undefined);
+const lastLoadedQuestion = ref<string | undefined>(undefined);
+
+// Состояние для модального окна жалобы
+const { getCurrentUserId } = useUser();
+const userId = ref<string | null>(getCurrentUserId());
+const showComplainModal = ref(false);
 
 // Отладка для проверки reactionTypes
 onMounted(() => {
   console.log('Step2Result mounted, reactionTypes:', props.reactionTypes);
   console.log('Step2Result reactions:', props.reactions);
-  // Загружаем ответы других пользователей при монтировании
-  if (props.question && props.gameId) {
-    loadOtherAnswers(1);
+  console.log('Step2Result mounted - bankAssociationTextId:', props.bankAssociationTextId);
+  console.log('Step2Result mounted - question:', props.question);
+  console.log('Step2Result mounted - lastLoadedBankAssociationTextId:', lastLoadedBankAssociationTextId.value);
+  console.log('Step2Result mounted - lastLoadedQuestion:', lastLoadedQuestion.value);
+
+  // Загружаем популярные слова при монтировании если изменился bankAssociationTextId или question
+  const bankAssociationTextIdChanged = props.bankAssociationTextId !== lastLoadedBankAssociationTextId.value;
+  const questionChanged = props.question !== lastLoadedQuestion.value;
+
+  if (props.bankAssociationTextId && (bankAssociationTextIdChanged || questionChanged)) {
+    console.log('Step2Result mounted - loading unique words (changed bankAssociationTextId or question)');
+    console.log('bankAssociationTextIdChanged:', bankAssociationTextIdChanged, 'questionChanged:', questionChanged);
+    lastLoadedBankAssociationTextId.value = props.bankAssociationTextId;
+    lastLoadedQuestion.value = props.question;
     loadUniqueWords();
+  } else if (props.bankAssociationTextId && !bankAssociationTextIdChanged && !questionChanged) {
+    console.log('Step2Result mounted - skipping load (same bankAssociationTextId and question)');
+  } else {
+    console.log('Step2Result mounted - no bankAssociationTextId');
   }
 });
 
-// Загружаем ответы при изменении вопроса или gameId
-watch([() => props.question, () => props.gameId, () => props.bankAssociationTextId], () => {
-  if (props.question && props.gameId) {
-    currentPage.value = 1;
-    loadOtherAnswers(1);
-    loadUniqueWords();
-  }
-});
+// Загружаем популярные слова при изменении bankAssociationTextId
+watch(
+  () => props.bankAssociationTextId,
+  (newVal, oldVal) => {
+    console.log('Step2Result watch bankAssociationTextId - old:', oldVal, 'new:', newVal);
+    console.log('Current uniqueWords before clear:', uniqueWords.value.length, 'items');
+    console.log('lastLoadedBankAssociationTextId:', lastLoadedBankAssociationTextId.value);
 
-const loadOtherAnswers = async (page: number) => {
-  if (!props.question || !props.gameId) return;
-  
-  loadingOtherAnswers.value = true;
-  try {
-    const response = await answersApi.getAnswersByQuestion(
-      props.question,
-      props.gameId,
-      page,
-      limit,
-    );
-    otherAnswers.value = response.answers;
-    totalOtherAnswers.value = response.total;
-    currentPage.value = page;
-  } catch (error) {
-    console.error('Failed to load other answers:', error);
-    otherAnswers.value = [];
-    totalOtherAnswers.value = 0;
-  } finally {
-    loadingOtherAnswers.value = false;
-  }
-};
+    if (newVal && newVal !== oldVal && newVal !== lastLoadedBankAssociationTextId.value) {
+      console.log('Step2Result watch - bankAssociationTextId changed, clearing and loading');
+      uniqueWords.value = [];
+      lastLoadedBankAssociationTextId.value = newVal;
+      loadUniqueWords();
+    } else {
+      console.log('Step2Result watch - bankAssociationTextId unchanged or already loaded');
+    }
+  },
+  { immediate: false }
+);
 
-const getUserName = (answer: Answer): string => {
-  if (!answer.user) {
-    return 'Неизвестный';
-  }
-  if (typeof answer.user === 'string') {
-    return 'Неизвестный';
-  }
-  if (answer.user.telegramFirstName) {
-    return answer.user.telegramFirstName;
-  }
-  if (answer.user.name) {
-    return answer.user.name;
-  }
-  return 'Неизвестный';
-};
+// Отслеживаем изменения question для отладки
+watch(
+  () => props.question,
+  (newVal, oldVal) => {
+    console.log('Step2Result watch question - old:', oldVal, 'new:', newVal);
+    console.log('Current bankAssociationTextId:', props.bankAssociationTextId);
+    console.log('lastLoadedBankAssociationTextId:', lastLoadedBankAssociationTextId.value);
+    console.log('lastLoadedQuestion:', lastLoadedQuestion.value);
+
+    // Если вопрос изменился, перезагружаем данные
+    if (newVal !== oldVal && props.bankAssociationTextId) {
+      console.log('Step2Result watch - question changed, reloading');
+      lastLoadedQuestion.value = newVal;
+      uniqueWords.value = [];
+      loadUniqueWords();
+    }
+  },
+  { immediate: false }
+);
 
 const loadUniqueWords = async () => {
+  console.log('loadUniqueWords called');
+  console.log('Current bankAssociationTextId:', props.bankAssociationTextId);
+  console.log('Current question:', props.question);
+  console.log('Current uniqueWords before load:', uniqueWords.value.length, 'items');
+  console.log('lastLoadedBankAssociationTextId before load:', lastLoadedBankAssociationTextId.value);
+
+  if (!props.bankAssociationTextId) {
+    console.log('loadUniqueWords - no bankAssociationTextId, skipping');
+    return;
+  }
+
   loadingUniqueWords.value = true;
   try {
+    console.log('Calling elasticsearchApi.getUniqueWords with:', {
+      size: 100,
+      bankAssociationTextId: props.bankAssociationTextId,
+    });
+
     const words = await elasticsearchApi.getUniqueWords(
       100, // Максимум 100 слов
       props.bankAssociationTextId,
     );
+
+    console.log('Received words from API:', words.length, 'items');
+    console.log('First 5 words:', words.slice(0, 5));
+    console.log('All words:', words.map(w => `${w.text} (${w.count})`));
+    console.log('Current question when loading:', props.question);
+
+    // Принудительно очищаем перед обновлением для гарантии обновления UI
+    uniqueWords.value = [];
+    console.log('Cleared uniqueWords.value, length:', uniqueWords.value.length);
+
+    // Используем nextTick для гарантии обновления DOM
+    await new Promise(resolve => setTimeout(resolve, 0));
+
     uniqueWords.value = words;
+    lastLoadedBankAssociationTextId.value = props.bankAssociationTextId;
+    lastLoadedQuestion.value = props.question;
+    console.log('uniqueWords.value updated:', uniqueWords.value.length, 'items');
+    console.log('uniqueWords.value contents:', uniqueWords.value.map(w => `${w.text} (${w.count})`));
+    console.log('lastLoadedBankAssociationTextId updated to:', lastLoadedBankAssociationTextId.value);
+    console.log('lastLoadedQuestion updated to:', lastLoadedQuestion.value);
   } catch (error) {
     console.error('Failed to load unique words:', error);
     uniqueWords.value = [];
   } finally {
     loadingUniqueWords.value = false;
+    console.log('loadUniqueWords completed');
   }
 };
 
@@ -260,6 +275,11 @@ const getReactionCount = (answerId: string, reactionId: string): number => {
   const answerReactions = props.reactions[answerId] || [];
   const count = answerReactions.filter((r) => r.reactionId === reactionId).length;
   return count;
+};
+
+const handleComplained = () => {
+  // Можно добавить уведомление об успешной отправке жалобы
+  console.log('Жалоба отправлена');
 };
 </script>
 
