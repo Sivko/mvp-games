@@ -64,7 +64,7 @@
           <div v-else-if="uniqueWords.length > 0" class="space-y-2">
             <div v-for="(word, index) in uniqueWords"
               :key="`${bankAssociationTextId}-${question}-${word.text}-${index}`"
-              class="px-2 pt-2 bg-telegram-bg-secondary rounded-lg flex justify-between">
+              class="px-2 py-2 bg-telegram-bg-secondary rounded-lg flex justify-between">
               <div class="text-telegram-text font-semibold">
                 {{ word.text }}
               </div>
