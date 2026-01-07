@@ -35,6 +35,14 @@ export const reactionsApi = {
     return response.json()
   },
 
+  async getReactionsByGameId(gameId: string): Promise<Reaction[]> {
+    const response = await fetch(`${API_BASE_URL}/reactions/game/${gameId}`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch reactions by game')
+    }
+    return response.json()
+  },
+
   async deleteReaction(
     answerId: string,
     userId: string,

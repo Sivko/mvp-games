@@ -49,6 +49,28 @@ export class ReactionsService {
       .exec();
   }
 
+  async findByGameId(gameId: string): Promise<ReactionDocument[]> {
+    return this.reactionModel
+      .find({ gameId: gameId as any })
+      .populate('reactionId', 'name image textFromFinalRound')
+      .populate({
+        path: 'answerId',
+        select: 'text user bankAssociationTextId',
+        populate: [
+          {
+            path: 'bankAssociationTextId',
+            select: 'question',
+          },
+          {
+            path: 'user',
+            select: 'name telegramUsername telegramFirstName',
+          },
+        ],
+      })
+      .populate('userId', 'name telegramUsername telegramFirstName')
+      .exec();
+  }
+
   async findByAnswerAndUser(
     answerId: string,
     userId: string,

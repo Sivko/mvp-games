@@ -49,6 +49,9 @@
       </div>
     </div>
 
+    <!-- Итоги по реакциям (победители) -->
+    <ReactionWinners :reactions="reactions" />
+
     <!-- Статистика готовности -->
     <div v-if="!readyForNextRound" class="mb-4 text-center text-telegram-text-secondary text-sm">
       <span v-if="isGameFinished">Готовы к новой игре: {{ readyCount }} / {{ onlineUsersCount }}</span>
@@ -68,7 +71,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { reactionsApi } from '../../api/reactionsApi';
+import ReactionWinners from './ReactionWinners.vue';
 
 const props = defineProps<{
   userScores: Record<string, number>;
@@ -79,11 +84,31 @@ const props = defineProps<{
   readyForNextRound: boolean;
   currentUserId: string | null;
   isGameFinished?: boolean;
+  gameId?: string;
 }>();
 
 const emit = defineEmits<{
   (e: 'ready-for-next-round'): void;
 }>();
+
+interface ReactionWithPopulate {
+  _id: string;
+  reactionId: string | { _id: string; name: string; image: string | null; textFromFinalRound: string | null };
+  answerId: string | { _id: string; text: string; user?: { name?: string; telegramUsername?: string; telegramFirstName?: string } };
+  userId: string | { _id: string; name?: string; telegramUsername?: string; telegramFirstName?: string };
+}
+
+const reactions = ref<ReactionWithPopulate[]>([]);
+
+onMounted(async () => {
+  if (props.gameId) {
+    try {
+      reactions.value = await reactionsApi.getReactionsByGameId(props.gameId);
+    } catch (error) {
+      console.error('Failed to load reactions:', error);
+    }
+  }
+});
 
 // Сортируем игроков по очкам (от большего к меньшему)
 const sortedPlayers = computed(() => {
@@ -98,8 +123,9 @@ const sortedPlayers = computed(() => {
 // Определяем победителя (игрок с максимальными очками)
 const winner = computed(() => {
   const sorted = sortedPlayers.value;
-  if (sorted.length > 0 && sorted[0].score > 0) {
-    return sorted[0];
+  const firstPlayer = sorted[0];
+  if (sorted.length > 0 && firstPlayer && firstPlayer.score > 0) {
+    return firstPlayer;
   }
   return null;
 });

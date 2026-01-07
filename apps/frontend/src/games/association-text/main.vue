@@ -64,7 +64,7 @@
       <Step3Finish v-if="phase === 'finish' && isGameFinished" :key="`finish-${currentRound}`" :user-scores="userScores"
         :players="finishPlayers.length > 0 ? finishPlayers : uniquePlayers" :current-round="currentRound"
         :online-users-count="onlineUsersCount" :ready-count="readyUsers.size" :ready-for-next-round="readyForNextRound"
-        :current-user-id="currentUserId" :is-game-finished="isGameFinished" @ready-for-next-round="markReady" />
+        :current-user-id="currentUserId" :is-game-finished="isGameFinished" :game-id="props.gameId" @ready-for-next-round="markReady" />
     </div>
   </div>
 </template>

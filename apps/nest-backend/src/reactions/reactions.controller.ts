@@ -45,6 +45,11 @@ export class ReactionsController {
     return this.reactionsService.findByUserId(userId);
   }
 
+  @Get('game/:gameId')
+  async findByGameId(@Param('gameId') gameId: string) {
+    return this.reactionsService.findByGameId(gameId);
+  }
+
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return this.reactionsService.delete(id);
