@@ -30,15 +30,27 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
       isGlobal: true,
       // Проверяем .env файл в корне проекта (относительно текущей рабочей директории)
       // и относительный путь от скомпилированного файла
-      envFilePath: [
-        join(`${process.cwd()}/../../.env`), // Корень проекта
-      ],
+      envFilePath: process.env.NODE_ENV === 'production'
+        ? [
+            join(`${process.cwd()}/../../.env.production`), // Production окружение
+            join(`${process.cwd()}/../../.env`), // Fallback
+          ]
+        : [
+            join(`${process.cwd()}/../../.env`), // Development окружение
+          ],
     }),
     MongooseModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        uri: `mongodb://${configService.get('MDB_LOGIN')}:${configService.get('MDB_PASS')}@localhost:27017`,
-        dbName: 'word-game',
-      }),
+      useFactory: (configService: ConfigService) => {
+        const mongoHost = configService.get<string>('MONGODB_HOST') || 'localhost';
+        const mongoPort = configService.get<string>('MONGODB_PORT') || '27017';
+        const mongoLogin = configService.get<string>('MONGODB_LOGIN');
+        const mongoPass = configService.get<string>('MONGODB_PASS');
+        
+        return {
+          uri: `mongodb://${mongoLogin}:${mongoPass}@${mongoHost}:${mongoPort}`,
+          dbName: 'word-game',
+        };
+      },
       inject: [ConfigService],
     }),
     MongooseModule.forFeature([

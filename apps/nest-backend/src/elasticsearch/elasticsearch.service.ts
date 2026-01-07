@@ -22,7 +22,7 @@ export class ElasticsearchService implements OnModuleInit {
   ) {
     const elasticsearchUrl =
       this.configService.get<string>('ELASTICSEARCH_URL') ||
-      'http://localhost:9200';
+      `http://${this.configService.get<string>('ELASTICSEARCH_HOST') || 'localhost'}:${this.configService.get<string>('ELASTICSEARCH_PORT') || '9200'}`;
 
     this.client = new Client({
       node: elasticsearchUrl,

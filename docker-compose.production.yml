@@ -66,6 +66,28 @@ services:
     profiles:
       - production
 
+  traefik:
+    image: traefik:v2.11
+    container_name: traefik
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    command: --configFile=/traefik.yml
+    environment:
+      - REGRU_USERNAME=${REGRU_USERNAME}
+      - REGRU_PASSWORD=${REGRU_PASSWORD}
+      - REGRU_PROPAGATION_TIMEOUT=${REGRU_PROPAGATION_TIMEOUT}
+      - REGRU_POLLING_INTERVAL=${REGRU_POLLING_INTERVAL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/traefik.yml:ro
+      - ./traefik/acme.json:/acme.json
+    networks:
+      - app-network
+    labels:
+      - "traefik.enable=true"
+
 volumes:
   mongodb_data:
   mongodb_config:
