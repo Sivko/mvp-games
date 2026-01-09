@@ -53,8 +53,12 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
           throw new Error('MONGODB_LOGIN and MONGODB_PASS must be provided');
         }
         
-        const uri = `mongodb://${mongoLogin}:${mongoPass}@${mongoHost}:${mongoPort}`;
-        console.log(`Connecting to MongoDB at ${mongoHost}:${mongoPort}`);
+        // URL encode credentials to handle special characters
+        const encodedLogin = encodeURIComponent(mongoLogin);
+        const encodedPass = encodeURIComponent(mongoPass);
+        const uri = `mongodb://${encodedLogin}:${encodedPass}@${mongoHost}:${mongoPort}/?authSource=admin`;
+        console.log(`Connecting to MongoDB at ${mongoHost}:${mongoPort} with user ${mongoLogin}`);
+        console.log(`MongoDB URI: mongodb://${encodedLogin}:***@${mongoHost}:${mongoPort}/?authSource=admin`);
         
         return {
           uri,

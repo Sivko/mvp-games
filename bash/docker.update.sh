@@ -14,7 +14,6 @@ REMOTE_PATH="/root/mvp-games"
 FILES=(
   "docker-compose.production.yml"
   ".env.production"
-  "traefik"
 )
 
 echo "Отправка файлов на сервер $REMOTE_HOST:$REMOTE_PATH..."

@@ -52,7 +52,7 @@ services:
     env_file:
       - .env.production
     environment:
-      - NEST_URL=https://mvp-games.limpopo113.ru
+      - NEST_URL=https://mvp-games.limpopo113.ru/bff/api
       - MONGODB_HOST=mongodb
       - MONGODB_PORT=27017
       - MONGODB_LOGIN=${MONGODB_LOGIN}
@@ -66,12 +66,29 @@ services:
       - mongodb
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nest-backend.rule=Host(`mvp-games.limpopo113.ru`)"
+      - "traefik.http.routers.nest-backend.rule=Host(`mvp-games.limpopo113.ru`) && PathPrefix(`/bff/api`)"
       - "traefik.http.routers.nest-backend.priority=100"
       - "traefik.http.routers.nest-backend.entrypoints=websecure"
       - "traefik.http.routers.nest-backend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.nest-backend.tls.domains[0].main=mvp-games.limpopo113.ru"
+      - "traefik.http.routers.nest-backend.middlewares=strip-prefix"
+      - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/bff/api"
       - "traefik.http.services.nest-backend.loadbalancer.server.port=3000"
+
+  frontend:
+    image: frontend:latest
+    container_name: frontend
+    restart: unless-stopped
+    networks:
+      - app_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`mvp-games.limpopo113.ru`)"
+      - "traefik.http.routers.frontend.priority=10"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend.tls.domains[0].main=mvp-games.limpopo113.ru"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
 volumes:
   mongodb_data:
