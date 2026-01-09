@@ -78,4 +78,15 @@ echo "✓ Локальный архив удален"
 echo "Удаление архива на сервере..."
 ssh "$REMOTE_HOST" "cd $REMOTE_PATH && rm -f $ARCHIVE_NAME"
 
-echo "Готово! Docker образ $FULL_IMAGE_NAME загружен на сервер"
+# Перезапускаем контейнер с новым образом
+echo "Перезапуск контейнера nest-backend..."
+ssh "$REMOTE_HOST" "cd $REMOTE_PATH && docker compose -f docker-compose.production.yml up -d nest-backend"
+
+if [ $? -ne 0 ]; then
+  echo "✗ Ошибка при перезапуске контейнера"
+  exit 1
+fi
+
+echo "✓ Контейнер nest-backend успешно перезапущен"
+
+echo "Готово! Docker образ $FULL_IMAGE_NAME загружен на сервер и контейнер перезапущен"
