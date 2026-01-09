@@ -82,6 +82,7 @@ services:
       - "traefik.http.routers.nest-backend.middlewares=strip-prefix"
       - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/bff/api"
       - "traefik.http.services.nest-backend.loadbalancer.server.port=3000"
+      # WebSocket support - Traefik автоматически определяет WebSocket по заголовку Upgrade
 
   frontend:
     image: frontend:latest
