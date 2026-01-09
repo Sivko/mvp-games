@@ -13,7 +13,7 @@ services:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
     networks:
-      - app-network
+      - app_network
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh ${MONGODB_HOST}:${MONGODB_PORT}/test --quiet
       interval: 10s
@@ -35,27 +35,7 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
-      - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-
-  elasticsearch-prod:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: elasticsearch-prod
-    restart: unless-stopped
-    # Порты закрыты для production
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    networks:
-      - app-network
+      - app_network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}/_cluster/health || exit 1"]
       interval: 30s
@@ -67,25 +47,31 @@ services:
     image: nest-backend:latest
     container_name: nest-backend
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     env_file:
       - .env.production
     environment:
-      - NEST_URL=https://mvp-games.limpopo113.ru/bff/api
+      - NEST_URL=https://mvp-games.limpopo113.ru
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_LOGIN=${MONGODB_LOGIN}
+      - MONGODB_PASS=${MONGODB_PASS}
+      - NODE_ENV=production
     volumes:
       - ./.env.production:/app/.env.production:ro
     networks:
-      - app-network
+      - app_network
     depends_on:
       - mongodb
-      - elasticsearch-prod
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nest-backend.rule=Host(`mvp-games.limpopo113.ru`) && PathPrefix(`/bff/api`)"
+      - "traefik.http.routers.nest-backend.rule=Host(`mvp-games.limpopo113.ru`)"
+      - "traefik.http.routers.nest-backend.priority=100"
       - "traefik.http.routers.nest-backend.entrypoints=websecure"
       - "traefik.http.routers.nest-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nest-backend.tls.domains[0].main=mvp-games.limpopo113.ru"
       - "traefik.http.services.nest-backend.loadbalancer.server.port=3000"
-      - "traefik.http.routers.nest-backend.middlewares=nest-backend-stripprefix"
-      - "traefik.http.middlewares.nest-backend-stripprefix.stripprefix.prefixes=/bff/api"
 
 volumes:
   mongodb_data:
@@ -93,6 +79,7 @@ volumes:
   elasticsearch_data:
 
 networks:
-  app-network:
-    driver: bridge
+  app_network:
+    external: true
+    name: app_network
 

@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/../" || exit 1
 
 # Параметры подключения
-REMOTE_HOST="root@188.225.44.95"
+REMOTE_HOST="root@77.223.97.101"
 REMOTE_PATH="/root/mvp-games"
 
 # Имя Docker образа

@@ -28,8 +28,9 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // Проверяем .env файл в корне проекта (относительно текущей рабочей директории)
-      // и относительный путь от скомпилированного файла
+      // ConfigModule автоматически читает из process.env (переменные из docker-compose)
+      // и дополнительно пытается загрузить из файлов ниже
+      // Если файл не найден, переменные из process.env все равно будут доступны
       envFilePath: process.env.NODE_ENV === 'production'
         ? [
             join(process.cwd(), '.env.production'), // Production окружение
@@ -38,6 +39,8 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
         : [
             join(`${process.cwd()}/../../.env`), // Development окружение
           ],
+      // Не игнорируем переменные окружения, даже если файл не найден
+      ignoreEnvFile: false,
     }),
     MongooseModule.forRootAsync({
       useFactory: (configService: ConfigService) => {
@@ -46,8 +49,15 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
         const mongoLogin = configService.get<string>('MONGODB_LOGIN');
         const mongoPass = configService.get<string>('MONGODB_PASS');
         
+        if (!mongoLogin || !mongoPass) {
+          throw new Error('MONGODB_LOGIN and MONGODB_PASS must be provided');
+        }
+        
+        const uri = `mongodb://${mongoLogin}:${mongoPass}@${mongoHost}:${mongoPort}`;
+        console.log(`Connecting to MongoDB at ${mongoHost}:${mongoPort}`);
+        
         return {
-          uri: `mongodb://${mongoLogin}:${mongoPass}@${mongoHost}:${mongoPort}`,
+          uri,
           dbName: 'word-game',
         };
       },

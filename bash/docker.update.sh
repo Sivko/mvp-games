@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/../" || exit 1
 
 # Параметры подключения
-REMOTE_HOST="root@188.225.44.95"
+REMOTE_HOST="root@77.223.97.101"
 REMOTE_PATH="/root/mvp-games"
 
 # Файлы и папки для отправки
@@ -40,6 +40,10 @@ echo "Все файлы успешно отправлены!"
 # Создаем .env файл из .env.production на сервере для docker-compose
 echo "Создание .env файла из .env.production на сервере..."
 ssh "$REMOTE_HOST" "cd $REMOTE_PATH && cp .env.production .env"
+
+# Создаем docker-compose.yml из docker-compose.production.yml
+ssh "$REMOTE_HOST" "cd $REMOTE_PATH && cp docker-compose.production.yml docker-compose.yml"
+
 
 if [ $? -eq 0 ]; then
   echo "✓ Файл .env создан на сервере"

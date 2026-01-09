@@ -22,3 +22,16 @@ certificatesResolvers:
 providers:
   docker:
     exposedByDefault: false  # Только контейнеры с `traefik.enable=true` будут обрабатываться
+    endpoint: "unix:///var/run/docker.sock"  # Явно указываем Docker socket
+    watch: true  # Автоматически отслеживать изменения контейнеров
+    # Важно: Traefik должен быть подключен к сети app_network в docker-compose основного проекта
+
+# Логирование для отладки
+log:
+  level: DEBUG  # Временно DEBUG для диагностики, потом можно вернуть INFO
+  format: json
+
+# API для отладки (опционально, можно отключить в production)
+api:
+  dashboard: true
+  insecure: false
