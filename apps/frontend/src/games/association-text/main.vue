@@ -196,7 +196,7 @@ onMounted(async () => {
   }
 
   // Подключаемся к WebSocket
-  const socketUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
+  const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   socket.value = io(`${socketUrl}/association-text`, {
     transports: ['websocket'],
   });
