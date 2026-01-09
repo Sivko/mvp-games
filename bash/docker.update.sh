@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/../" || exit 1
 
 # Параметры подключения
-REMOTE_HOST="root@77.223.97.101"
+REMOTE_HOST="root@77.222.52.134"
 REMOTE_PATH="/root/mvp-games"
 
 # Файлы и папки для отправки
