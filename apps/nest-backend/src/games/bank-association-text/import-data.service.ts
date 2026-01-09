@@ -64,77 +64,87 @@ export class ImportDataService {
       const fileContent = readFileSync(filePath, 'utf-8');
       const data: string[] = JSON.parse(fileContent);
 
-      for (let i = 0; i < data.length; i++) {
-        try {
-          const line = data[i];
-          
-          // Разделяем по <br><br>
-          const parts = line.split('<br><br>');
-          
-          if (parts.length !== 2) {
-            errors.push(`Строка ${i + 1}: неверный формат (должно быть разделение по <br><br>)`);
-            continue;
-          }
-
-          const question = parts[0].trim();
-          const answersPart = parts[1].trim();
-
-          if (!question) {
-            errors.push(`Строка ${i + 1}: вопрос пустой`);
-            continue;
-          }
-
-          // Создаем запись в bank-association-text
-          const bankAssociationText = await this.bankAssociationTextService.create({
-            question,
-            status: true,
-          });
-
-          const bankAssociationTextId = bankAssociationText._id.toString();
-
-          // Парсим ответы
-          const answerLines = answersPart.split('<br>');
-          
-          for (const answerLine of answerLines) {
-            const trimmedLine = answerLine.trim();
-            if (!trimmedLine) {
-              continue;
-            }
-
-            // Парсим формат "число | текст"
-            const match = trimmedLine.match(/^(\d+)\s*\|\s*(.+)$/);
+      const BATCH_SIZE = 30;
+      
+      // Обрабатываем данные батчами по 30 записей
+      for (let batchStart = 0; batchStart < data.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, data.length);
+        const batch = data.slice(batchStart, batchEnd);
+        
+        // Обрабатываем каждый элемент в батче
+        for (let batchIndex = 0; batchIndex < batch.length; batchIndex++) {
+          const i = batchStart + batchIndex;
+          try {
+            const line = batch[batchIndex];
             
-            if (!match) {
-              errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": неверный формат (должно быть "число | текст")`);
+            // Разделяем по <br><br>
+            const parts = line.split('<br><br>');
+            
+            if (parts.length !== 2) {
+              errors.push(`Строка ${i + 1}: неверный формат (должно быть разделение по <br><br>)`);
               continue;
             }
 
-            const count = parseInt(match[1], 10);
-            const answerText = match[2].trim();
+            const question = parts[0].trim();
+            const answersPart = parts[1].trim();
 
-            if (isNaN(count) || count <= 0) {
-              errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": неверное число повторений`);
+            if (!question) {
+              errors.push(`Строка ${i + 1}: вопрос пустой`);
               continue;
             }
 
-            if (!answerText) {
-              errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": текст ответа пустой`);
-              continue;
+            // Создаем запись в bank-association-text
+            const bankAssociationText = await this.bankAssociationTextService.create({
+              question,
+              status: true,
+            });
+
+            const bankAssociationTextId = bankAssociationText._id.toString();
+
+            // Парсим ответы
+            const answerLines = answersPart.split('<br>');
+            
+            for (const answerLine of answerLines) {
+              const trimmedLine = answerLine.trim();
+              if (!trimmedLine) {
+                continue;
+              }
+
+              // Парсим формат "число | текст"
+              const match = trimmedLine.match(/^(\d+)\s*\|\s*(.+)$/);
+              
+              if (!match) {
+                errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": неверный формат (должно быть "число | текст")`);
+                continue;
+              }
+
+              const count = parseInt(match[1], 10);
+              const answerText = match[2].trim();
+
+              if (isNaN(count) || count <= 0) {
+                errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": неверное число повторений`);
+                continue;
+              }
+
+              if (!answerText) {
+                errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": текст ответа пустой`);
+                continue;
+              }
+
+              // Создаем N записей в answers
+              for (let j = 0; j < count; j++) {
+                await this.answersService.createByQuestion(
+                  question,
+                  answerText,
+                  bankAssociationTextId,
+                );
+              }
             }
 
-            // Создаем N записей в answers
-            for (let j = 0; j < count; j++) {
-              await this.answersService.createByQuestion(
-                question,
-                answerText,
-                bankAssociationTextId,
-              );
-            }
+            imported++;
+          } catch (error) {
+            errors.push(`Строка ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
           }
-
-          imported++;
-        } catch (error) {
-          errors.push(`Строка ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
