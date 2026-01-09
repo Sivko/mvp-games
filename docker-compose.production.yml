@@ -121,8 +121,3 @@ volumes:
   mongodb_config:
   elasticsearch_data:
 
-networks:
-  app_network:
-    external: true
-    name: app_network
-
