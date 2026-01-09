@@ -129,7 +129,8 @@
         }
 
         function connect() {
-            socket = io('https://top-otvet.limpopo113.ru/bff/api', {
+            socket = io('https://top-otvet.limpopo113.ru', {
+                path: '/bff/api/socket.io',
                 transports: ['websocket']
             });
 

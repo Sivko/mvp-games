@@ -196,8 +196,15 @@ onMounted(async () => {
   }
 
   // Подключаемся к WebSocket
-  const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  socket.value = io(`${socketUrl}/association-text`, {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // Извлекаем базовый URL и путь для Socket.IO
+  // Если URL содержит путь (например, /bff/api), нужно разделить его
+  const urlObj = new URL(apiUrl);
+  const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+  const socketPath = urlObj.pathname ? `${urlObj.pathname}/socket.io` : '/socket.io';
+  
+  socket.value = io(`${baseUrl}/association-text`, {
+    path: socketPath,
     transports: ['websocket'],
   });
 
@@ -421,8 +428,14 @@ onMounted(async () => {
       }
 
       // Переподключаемся к новой игре
-      const socketUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
-      socket.value = io(`${socketUrl}/association-text`, {
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_WS_URL || 'http://localhost:3000';
+      // Извлекаем базовый URL и путь для Socket.IO
+      const urlObj = new URL(apiUrl);
+      const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+      const socketPath = urlObj.pathname ? `${urlObj.pathname}/socket.io` : '/socket.io';
+      
+      socket.value = io(`${baseUrl}/association-text`, {
+        path: socketPath,
         transports: ['websocket'],
       });
 
