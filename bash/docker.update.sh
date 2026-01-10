@@ -53,7 +53,7 @@ fi
 
 # Перезапускаем контейнеры
 echo "Перезапуск контейнеров на сервере..."
-ssh "$REMOTE_HOST" "cd $REMOTE_PATH && docker compose up -d"
+ssh "$REMOTE_HOST" "cd $REMOTE_PATH && cd ../ && docker compose up -d"
 
 if [ $? -eq 0 ]; then
   echo "✓ Контейнеры успешно перезапущены"

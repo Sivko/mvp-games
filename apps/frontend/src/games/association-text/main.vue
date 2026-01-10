@@ -432,7 +432,7 @@ onMounted(async () => {
       // Извлекаем базовый URL и путь для Socket.IO
       const urlObj = new URL(apiUrl);
       const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-      const socketPath = urlObj.pathname ? `${urlObj.pathname}` : '/socket.io';
+      const socketPath = urlObj.pathname ? `${urlObj.pathname}/socket.io` : '/socket.io';
       
       socket.value = io(`${baseUrl}/association-text`, {
         path: socketPath,
