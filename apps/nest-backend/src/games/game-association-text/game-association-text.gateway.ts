@@ -147,6 +147,7 @@ export class GameAssociationTextGateway
             userId,
             userName,
             initial: userName.charAt(0).toUpperCase(),
+            telegramPhotoUrl: user?.telegramPhotoUrl,
           };
         })
       );
@@ -911,6 +912,7 @@ export class GameAssociationTextGateway
             userId,
             userName,
             initial: userName.charAt(0).toUpperCase(),
+            telegramPhotoUrl: user?.telegramPhotoUrl,
           };
         })
       );

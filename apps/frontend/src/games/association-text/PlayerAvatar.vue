@@ -2,12 +2,18 @@
   <div class="flex flex-col items-center">
     <div
       ref="referenceRef"
-      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer relative border-2 border-telegram-section"
+      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm cursor-pointer relative border-2 border-telegram-section overflow-hidden"
       :class="{ 'border-green-500': props.isReady }"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
-      {{ props.initial }}
+      <img
+        v-if="props.telegramPhotoUrl"
+        :src="props.telegramPhotoUrl"
+        :alt="props.userName"
+        class="w-full h-full object-cover"
+      />
+      <span v-else>{{ props.initial }}</span>
     </div>
     <div
       v-if="props.isShowScore"
@@ -40,6 +46,7 @@ const props = withDefaults(defineProps<{
   isReady?: boolean;
   score?: number;
   isShowScore?: boolean;
+  telegramPhotoUrl?: string;
 }>(), {
   isShowScore: true,
 });

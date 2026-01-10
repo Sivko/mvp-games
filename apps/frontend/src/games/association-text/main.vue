@@ -43,7 +43,7 @@
         </h3>
         <div class="flex flex-wrap gap-2">
           <PlayerAvatar v-for="player in uniquePlayers" :key="player.userId" :user-name="player.userName"
-            :initial="player.initial" :is-ready="player.isReady" :score="player.score" />
+            :initial="player.initial" :is-ready="player.isReady" :score="player.score" :telegram-photo-url="player.telegramPhotoUrl" />
         </div>
       </div>
 
@@ -117,7 +117,7 @@ const reactionsObject = computed(() => {
 
 // Уникальные игроки - показываем всех онлайн игроков из onlinePlayers
 const uniquePlayers = computed(() => {
-  const playersMap = new Map<string, { userId: string; userName: string; initial: string; isReady: boolean; score: number }>();
+  const playersMap = new Map<string, { userId: string; userName: string; initial: string; isReady: boolean; score: number; telegramPhotoUrl?: string }>();
 
   // В фазе input: игрок готов, если у него есть ответ
   // В фазе results: игрок готов, если он в readyUsers Set
@@ -138,6 +138,7 @@ const uniquePlayers = computed(() => {
       initial: player.initial,
       isReady,
       score,
+      telegramPhotoUrl: player.telegramPhotoUrl,
     });
   });
 
@@ -155,12 +156,12 @@ const bankAssociationTextId = ref<string | undefined>(undefined);
 const userScores = ref<Record<string, number>>({}); // Очки пользователей
 const currentRound = ref<number>(1);
 const maxRounds = ref<number>(10);
-const finishPlayers = ref<Array<{ userId: string; userName: string; initial: string }>>([]);
+const finishPlayers = ref<Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>>([]);
 const isGameFinished = ref<boolean>(false);
 // Сохраняем список игроков из предыдущих раундов, чтобы показывать их даже когда ответов еще нет
 const savedPlayers = ref<Map<string, { userId: string; userName: string; initial: string; score: number }>>(new Map());
 // Список всех онлайн игроков (обновляется через WebSocket события)
-const onlinePlayers = ref<Array<{ userId: string; userName: string; initial: string }>>([]);
+const onlinePlayers = ref<Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>>([]);
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -262,7 +263,7 @@ onMounted(async () => {
     userScores?: Record<string, number>;
     currentRound?: number;
     maxRounds?: number;
-    players?: Array<{ userId: string; userName: string; initial: string }>;
+    players?: Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>;
     isGameFinished?: boolean;
     newGameId?: string;
   }) => {
@@ -534,7 +535,7 @@ onMounted(async () => {
   });
 
   socket.value.on('online-players-update', (data: {
-    players: Array<{ userId: string; userName: string; initial: string }>
+    players: Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>
   }) => {
     console.log('[online-players-update] Получен список онлайн игроков:', data.players);
     onlinePlayers.value = data.players;

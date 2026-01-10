@@ -64,12 +64,15 @@ declare global {
   }
 }
 
+// Флаг для отслеживания инициализации
+let isInitialized = false;
+let themeChangedHandler: (() => void) | null = null;
+
 /**
- * Инициализирует тему Telegram и применяет CSS переменные
+ * Применяет цвета темы к CSS переменным
  */
-export function initTelegramTheme(): void {
+function applyThemeColors(): void {
   if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
-    console.warn('Telegram WebApp not available');
     return;
   }
 
@@ -122,14 +125,36 @@ export function initTelegramTheme(): void {
   if (themeParams.section_separator_color) {
     document.documentElement.style.setProperty('--tg-theme-section-separator-color', themeParams.section_separator_color);
   }
+}
 
-  // Уведомляем Telegram, что приложение готово
-  webApp.ready();
+/**
+ * Инициализирует тему Telegram и применяет CSS переменные
+ * Вызывает ready() только один раз при первой инициализации
+ */
+export function initTelegramTheme(): void {
+  if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
+    console.warn('Telegram WebApp not available');
+    return;
+  }
 
-  // Подписываемся на изменение темы
-  webApp.onEvent('themeChanged', () => {
-    initTelegramTheme();
-  });
+  const webApp = window.Telegram.WebApp;
+
+  // Применяем цвета темы
+  applyThemeColors();
+
+  // Инициализация выполняется только один раз
+  if (!isInitialized) {
+    // Уведомляем Telegram, что приложение готово (вызываем только один раз)
+    webApp.ready();
+
+    // Подписываемся на изменение темы (только один раз)
+    themeChangedHandler = () => {
+      applyThemeColors();
+    };
+    webApp.onEvent('themeChanged', themeChangedHandler);
+
+    isInitialized = true;
+  }
 }
 
 /**

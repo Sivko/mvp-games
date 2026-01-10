@@ -31,9 +31,15 @@
       >
         <div class="flex items-center gap-3">
           <div
-            class="w-8 h-8 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm"
+            class="w-8 h-8 rounded-full bg-telegram-header flex items-center justify-center text-white font-semibold text-sm overflow-hidden"
           >
-            {{ player.initial }}
+            <img
+              v-if="player.telegramPhotoUrl"
+              :src="player.telegramPhotoUrl"
+              :alt="player.userName"
+              class="w-full h-full object-cover"
+            />
+            <span v-else>{{ player.initial }}</span>
           </div>
           <div>
             <div class="text-telegram-text font-semibold">
@@ -77,7 +83,7 @@ import ReactionWinners from './ReactionWinners.vue';
 
 const props = defineProps<{
   userScores: Record<string, number>;
-  players: Array<{ userId: string; userName: string; initial: string }>;
+  players: Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>;
   currentRound: number;
   onlineUsersCount: number;
   readyCount: number;
