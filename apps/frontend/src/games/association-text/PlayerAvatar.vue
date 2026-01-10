@@ -7,11 +7,19 @@
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
+      <!-- Скелетон загрузки -->
+      <div
+        v-if="isLoading && props.telegramPhotoUrl"
+        class="absolute inset-0 bg-telegram-section animate-pulse"
+      />
       <img
         v-if="props.telegramPhotoUrl"
         :src="props.telegramPhotoUrl"
         :alt="props.userName"
-        class="w-full h-full object-cover"
+        class="w-full h-full object-cover transition-opacity duration-300"
+        :class="{ 'opacity-0': isLoading }"
+        @load="handleImageLoad"
+        @error="handleImageError"
       />
       <span v-else>{{ props.initial }}</span>
     </div>
@@ -55,6 +63,7 @@ const referenceRef = ref<HTMLElement | null>(null);
 const floatingRef = ref<HTMLElement | null>(null);
 const isOpen = ref(false);
 const isVisible = ref(false);
+const isLoading = ref(!!props.telegramPhotoUrl);
 
 const { floatingStyles, update } = useFloating(referenceRef, floatingRef, {
   placement: 'top',
@@ -104,5 +113,22 @@ const handleMouseLeave = () => {
     isOpen.value = false;
   }, 150);
 };
+
+const handleImageLoad = () => {
+  isLoading.value = false;
+};
+
+const handleImageError = () => {
+  isLoading.value = false;
+};
+
+// Сбрасываем состояние загрузки при изменении URL изображения
+watch(() => props.telegramPhotoUrl, (newUrl) => {
+  if (newUrl) {
+    isLoading.value = true;
+  } else {
+    isLoading.value = false;
+  }
+});
 </script>
 

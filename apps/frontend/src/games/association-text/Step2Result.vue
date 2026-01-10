@@ -54,15 +54,19 @@
       <div v-if="!readyForNextRound" class="mb-4">
         <hr />
 
-        <!-- Популярные слова -->
+        <!-- Популярные ответы -->
         <div class="mt-4">
           <div class="text-center mb-2 text-telegram-text-secondary text-sm">
-            Популярные слова
-            <span class="text-xs">({{ uniqueWords.length }})</span>
+            Популярные ответы
+            <span v-if="!loadingUniqueWords" class="text-xs">({{ uniqueWords.length }})</span>
           </div>
-          <!-- Загрузка -->
-          <div v-if="loadingUniqueWords" class="text-center text-telegram-text-secondary py-4">
-            Загрузка...
+          <!-- Скелетон загрузки -->
+          <div v-if="loadingUniqueWords" class="space-y-2">
+            <div v-for="i in 5" :key="`skeleton-${i}`"
+              class="px-2 py-2 bg-telegram-bg-secondary rounded-lg flex justify-between animate-pulse">
+              <div class="h-5 bg-telegram-section rounded w-24"></div>
+              <div class="h-5 bg-telegram-section rounded w-8"></div>
+            </div>
           </div>
           <!-- Список слов -->
           <div v-else-if="uniqueWords.length > 0" class="space-y-2">
