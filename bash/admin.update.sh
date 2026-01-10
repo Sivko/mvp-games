@@ -95,7 +95,7 @@ ssh "$REMOTE_HOST" "cd $REMOTE_PATH && rm -f $ARCHIVE_NAME"
 
 # Перезапускаем контейнер с новым образом
 echo "Перезапуск контейнера admin..."
-ssh "$REMOTE_HOST" "cd $REMOTE_PATH && docker compose -f docker-compose.production.yml up -d admin"
+ssh "$REMOTE_HOST" "cd $REMOTE_PATH && cd ../ && docker compose up -d admin"
 
 if [ $? -ne 0 ]; then
   echo "✗ Ошибка при перезапуске контейнера"

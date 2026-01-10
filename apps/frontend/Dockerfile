@@ -2,6 +2,7 @@ FROM nginx:alpine
 
 # Копируем собранные файлы из dist в nginx директорию
 COPY apps/frontend/dist /usr/share/nginx/html
+COPY apps/frontend/public /usr/share/nginx/html/public
 
 # Копируем конфигурацию nginx для SPA роутинга
 COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf

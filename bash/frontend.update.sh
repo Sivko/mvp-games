@@ -95,7 +95,7 @@ ssh "$REMOTE_HOST" "cd $REMOTE_PATH && rm -f $ARCHIVE_NAME"
 
 # Перезапускаем контейнер с новым образом
 echo "Перезапуск контейнера frontend..."
-ssh "$REMOTE_HOST" "cd $REMOTE_PATH && docker compose -f docker-compose.production.yml up -d frontend"
+ssh "$REMOTE_HOST" "cd $REMOTE_PATH && cd ../ && docker compose up -d frontend"
 
 if [ $? -ne 0 ]; then
   echo "✗ Ошибка при перезапуске контейнера"

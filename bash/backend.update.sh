@@ -80,7 +80,7 @@ ssh "$REMOTE_HOST" "cd $REMOTE_PATH && rm -f $ARCHIVE_NAME"
 
 # Перезапускаем контейнер с новым образом
 echo "Перезапуск контейнера nest-backend..."
-ssh "$REMOTE_HOST" "cd $REMOTE_PATH && docker compose -f docker-compose.production.yml up -d nest-backend"
+ssh "$REMOTE_HOST" "cd $REMOTE_PATH && cd ../ && docker compose up -d nest-backend"
 
 if [ $? -ne 0 ]; then
   echo "✗ Ошибка при перезапуске контейнера"
