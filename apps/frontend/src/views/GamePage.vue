@@ -3,7 +3,7 @@
     <AssociationTextMain
       v-if="game && game.typeGame === 'association-text' && currentUser"
       :game-id="game._id"
-      :user-id="gameOwnerId"
+      :user-id="game.createdBy"
       :question="game.question"
       @new-game-id="handleNewGameId"
     />
@@ -46,8 +46,7 @@ import AssociationTextMain from '../games/association-text/main.vue';
 import AddNameModal from '../components/AddNameModal.vue';
 
 const route = useRoute();
-const gameOwnerId = route.params.userId as string; // ID владельца игры (из URL)
-const gameType = route.params.gameType as string;
+const gameId = route.params.gameId as string;
 const game = ref<Game | null>(null);
 const { currentUser, checkAndCreateUser, createUserWithName } = useUser();
 const nameModalRef = ref<InstanceType<typeof AddNameModal> | null>(null);
@@ -79,9 +78,8 @@ const handleCloseNameModal = () => {
 
 const loadGame = async () => {
   try {
-    // Получаем или создаем игру для владельца игры (из URL)
-    // Это позволяет любому пользователю подключиться к игре владельца
-    game.value = await gamesApi.findOrCreateGameByUserAndType(gameOwnerId, gameType);
+    // Загружаем игру по ID
+    game.value = await gamesApi.getGameById(gameId);
     console.log(game);
   } catch (error) {
     console.error('Error loading game:', error);

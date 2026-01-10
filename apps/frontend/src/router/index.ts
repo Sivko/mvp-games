@@ -12,12 +12,12 @@ const router = createRouter({
       component: HomePage,
     },
     {
-      path: '/:userId',
+      path: '/my',
       name: 'user',
       component: UserPage,
     },
     {
-      path: '/:userId/game/:gameType',
+      path: '/my/game/:gameId',
       name: 'game',
       component: GamePage,
     },

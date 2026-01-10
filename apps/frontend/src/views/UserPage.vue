@@ -29,7 +29,7 @@
               </div>
             </div>
             <button
-              @click="goToGame(game.createdBy, game.typeGame)"
+              @click="goToGame(game._id)"
               class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
             >
               Перейти
@@ -47,7 +47,7 @@
           <input
             v-model="inviteCode"
             type="text"
-            placeholder="Введите invite-код (например: 695b3797a5e39fae62b5fb8a/game/association-text)"
+            placeholder="Введите invite-код (gameId)"
             class="flex-1 px-4 py-2 bg-telegram-bg text-telegram-text rounded-lg border border-telegram-section-separator focus:outline-none focus:ring-2 focus:ring-telegram-button"
           />
           <button
@@ -75,7 +75,7 @@
             </div>
             <button
               v-if="hasGame(defaultGame.typeGame)"
-              @click="goToGame(userId, defaultGame.typeGame)"
+              @click="goToGameByType(defaultGame.typeGame)"
               class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
             >
               Перейти
@@ -96,7 +96,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { gamesApi, type Game } from '../api/gamesApi';
 import { useUser } from '../composables/useUser';
 
@@ -104,10 +104,8 @@ const games = ref<Game[]>([]);
 const participantGames = ref<Game[]>([]);
 const inviteCode = ref('');
 const inviteError = ref('');
-const route = useRoute();
 const router = useRouter();
-const userId = route.params.userId as string;
-const { checkUserOnMount } = useUser();
+const { checkUserOnMount, getCurrentUserId } = useUser();
 
 const defaultGames = [
   {
@@ -126,15 +124,27 @@ const getGameName = (typeGame: string): string => {
   return game ? game.name : typeGame;
 };
 
-const goToGame = (gameUserId: string, typeGame: string) => {
-  router.push(`/${gameUserId}/game/${typeGame}`);
+const goToGame = (gameId: string) => {
+  router.push(`/my/game/${gameId}`);
+};
+
+const goToGameByType = async (typeGame: string) => {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+  try {
+    const game = await gamesApi.findOrCreateGameByUserAndType(userId, typeGame);
+    goToGame(game._id);
+  } catch (error) {
+    console.error('Failed to load game:', error);
+  }
 };
 
 const createGame = async (typeGame: string) => {
+  const userId = getCurrentUserId();
+  if (!userId) return;
   try {
-    if (!userId) return;
-    await gamesApi.findOrCreateGameByUserAndType(userId, typeGame);
-    goToGame(userId, typeGame);
+    const game = await gamesApi.findOrCreateGameByUserAndType(userId, typeGame);
+    goToGame(game._id);
   } catch (error) {
     console.error('Failed to create game:', error);
   }
@@ -148,24 +158,17 @@ const handleInvite = async () => {
     return;
   }
 
-  // Парсим invite-код формата: userId/game/typeGame
-  const parts = inviteCode.value.trim().split('/');
-  if (parts.length !== 3 || parts[1] !== 'game') {
-    inviteError.value = 'Неверный формат invite-кода. Используйте: userId/game/typeGame';
-    return;
-  }
+  const gameId = inviteCode.value.trim();
 
-  const [inviteUserId, , typeGame] = parts;
-
-  if (!inviteUserId || !typeGame) {
-    inviteError.value = 'Неверный формат invite-кода. Используйте: userId/game/typeGame';
+  if (!gameId) {
+    inviteError.value = 'Неверный формат invite-кода';
     return;
   }
 
   try {
-    await gamesApi.getGameByInvite(inviteUserId, typeGame);
+    await gamesApi.getGameById(gameId);
     // Если игра найдена, редиректим
-    router.push(`/${inviteUserId}/game/${typeGame}`);
+    router.push(`/my/game/${gameId}`);
   } catch {
     inviteError.value = 'К сожалению комната не найдена';
   }
@@ -173,7 +176,10 @@ const handleInvite = async () => {
 
 onMounted(async () => {
   // Проверяем пользователя при монтировании
-  await checkUserOnMount((id) => `/${id}`);
+  await checkUserOnMount(() => `/my`);
+  
+  const userId = getCurrentUserId();
+  if (!userId) return;
   
   // Загружаем игры, созданные пользователем
   const gamesData = await gamesApi.getActiveGameByUser(userId);

@@ -82,9 +82,9 @@ export function useUser() {
   /**
    * Проверяет пользователя из localStorage при монтировании компонента
    * Если пользователь найден, делает редирект на его страницу
-   * @param redirectTo - путь для редиректа (по умолчанию `/${userId}`)
+   * @param redirectTo - функция, возвращающая путь для редиректа (по умолчанию `/my`)
    */
-  const checkUserOnMount = async (redirectTo?: (userId: string) => string) => {
+  const checkUserOnMount = async (redirectTo?: () => string) => {
     const storedUser = storage.getUser();
 
     if (storedUser && storedUser.id) {
@@ -94,7 +94,7 @@ export function useUser() {
 
         if (user && user.id) {
           // Если пользователь найден, делаем редирект
-          const redirectPath = redirectTo ? redirectTo(storedUser.id) : `/${storedUser.id}`;
+          const redirectPath = redirectTo ? redirectTo() : '/my';
           router.push(redirectPath);
         } else {
           console.error('User not found in database');
@@ -113,7 +113,7 @@ export function useUser() {
   const ensureUser = async (autoRedirect = false): Promise<string | null> => {
     const userId = await checkAndCreateUser();
     if (userId && autoRedirect) {
-      router.push(`/${userId}`);
+      router.push('/my');
     }
     return userId;
   };

@@ -201,9 +201,21 @@ onMounted(async () => {
   // Если URL содержит путь (например, /bff/api), нужно разделить его
   const urlObj = new URL(apiUrl);
   const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-  const socketPath = urlObj.pathname ? `${urlObj.pathname}/socket.io` : '/socket.io';
+  // Формируем путь для Socket.IO (без namespace, namespace указывается в URL)
+  let socketPath = '/socket.io';
+  if (urlObj.pathname && urlObj.pathname !== '/') {
+    // Убираем завершающий слэш если есть
+    const cleanPathname = urlObj.pathname.endsWith('/') 
+      ? urlObj.pathname.slice(0, -1) 
+      : urlObj.pathname;
+    socketPath = `${cleanPathname}/socket.io`;
+  }
+  // Namespace указывается в URL подключения, а не в path
+  const socketUrl = urlObj.pathname && urlObj.pathname !== '/'
+    ? `${baseUrl}${urlObj.pathname}/association-text`
+    : `${baseUrl}/association-text`;
   
-  socket.value = io(`${baseUrl}/association-text`, {
+  socket.value = io(socketUrl, {
     path: socketPath,
     transports: ['websocket'],
   });
@@ -432,9 +444,21 @@ onMounted(async () => {
       // Извлекаем базовый URL и путь для Socket.IO
       const urlObj = new URL(apiUrl);
       const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-      const socketPath = urlObj.pathname ? `${urlObj.pathname}/socket.io` : '/socket.io';
+      // Формируем путь для Socket.IO (без namespace, namespace указывается в URL)
+      let socketPath = '/socket.io';
+      if (urlObj.pathname && urlObj.pathname !== '/') {
+        // Убираем завершающий слэш если есть
+        const cleanPathname = urlObj.pathname.endsWith('/') 
+          ? urlObj.pathname.slice(0, -1) 
+          : urlObj.pathname;
+        socketPath = `${cleanPathname}/socket.io`;
+      }
+      // Namespace указывается в URL подключения, а не в path
+      const socketUrl = urlObj.pathname && urlObj.pathname !== '/'
+        ? `${baseUrl}${urlObj.pathname}/association-text`
+        : `${baseUrl}/association-text`;
       
-      socket.value = io(`${baseUrl}/association-text`, {
+      socket.value = io(socketUrl, {
         path: socketPath,
         transports: ['websocket'],
       });

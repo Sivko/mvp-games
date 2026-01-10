@@ -46,10 +46,10 @@ const handleSubmitName = async (name: string) => {
     nameModalRef.value.setLoading(true);
   }
   try {
-    const userId = await createUserWithName(name);
+    await createUserWithName(name);
     showNameModal.value = false;
     // После создания пользователя делаем редирект
-    router.push(`/${userId}`);
+    router.push('/my');
   } catch (error) {
     console.error('Error creating user:', error);
     alert('Ошибка при создании пользователя');
@@ -76,7 +76,7 @@ const handleStart = async () => {
 
     if (userId) {
       // Если пользователь авторизован, делаем редирект
-      router.push(`/${userId}`);
+      router.push('/my');
     } else {
       // Если пользователь не авторизован или ошибка при авторизации, показываем модалку для создания
       showNameModal.value = true;
