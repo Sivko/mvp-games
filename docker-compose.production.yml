@@ -97,6 +97,8 @@ services:
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.frontend.tls.domains[0].main=top-otvet.limpopo113.ru"
+      - "traefik.http.routers.frontend.middlewares=frontend-headers"
+      - "traefik.http.middlewares.frontend-headers.headers.customResponseHeaders.Content-Security-Policy=frame-ancestors *"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
   admin:

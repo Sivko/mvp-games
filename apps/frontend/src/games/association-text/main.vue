@@ -197,27 +197,51 @@ onMounted(async () => {
 
   // Подключаемся к WebSocket
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  // Извлекаем базовый URL и путь для Socket.IO
-  // Если URL содержит путь (например, /bff/api), нужно разделить его
   const urlObj = new URL(apiUrl);
   const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-  // Формируем путь для Socket.IO (без namespace, namespace указывается в URL)
+  
+  // Socket.IO клиент работает так:
+  // io('http://localhost/namespace', { path: '/socket.io' }) 
+  // создает запрос: http://localhost/namespace/socket.io/
+  // 
+  // Для production с Traefik:
+  // - URL должен включать префикс + namespace: https://top-otvet.limpopo113.ru/bff/api/association-text
+  // - Path должен быть путем к socket.io с префиксом: /bff/api/socket.io
+  // - Socket.IO сформирует запрос: https://top-otvet.limpopo113.ru/bff/api/association-text/socket.io/
+  // - Traefik удалит /bff/api, backend получит /association-text/socket.io/
+  // - Backend определит namespace /association-text из пути перед /socket.io/
   let socketPath = '/socket.io';
+  let socketUrl: string;
+  
   if (urlObj.pathname && urlObj.pathname !== '/') {
-    // Убираем завершающий слэш если есть
+    // Production: URL включает префикс + namespace, path включает префикс
     const cleanPathname = urlObj.pathname.endsWith('/') 
       ? urlObj.pathname.slice(0, -1) 
       : urlObj.pathname;
+    socketUrl = `${baseUrl}${cleanPathname}/association-text`;
     socketPath = `${cleanPathname}/socket.io`;
+  } else {
+    // Development: без префикса
+    socketUrl = `${baseUrl}/association-text`;
+    socketPath = '/socket.io';
   }
-  // Namespace указывается в URL подключения, а не в path
-  const socketUrl = urlObj.pathname && urlObj.pathname !== '/'
-    ? `${baseUrl}${urlObj.pathname}/association-text`
-    : `${baseUrl}/association-text`;
+  
+  console.log('Socket.IO connection:', { socketUrl, socketPath });
   
   socket.value = io(socketUrl, {
     path: socketPath,
     transports: ['websocket'],
+    forceNew: true,
+  });
+  
+  // Обработка ошибок подключения
+  socket.value.on('connect_error', (error) => {
+    console.error('Socket.IO connection error:', error);
+    console.error('Connection details:', { socketUrl, socketPath, errorMessage: error.message });
+  });
+  
+  socket.value.on('connect', () => {
+    console.log('Socket.IO connected successfully');
   });
 
   // Присоединяемся к игре с текущим пользователем из localStorage
@@ -441,26 +465,51 @@ onMounted(async () => {
 
       // Переподключаемся к новой игре
       const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_WS_URL || 'http://localhost:3000';
-      // Извлекаем базовый URL и путь для Socket.IO
       const urlObj = new URL(apiUrl);
       const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-      // Формируем путь для Socket.IO (без namespace, namespace указывается в URL)
+      
+      // Socket.IO клиент работает так:
+      // io('http://localhost/namespace', { path: '/socket.io' }) 
+      // создает запрос: http://localhost/namespace/socket.io/
+      // 
+      // Для production с Traefik:
+      // - URL должен включать префикс + namespace: https://top-otvet.limpopo113.ru/bff/api/association-text
+      // - Path должен быть путем к socket.io с префиксом: /bff/api/socket.io
+      // - Socket.IO сформирует запрос: https://top-otvet.limpopo113.ru/bff/api/association-text/socket.io/
+      // - Traefik удалит /bff/api, backend получит /association-text/socket.io/
+      // - Backend определит namespace /association-text из пути перед /socket.io/
       let socketPath = '/socket.io';
+      let socketUrl: string;
+      
       if (urlObj.pathname && urlObj.pathname !== '/') {
-        // Убираем завершающий слэш если есть
+        // Production: URL включает префикс + namespace, path включает префикс
         const cleanPathname = urlObj.pathname.endsWith('/') 
           ? urlObj.pathname.slice(0, -1) 
           : urlObj.pathname;
+        socketUrl = `${baseUrl}${cleanPathname}/association-text`;
         socketPath = `${cleanPathname}/socket.io`;
+      } else {
+        // Development: без префикса
+        socketUrl = `${baseUrl}/association-text`;
+        socketPath = '/socket.io';
       }
-      // Namespace указывается в URL подключения, а не в path
-      const socketUrl = urlObj.pathname && urlObj.pathname !== '/'
-        ? `${baseUrl}${urlObj.pathname}/association-text`
-        : `${baseUrl}/association-text`;
+      
+      console.log('Socket.IO reconnection:', { socketUrl, socketPath });
       
       socket.value = io(socketUrl, {
         path: socketPath,
         transports: ['websocket'],
+        forceNew: true,
+      });
+      
+      // Обработка ошибок подключения
+      socket.value.on('connect_error', (error) => {
+        console.error('Socket.IO reconnection error:', error);
+        console.error('Reconnection details:', { socketUrl, socketPath, errorMessage: error.message });
+      });
+      
+      socket.value.on('connect', () => {
+        console.log('Socket.IO reconnected successfully');
       });
 
       const userId = getCurrentUserId();

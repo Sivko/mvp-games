@@ -51,6 +51,8 @@ export class GameAssociationTextGateway
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
+    console.log(`Connection URL: ${client.request.url}`);
+    console.log(`Namespace: ${client.nsp.name}`);
   }
 
   handleDisconnect(client: Socket) {
