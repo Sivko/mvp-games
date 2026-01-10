@@ -2,7 +2,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usersApi } from '../api/usersApi';
 import { storage, type StoredUser } from '../utils/storage';
-import { getTelegramWebApp } from '../utils/telegramTheme';
+import { getTelegramWebApp, isTelegramWebApp } from '../utils/telegramTheme';
 
 export function useUser() {
   const router = useRouter();
@@ -21,33 +21,52 @@ export function useUser() {
       return storedUser.id;
     }
 
-    // Проверяем Telegram данные
-    const webApp = getTelegramWebApp();
-    const telegramData = webApp?.initDataUnsafe?.user;
+    // Проверяем, запущено ли приложение в Telegram Mini App
+    if (isTelegramWebApp()) {
+      const webApp = getTelegramWebApp();
+      const initData = webApp?.initData;
 
-    if (telegramData) {
-      // Если есть Telegram данные, создаем пользователя автоматически
-      try {
-        const userData = {
-          telegramId: telegramData.id,
-          telegramUsername: telegramData.username,
-          telegramFirstName: telegramData.first_name,
-          telegramLastName: telegramData.last_name,
-          telegramPhotoUrl: telegramData.photo_url,
-          telegramLanguageCode: telegramData.language_code,
-        };
+      if (initData) {
+        // Используем валидированный способ авторизации через initData
+        try {
+          const user = await usersApi.authByTelegram(initData);
+          const savedUser: StoredUser = {
+            id: user.id,
+            name: user.name || user.telegramFirstName || user.telegramUsername || 'Пользователь',
+          };
+          storage.setUser(savedUser);
+          currentUser.value = savedUser;
+          return savedUser.id;
+        } catch (error) {
+          console.error('Error authenticating via Telegram initData:', error);
+          // Fallback на старый способ, если валидация не прошла
+          const telegramData = webApp?.initDataUnsafe?.user;
+          if (telegramData) {
+            try {
+              const userData = {
+                telegramId: telegramData.id,
+                telegramUsername: telegramData.username,
+                telegramFirstName: telegramData.first_name,
+                telegramLastName: telegramData.last_name,
+                telegramPhotoUrl: telegramData.photo_url,
+                telegramLanguageCode: telegramData.language_code,
+              };
 
-        const user = await usersApi.findOrCreateUser(userData);
-        const savedUser: StoredUser = {
-          id: user.id,
-          name: user.name || user.telegramFirstName || user.telegramUsername || 'Пользователь',
-        };
-        storage.setUser(savedUser);
-        currentUser.value = savedUser;
-        return savedUser.id;
-      } catch (error) {
-        console.error('Error creating user from Telegram:', error);
-        return null;
+              const user = await usersApi.findOrCreateUser(userData);
+              const savedUser: StoredUser = {
+                id: user.id,
+                name: user.name || user.telegramFirstName || user.telegramUsername || 'Пользователь',
+              };
+              storage.setUser(savedUser);
+              currentUser.value = savedUser;
+              return savedUser.id;
+            } catch (fallbackError) {
+              console.error('Error creating user from Telegram (fallback):', fallbackError);
+              return null;
+            }
+          }
+          return null;
+        }
       }
     }
 

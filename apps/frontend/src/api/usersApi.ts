@@ -18,6 +18,25 @@ export interface UserResponse {
 }
 
 export const usersApi = {
+  /**
+   * Авторизует пользователя через Telegram initData
+   * @param initData - строка initData из Telegram WebApp
+   */
+  async authByTelegram(initData: string): Promise<UserResponse> {
+    const response = await fetch(`${API_BASE_URL}/users/auth/telegram`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ initData }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to authenticate' }));
+      throw new Error(error.message || 'Failed to authenticate');
+    }
+    return response.json();
+  },
+
   async findOrCreateUser(userData: CreateUserData): Promise<UserResponse> {
     const response = await fetch(`${API_BASE_URL}/users/find-or-create`, {
       method: 'POST',
