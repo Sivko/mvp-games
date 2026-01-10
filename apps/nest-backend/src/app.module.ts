@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { EventsGateway } from './events.gateway';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
@@ -87,6 +86,6 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
     ElasticsearchModule,
   ],
   controllers: [AppController, GamesController],
-  providers: [AppService, EventsGateway, GamesService],
+  providers: [AppService, GamesService],
 })
 export class AppModule {}

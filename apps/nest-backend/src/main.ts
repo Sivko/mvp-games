@@ -19,6 +19,8 @@ async function bootstrap() {
   await app.listen(process.env.NEST_PORT);
   console.log(`Application is running on: http://localhost:${process.env.NEST_PORT}`);
   console.log(`WebSocket server is ready`);
+  console.log(`Socket.IO path: /socket.io`);
+  console.log(`Socket.IO namespace: / (default)`);
   console.log(`Test WebSocket client: http://localhost:${process.env.NEST_PORT}/test-websocket.html`);
 }
 bootstrap();

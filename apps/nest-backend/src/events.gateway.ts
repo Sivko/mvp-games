@@ -24,11 +24,18 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    console.log('=== EventsGateway Connection ===');
+    console.log(`Client ID: ${client.id}`);
+    console.log(`Connection URL: ${client.request.url}`);
+    console.log(`Namespace: ${client.nsp.name}`);
+    console.log('=================================');
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    console.log('=== EventsGateway Disconnection ===');
+    console.log(`Client ID: ${client.id}`);
+    console.log(`Namespace: ${client.nsp.name}`);
+    console.log('===================================');
   }
 }
 

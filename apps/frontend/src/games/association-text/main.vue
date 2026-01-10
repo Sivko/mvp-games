@@ -201,33 +201,24 @@ onMounted(async () => {
   const urlObj = new URL(apiUrl);
   const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
   
-  // Socket.IO клиент работает так:
-  // io('http://localhost/namespace', { path: '/socket.io' }) 
-  // создает запрос: http://localhost/namespace/socket.io/
-  // 
-  // Для production с Traefik:
-  // - URL должен включать префикс + namespace: https://top-otvet.limpopo113.ru/bff/api/association-text
-  // - Path должен быть путем к socket.io с префиксом: /bff/api/socket.io
-  // - Socket.IO сформирует запрос: https://top-otvet.limpopo113.ru/bff/api/association-text/socket.io/
-  // - Traefik удалит /bff/api, backend получит /association-text/socket.io/
-  // - Backend определит namespace /association-text из пути перед /socket.io/
-  let socketPath = '/socket.io';
+  // Socket.IO path должен включать префикс пути для production
+  // Traefik удалит префикс /bff/api из пути, поэтому сервер получит правильный путь /socket.io
+  let socketPath: string;
   let socketUrl: string;
   
   if (urlObj.pathname && urlObj.pathname !== '/') {
-    // Production: URL включает префикс + namespace, path включает префикс
+    // Production: включаем префикс пути в socketPath
+    // Socket.IO будет подключаться к /bff/api/socket.io, Traefik перешлет это как /socket.io на backend
     const cleanPathname = urlObj.pathname.endsWith('/') 
       ? urlObj.pathname.slice(0, -1) 
       : urlObj.pathname;
-    socketUrl = `${baseUrl}${cleanPathname}/association-text`;
     socketPath = `${cleanPathname}/socket.io`;
+    socketUrl = baseUrl;
   } else {
     // Development: без префикса
-    socketUrl = `${baseUrl}/association-text`;
     socketPath = '/socket.io';
+    socketUrl = baseUrl;
   }
-  
-  console.log('Socket.IO connection:', { socketUrl, socketPath });
   
   socket.value = io(socketUrl, {
     path: socketPath,
@@ -235,17 +226,22 @@ onMounted(async () => {
     forceNew: true,
   });
   
-  // Обработка ошибок подключения
-  socket.value.on('connect_error', (error) => {
-    console.error('Socket.IO connection error:', error);
-    console.error('Connection details:', { socketUrl, socketPath, errorMessage: error.message });
+  socket.value.on('reconnect_error', (error) => {
+    console.error('❌ Socket.IO reconnect error:', error);
   });
   
-  socket.value.on('connect', () => {
-    console.log('Socket.IO connected successfully');
+  socket.value.on('reconnect_failed', () => {
+    console.error('❌ Socket.IO reconnect failed');
+  });
+  
+  socket.value.on('error', (error) => {
+    console.error('❌ Socket.IO error:', error);
+  });
+  
+  socket.value.on('connect_error', (error) => {
+    console.error('❌ Socket.IO connection error:', error);
   });
 
-  // Присоединяемся к игре с текущим пользователем из localStorage
   socket.value.emit('join-game', {
     gameId: props.gameId,
     userId: userId,
@@ -267,18 +263,7 @@ onMounted(async () => {
     isGameFinished?: boolean;
     newGameId?: string;
   }) => {
-    console.log('[game-state] Получено событие game-state:', {
-      phase: data.phase,
-      question: data.question,
-      currentRound: data.currentRound,
-      maxRounds: data.maxRounds,
-      userScores: data.userScores,
-      onlineUsersCount: data.onlineUsersCount,
-    });
-
-    const oldPhase = phase.value;
     phase.value = data.phase;
-    console.log('[game-state] Фаза изменена:', { oldPhase, newPhase: phase.value });
     onlineUsersCount.value = data.onlineUsersCount;
     if (data.timerEndsAt !== undefined) {
       timerEndsAt.value = data.timerEndsAt;
@@ -309,17 +294,14 @@ onMounted(async () => {
       }
     }
     if (data.phase === 'input') {
-      console.log('[game-state] Обработка фазы input');
       // Сброс состояния при переходе к новой фазе ввода
       answerSubmitted.value = false;
       readyForNextRound.value = false;
       // Очищаем ответы при переходе к новому раунду
       answers.value = [];
-      console.log('[game-state] Ответы очищены');
       // Обновляем очки
       if (data.userScores) {
         userScores.value = data.userScores;
-        console.log('[game-state] Очки обновлены:', userScores.value);
 
         // Если это начало новой игры (раунд 1 и очки пустые или все равны 0), 
         // обновляем очки в savedPlayers на 0, но сохраняем имена игроков
@@ -328,7 +310,6 @@ onMounted(async () => {
             Object.values(data.userScores).every(score => score === 0));
 
         if (isNewGame) {
-          console.log('[game-state] Начало новой игры, обновляем очки в savedPlayers на 0');
           // Обновляем очки всех игроков в savedPlayers на 0, но сохраняем имена
           savedPlayers.value.forEach((player) => {
             player.score = 0;
@@ -341,10 +322,8 @@ onMounted(async () => {
       } else {
         readyUsers.value.clear();
       }
-      console.log('[game-state] Готовые пользователи обновлены:', Array.from(readyUsers.value));
       // Загружаем bankAssociationTextId для нового раунда
       if (data.question) {
-        console.log('[game-state] Загрузка bankAssociationTextId для вопроса:', data.question);
         try {
           const API_BASE_URL = import.meta.env.VITE_API_URL;
           const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
@@ -352,14 +331,12 @@ onMounted(async () => {
             const game = await gameResponse.json();
             if (game.usedQuestions && game.usedQuestions.length > 0) {
               bankAssociationTextId.value = game.usedQuestions[game.usedQuestions.length - 1];
-              console.log('[game-state] bankAssociationTextId загружен:', bankAssociationTextId.value);
             }
           }
         } catch (error) {
           console.error('[game-state] Ошибка загрузки bankAssociationTextId:', error);
         }
       }
-      console.log('[game-state] Фаза input обработана, текущий вопрос:', currentQuestion.value);
     }
     if (data.phase === 'results') {
       readyForNextRound.value = false;
@@ -437,7 +414,6 @@ onMounted(async () => {
         Object.values(userScoresData).every(score => score === 0);
 
       if (isNewGame) {
-        console.log('[game-state] Начало новой игры, обновляем очки всех игроков на 0');
         savedPlayers.value.forEach((player) => {
           // Обновляем очки из userScores, если игрок там есть, иначе устанавливаем 0
           player.score = userScoresData[player.userId] ?? 0;
@@ -458,7 +434,6 @@ onMounted(async () => {
     }
     // Если пришел новый gameId, переподключаемся к новой игре
     if (data.newGameId && data.newGameId !== props.gameId) {
-      console.log('[game-state] Получен новый gameId, переподключение к новой игре:', data.newGameId);
       // Отключаемся от старой игры
       if (socket.value) {
         socket.value.disconnect();
@@ -469,33 +444,24 @@ onMounted(async () => {
       const urlObj = new URL(apiUrl);
       const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
       
-      // Socket.IO клиент работает так:
-      // io('http://localhost/namespace', { path: '/socket.io' }) 
-      // создает запрос: http://localhost/namespace/socket.io/
-      // 
-      // Для production с Traefik:
-      // - URL должен включать префикс + namespace: https://top-otvet.limpopo113.ru/bff/api/association-text
-      // - Path должен быть путем к socket.io с префиксом: /bff/api/socket.io
-      // - Socket.IO сформирует запрос: https://top-otvet.limpopo113.ru/bff/api/association-text/socket.io/
-      // - Traefik удалит /bff/api, backend получит /association-text/socket.io/
-      // - Backend определит namespace /association-text из пути перед /socket.io/
-      let socketPath = '/socket.io';
+      // Socket.IO path должен включать префикс пути для production
+      // Traefik удалит префикс /bff/api из пути, поэтому сервер получит правильный путь /socket.io
+      let socketPath: string;
       let socketUrl: string;
       
       if (urlObj.pathname && urlObj.pathname !== '/') {
-        // Production: URL включает префикс + namespace, path включает префикс
+        // Production: включаем префикс пути в socketPath
+        // Socket.IO будет подключаться к /bff/api/socket.io, Traefik перешлет это как /socket.io на backend
         const cleanPathname = urlObj.pathname.endsWith('/') 
           ? urlObj.pathname.slice(0, -1) 
           : urlObj.pathname;
-        socketUrl = `${baseUrl}${cleanPathname}/association-text`;
         socketPath = `${cleanPathname}/socket.io`;
+        socketUrl = baseUrl;
       } else {
         // Development: без префикса
-        socketUrl = `${baseUrl}/association-text`;
         socketPath = '/socket.io';
+        socketUrl = baseUrl;
       }
-      
-      console.log('Socket.IO reconnection:', { socketUrl, socketPath });
       
       socket.value = io(socketUrl, {
         path: socketPath,
@@ -503,14 +469,20 @@ onMounted(async () => {
         forceNew: true,
       });
       
-      // Обработка ошибок подключения
-      socket.value.on('connect_error', (error) => {
-        console.error('Socket.IO reconnection error:', error);
-        console.error('Reconnection details:', { socketUrl, socketPath, errorMessage: error.message });
+      socket.value.on('reconnect_error', (error) => {
+        console.error('❌ Socket.IO reconnect error:', error);
       });
       
-      socket.value.on('connect', () => {
-        console.log('Socket.IO reconnected successfully');
+      socket.value.on('reconnect_failed', () => {
+        console.error('❌ Socket.IO reconnect failed');
+      });
+      
+      socket.value.on('error', (error) => {
+        console.error('❌ Socket.IO error:', error);
+      });
+      
+      socket.value.on('connect_error', (error) => {
+        console.error('❌ Socket.IO reconnection error:', error);
       });
 
       const userId = getCurrentUserId();
@@ -537,7 +509,6 @@ onMounted(async () => {
   socket.value.on('online-players-update', (data: {
     players: Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>
   }) => {
-    console.log('[online-players-update] Получен список онлайн игроков:', data.players);
     onlinePlayers.value = data.players;
   });
 
@@ -553,13 +524,10 @@ onMounted(async () => {
     answerId: string;
     reactions: Array<{ userId: string; reactionId: string }>;
   }) => {
-    // Отладка (можно убрать позже)
-    console.log('reactions-updated received:', data);
     // Создаем новую Map для обеспечения реактивности Vue 3
     const newReactions = new Map(reactions.value);
     newReactions.set(data.answerId, data.reactions);
     reactions.value = newReactions;
-    console.log('Updated reactions Map:', Array.from(newReactions.entries()));
   });
 
   socket.value.on('ready-update', (data: {
@@ -567,15 +535,8 @@ onMounted(async () => {
     totalUsers: number;
     readyUsers: string[];
   }) => {
-    console.log('[ready-update] Получено обновление готовности:', {
-      readyCount: data.readyCount,
-      totalUsers: data.totalUsers,
-      readyUsers: data.readyUsers,
-      currentPhase: phase.value,
-    });
     // Обновляем Set готовых пользователей из данных WebSocket
     readyUsers.value = new Set(data.readyUsers || []);
-    console.log('[ready-update] Готовые пользователи обновлены:', Array.from(readyUsers.value));
   });
 
   socket.value.on('new-action', (data: { message: string }) => {
@@ -636,35 +597,18 @@ const toggleReaction = (answerId: string, reactionId: string) => {
 };
 
 const markReady = () => {
-  console.log('[markReady] Вызвана функция markReady', {
-    hasSocket: !!socket.value,
-    readyForNextRound: readyForNextRound.value,
-    currentUserId: currentUserId.value,
-    currentPhase: phase.value,
-  });
-
   if (!socket.value || readyForNextRound.value || !currentUserId.value) {
-    console.log('[markReady] Выход: условия не выполнены', {
-      hasSocket: !!socket.value,
-      readyForNextRound: readyForNextRound.value,
-      hasUserId: !!currentUserId.value,
-    });
     return;
   }
 
   if (phase.value === 'results' || phase.value === 'finish') {
-    const emitData = {
+    socket.value.emit('ready-for-next-round', {
       gameId: props.gameId,
       userId: currentUserId.value,
-    };
-    console.log('[markReady] Отправка ready-for-next-round:', emitData);
-    socket.value.emit('ready-for-next-round', emitData);
+    });
     readyForNextRound.value = true;
     // Добавляем текущего пользователя в готовые
     readyUsers.value.add(currentUserId.value);
-    console.log('[markReady] Состояние обновлено, готовые пользователи:', Array.from(readyUsers.value));
-  } else {
-    console.log('[markReady] Неправильная фаза для готовности:', phase.value);
   }
 };
 </script>
