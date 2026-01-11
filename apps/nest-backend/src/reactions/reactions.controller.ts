@@ -13,17 +13,6 @@ import { ReactionsService } from './reactions.service';
 export class ReactionsController {
   constructor(private readonly reactionsService: ReactionsService) {}
 
-  @Post()
-  async create(
-    @Body()
-    createDto: {
-      answerId: string;
-      userId: string;
-      reactionId: string;
-    },
-  ) {
-    return this.reactionsService.create(createDto);
-  }
 
   @Get()
   async findAll() {
@@ -50,6 +39,19 @@ export class ReactionsController {
     return this.reactionsService.findByGameId(gameId);
   }
 
+  @Post()
+  async create(
+    @Body()
+    createDto: {
+      answerId: string;
+      userId: string;
+      reactionId: string;
+    },
+  ) {
+    return this.reactionsService.create(createDto);
+  }
+
+  
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return this.reactionsService.delete(id);

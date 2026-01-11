@@ -110,12 +110,15 @@ services:
       - app_network
     labels:
       - "traefik.enable=true"
+      # Basic Auth middleware для админ-панели
+      # Используем файл .htpasswd, который уже смонтирован в Traefik контейнере
+      - "traefik.http.middlewares.admin-auth.basicauth.usersfile=/etc/traefik/.htpasswd"
       - "traefik.http.routers.admin.rule=Host(`top-otvet.limpopo113.ru`) && PathPrefix(`/admin`)"
       - "traefik.http.routers.admin.priority=50"
       - "traefik.http.routers.admin.entrypoints=websecure"
       - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
       - "traefik.http.routers.admin.tls.domains[0].main=top-otvet.limpopo113.ru"
-      - "traefik.http.routers.admin.middlewares=admin-strip-prefix"
+      - "traefik.http.routers.admin.middlewares=admin-strip-prefix,admin-auth"
       - "traefik.http.middlewares.admin-strip-prefix.stripprefix.prefixes=/admin"
       - "traefik.http.services.admin.loadbalancer.server.port=80"
 
