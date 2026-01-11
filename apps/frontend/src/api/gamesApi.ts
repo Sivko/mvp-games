@@ -8,7 +8,7 @@ export interface Game {
   gamesCount: number
   question: string
   usedQuestions: string[]
-  number?: string
+  number?: number
 }
 
 export interface GameStats {

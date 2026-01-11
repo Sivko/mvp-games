@@ -7,7 +7,7 @@ export type GameDocument = Game & Document;
 export class Game {
 
   @Prop({ type: Number, default: 1 })
-  number: string;
+  number: number;
 
   // статус игры
   @Prop({ type: String, default: 'active' })

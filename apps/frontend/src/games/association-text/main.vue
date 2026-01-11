@@ -27,16 +27,12 @@
         <div class="p-6 bg-telegram-section">
           <h3 class="text-lg font-semibold text-telegram-text mb-4">Пригласить друзей</h3>
           <div class="space-y-3">
-            <button
-              @click="copyGameLink"
-              class="w-full bg-telegram-button text-telegram-button-text py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity"
-            >
+            <button @click="copyGameLink"
+              class="w-full bg-telegram-button text-telegram-button-text py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
               Скопировать ссылку
             </button>
-            <button
-              @click="inviteToTelegram"
-              class="w-full bg-telegram-button text-telegram-button-text py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity"
-            >
+            <button @click="inviteToTelegram"
+              class="w-full bg-telegram-button text-telegram-button-text py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
               Пригласить в Телеграмм
             </button>
           </div>
@@ -58,8 +54,10 @@
 
       <!-- Игроки в игре -->
       <div class="bg-telegram-section rounded-lg shadow p-4 mb-4">
-        <h3 class="text-sm font-semibold text-telegram-text-secondary mb-2">
-          Игроки ({{ uniquePlayers.length }})
+        <h3 class="text-sm text-telegram-text-secondary mb-2">
+          <span class="">Комнаты: #{{ game?.number || props.gameId.slice(-6) }} | Игроки ({{ uniquePlayers.length }})</span>
+          <span class="text-telegram-link ml-2 cursor-pointer" v-if="uniquePlayers.length < 2"
+            @click="showInviteModal = true">Пригласить</span>
         </h3>
         <div class="flex flex-wrap gap-2">
           <PlayerAvatar v-for="player in uniquePlayers" :key="player.userId" :user-name="player.userName"
@@ -97,6 +95,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { io, Socket } from 'socket.io-client';
 import { reactionTypesApi } from '../../api/reactionTypesApi';
 import { useUserStore } from '../../stores/user';
+import { gamesApi, type Game } from '../../api/gamesApi';
 import Step1Input from './Step1Input.vue';
 import Step2Result from './Step2Result.vue';
 import Step3Finish from './Step3Finish.vue';
@@ -212,6 +211,8 @@ const isGameFinished = ref<boolean>(false);
 const savedPlayers = ref<Map<string, { userId: string; userName: string; initial: string; score: number }>>(new Map());
 // Модалка приглашения
 const showInviteModal = ref(false);
+// Данные игры
+const game = ref<Game | null>(null);
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -231,16 +232,12 @@ onMounted(async () => {
     console.error('Failed to load reaction types:', error);
   }
 
-  // Загружаем игру для получения bankAssociationTextId
+  // Загружаем игру для получения bankAssociationTextId и данных игры
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_URL;
-    const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
-    if (gameResponse.ok) {
-      const game = await gameResponse.json();
-      // Получаем последний использованный вопрос (последний элемент массива usedQuestions)
-      if (game.usedQuestions && game.usedQuestions.length > 0) {
-        bankAssociationTextId.value = game.usedQuestions[game.usedQuestions.length - 1];
-      }
+    game.value = await gamesApi.getGameById(props.gameId);
+    // Получаем последний использованный вопрос (последний элемент массива usedQuestions)
+    if (game.value.usedQuestions && game.value.usedQuestions.length > 0) {
+      bankAssociationTextId.value = game.value.usedQuestions[game.value.usedQuestions.length - 1];
     }
   } catch (error) {
     console.error('Failed to load game:', error);
@@ -328,15 +325,11 @@ onMounted(async () => {
       if (data.bankAssociationTextId) {
         bankAssociationTextId.value = data.bankAssociationTextId;
       } else {
-        // Если bankAssociationTextId не пришел в событии, загружаем его из игры
+          // Если bankAssociationTextId не пришел в событии, загружаем его из игры
         try {
-          const API_BASE_URL = import.meta.env.VITE_API_URL;
-          const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
-          if (gameResponse.ok) {
-            const game = await gameResponse.json();
-            if (game.usedQuestions && game.usedQuestions.length > 0) {
-              bankAssociationTextId.value = game.usedQuestions[game.usedQuestions.length - 1];
-            }
+          game.value = await gamesApi.getGameById(props.gameId);
+          if (game.value.usedQuestions && game.value.usedQuestions.length > 0) {
+            bankAssociationTextId.value = game.value.usedQuestions[game.value.usedQuestions.length - 1];
           }
         } catch (error) {
           console.error('Failed to load bankAssociationTextId:', error);
@@ -375,13 +368,9 @@ onMounted(async () => {
       // Загружаем bankAssociationTextId для нового раунда
       if (data.question) {
         try {
-          const API_BASE_URL = import.meta.env.VITE_API_URL;
-          const gameResponse = await fetch(`${API_BASE_URL}/games/${props.gameId}`);
-          if (gameResponse.ok) {
-            const game = await gameResponse.json();
-            if (game.usedQuestions && game.usedQuestions.length > 0) {
-              bankAssociationTextId.value = game.usedQuestions[game.usedQuestions.length - 1];
-            }
+          game.value = await gamesApi.getGameById(props.gameId);
+          if (game.value.usedQuestions && game.value.usedQuestions.length > 0) {
+            bankAssociationTextId.value = game.value.usedQuestions[game.value.usedQuestions.length - 1];
           }
         } catch (error) {
           console.error('[game-state] Ошибка загрузки bankAssociationTextId:', error);
@@ -668,7 +657,7 @@ const getBotUsername = (): string => {
   if (botUsername) {
     return botUsername;
   }
-  
+
   // Дефолтное значение (можно заменить на реальное)
   // В initData обычно нет информации о боте, поэтому используем переменную окружения
   return 'your_bot_username';
@@ -704,7 +693,7 @@ const inviteToTelegram = () => {
   const botUsername = getBotUsername();
   // Встраиваем gameId в значение startapp, так как Telegram передает только значение startapp в start_param
   const inviteLink = `https://t.me/${botUsername}?startapp=open_${props.gameId}`;
-  
+
   const webApp = getTelegramWebApp();
   if (webApp && webApp.openTelegramLink) {
     // Используем Telegram Web App API для шаринга через shared
