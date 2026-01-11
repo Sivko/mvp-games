@@ -6,6 +6,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Переходим в родительскую директорию
 cd "$SCRIPT_DIR/../" || exit 1
 
+cd apps/nest-backend || exit 1
+npm run build
+
+cd ../..
+
 # Параметры подключения
 REMOTE_HOST="root@77.222.52.134"
 REMOTE_PATH="/root/mvp-games"

@@ -55,7 +55,7 @@
       <!-- Игроки в игре -->
       <div class="bg-telegram-section rounded-lg shadow p-4 mb-4">
         <h3 class="text-sm text-telegram-text-secondary mb-2">
-          <span class="">Комнаты: #{{ game?.number || props.gameId.slice(-6) }} | Игроки ({{ uniquePlayers.length }})</span>
+          <span class="">Комнаты: #{{ game?.number }} | Игроки ({{ uniquePlayers.length }})</span>
           <span class="text-telegram-link ml-2 cursor-pointer" v-if="uniquePlayers.length < 2"
             @click="showInviteModal = true">Пригласить</span>
         </h3>
