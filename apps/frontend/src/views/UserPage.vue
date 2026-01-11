@@ -16,7 +16,7 @@
           <input v-model="inviteCode" type="text" placeholder="Введите invite-код (gameId)"
             class="flex-1 px-4 py-2 bg-telegram-bg text-telegram-text rounded-lg border border-telegram-section-separator focus:outline-none focus:ring-2 focus:ring-telegram-button" />
           <button @click="handleInvite"
-            class="px-6 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity">
+            class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity">
             Перейти
           </button>
         </div>
