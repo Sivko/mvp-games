@@ -25,7 +25,7 @@
     <div v-else class="min-h-screen bg-telegram-bg">
       <div class="max-w-4xl mx-auto">
         <div class="bg-telegram-header p-4 rounded-lg mb-4">
-          <h1 class="text-3xl font-bold text-telegram-text mb-2">
+          <h1 class="text-3xl font-bold text-telegram-button-text mb-2">
             Игра в слова
           </h1>
         </div>

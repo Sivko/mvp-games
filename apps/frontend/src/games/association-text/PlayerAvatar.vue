@@ -2,7 +2,7 @@
   <div class="flex flex-col items-center">
     <div
       ref="referenceRef"
-      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-telegram-text font-semibold text-sm cursor-pointer relative border-2 border-telegram-section overflow-hidden"
+      class="w-10 h-10 rounded-full bg-telegram-header flex items-center justify-center text-telegram-button-text font-semibold text-sm cursor-pointer relative border-2 border-telegram-section overflow-hidden"
       :class="{ 'border-green-500': props.isReady }"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
@@ -35,7 +35,7 @@
       v-if="isOpen"
       ref="floatingRef"
       :style="floatingStyles"
-      class="bg-telegram-header text-telegram-text px-3 py-2 rounded-lg shadow-lg text-sm z-50 pointer-events-none transition-opacity duration-150"
+      class="bg-telegram-header text-telegram-button-text px-3 py-2 rounded-lg shadow-lg text-sm z-50 pointer-events-none transition-opacity duration-150"
       :class="{ 'opacity-0': !isVisible }"
     >
       {{ props.userName }}

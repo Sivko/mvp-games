@@ -31,7 +31,7 @@
       >
         <div class="flex items-center gap-3">
           <div
-            class="w-8 h-8 rounded-full bg-telegram-header flex items-center justify-center text-telegram-text font-semibold text-sm overflow-hidden"
+            class="w-8 h-8 rounded-full bg-telegram-header flex items-center justify-center text-telegram-button-text font-semibold text-sm overflow-hidden"
           >
             <img
               v-if="player.telegramPhotoUrl"
