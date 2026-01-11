@@ -105,6 +105,7 @@ import { AiOutlineArrowLeft } from 'vue-icons-plus/ai';
 import { AiOutlineUserAdd } from 'vue-icons-plus/ai';
 import { Sheet } from 'bottom-sheet-vue3';
 import { getTelegramWebApp } from '../../utils/telegramTheme';
+import { push } from 'notivue';
 
 const props = defineProps<{
   gameId: string;
@@ -677,21 +678,17 @@ const copyGameLink = async () => {
   const link = getGameLink();
   try {
     await navigator.clipboard.writeText(link);
-    const webApp = getTelegramWebApp();
-    if (webApp) {
-      webApp.showAlert('Ссылка скопирована!');
-    } else {
-      alert('Ссылка скопирована!');
-    }
+    push.success({
+      title: 'Ссылка скопирована!',
+      message: 'Ссылка на игру скопирована в буфер обмена',
+    });
     showInviteModal.value = false;
   } catch (error) {
     console.error('Failed to copy link:', error);
-    const webApp = getTelegramWebApp();
-    if (webApp) {
-      webApp.showAlert('Не удалось скопировать ссылку');
-    } else {
-      alert('Не удалось скопировать ссылку');
-    }
+    push.error({
+      title: 'Ошибка',
+      message: 'Не удалось скопировать ссылку',
+    });
   }
 };
 

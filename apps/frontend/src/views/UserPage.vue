@@ -1,59 +1,22 @@
 <template>
-  <div class="min-h-screen bg-telegram-bg p-8">
-    <div class="max-w-4xl mx-auto">
+  <div class="min-h-screen bg-telegram-bg pt-8 flex flex-col">
+    <div class="max-w-4xl mx-auto overflow-y-auto flex-1">
       <div class="bg-telegram-header p-4 rounded-lg mb-4">
         <h1 class="text-xl font-bold text-telegram-button-text">
           Список Игр
         </h1>
       </div>
 
-      <!-- Список комнат, где пользователь является участником -->
-      <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
-        <h2 class="text-xl font-semibold text-telegram-text mb-4">
-          Комнаты, где я участник
-        </h2>
-        <div v-if="participantGames.length === 0" class="text-telegram-text-secondary">
-          Вы не участвуете ни в одной комнате
-        </div>
-        <div v-else>
-          <div
-            v-for="game in participantGames"
-            :key="game._id"
-            class="flex items-center justify-between mb-3 p-3 bg-telegram-bg rounded-lg"
-          >
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
-              <div>
-                <div class="text-telegram-text font-medium">{{ getGameName(game.typeGame) }}</div>
-                <div class="text-telegram-text-secondary text-sm">Количество игр: {{ game.gamesCount }}</div>
-              </div>
-            </div>
-            <button
-              @click="goToGame(game._id)"
-              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
-            >
-              Перейти
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Перейти в комнату по приглашению -->
-      <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
+      <div class="bg-telegram-section rounded-lg shadow p-2 mb-4">
         <h2 class="text-xl font-semibold text-telegram-text mb-4">
           Перейти в комнату по приглашению
         </h2>
-        <div class="flex gap-2">
-          <input
-            v-model="inviteCode"
-            type="text"
-            placeholder="Введите invite-код (gameId)"
-            class="flex-1 px-4 py-2 bg-telegram-bg text-telegram-text rounded-lg border border-telegram-section-separator focus:outline-none focus:ring-2 focus:ring-telegram-button"
-          />
-          <button
-            @click="handleInvite"
-            class="px-6 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
-          >
+        <div class="flex gap-2 max-sm:flex-col">
+          <input v-model="inviteCode" type="text" placeholder="Введите invite-код (gameId)"
+            class="flex-1 px-4 py-2 bg-telegram-bg text-telegram-text rounded-lg border border-telegram-section-separator focus:outline-none focus:ring-2 focus:ring-telegram-button" />
+          <button @click="handleInvite"
+            class="px-6 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity">
             Перейти
           </button>
         </div>
@@ -62,8 +25,34 @@
         </div>
       </div>
 
+      <!-- Список комнат, где пользователь является участником -->
+      <div class="bg-telegram-section rounded-lg shadow p-2 mb-4">
+        <h2 class="text-xl font-semibold text-telegram-text mb-4">
+          Комнаты, где я участник
+        </h2>
+        <div v-if="participantGames.length === 0" class="text-telegram-text-secondary">
+          Вы не участвуете ни в одной комнате
+        </div>
+        <div v-else>
+          <div v-for="game in participantGames" :key="game._id"
+            class="flex items-center justify-between mb-3 p-3 bg-telegram-bg rounded-lg">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
+              <div>
+                <div class="text-telegram-text font-medium">{{ getGameName(game.typeGame) }}</div>
+                <div class="text-telegram-text-secondary text-sm">Количество игр: {{ game.gamesCount }}</div>
+              </div>
+            </div>
+            <button @click="goToGame(game._id)"
+              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity">
+              Перейти
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Список игр с кнопками Перейти/Создать комнату -->
-      <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
+      <div class="bg-telegram-section rounded-lg shadow p-2 mb-4">
         <h2 class="text-xl font-semibold text-telegram-text mb-4">
           Доступные игры
         </h2>
@@ -73,24 +62,19 @@
               <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
               <div class="text-telegram-text font-medium">{{ defaultGame.name }}</div>
             </div>
-            <button
-              v-if="hasGame(defaultGame.typeGame)"
-              @click="goToGameByType(defaultGame.typeGame)"
-              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
-            >
+            <button v-if="hasGame(defaultGame.typeGame)" @click="goToGameByType(defaultGame.typeGame)"
+              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity">
               Перейти
             </button>
-            <button
-              v-else
-              @click="createGame(defaultGame.typeGame)"
-              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity"
-            >
+            <button v-else @click="createGame(defaultGame.typeGame)"
+              class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity">
               Создать комнату
             </button>
           </div>
         </div>
       </div>
     </div>
+    <div class="bg-red-400 p-4"></div>
   </div>
 </template>
 
@@ -153,7 +137,7 @@ const createGame = async (typeGame: string) => {
 
 const handleInvite = async () => {
   inviteError.value = '';
-  
+
   if (!inviteCode.value.trim()) {
     inviteError.value = 'Введите invite-код';
     return;
@@ -193,13 +177,13 @@ const handleStartAppParams = async (): Promise<string | null> => {
   if (initData) {
     const params = new URLSearchParams(initData);
     const startParam = params.get('start_param');
-    
+
     if (startParam) {
       // Парсим start_param: startapp=open&gameId=xxx
       const startParams = new URLSearchParams(startParam);
       const startApp = startParams.get('startapp');
       gameIdFromStart = startParams.get('gameId');
-      
+
       if (startApp === 'open' && gameIdFromStart) {
         return gameIdFromStart;
       }
@@ -212,7 +196,7 @@ const handleStartAppParams = async (): Promise<string | null> => {
     const startParams = new URLSearchParams(initDataUnsafe.start_param);
     const startApp = startParams.get('startapp');
     gameIdFromStart = startParams.get('gameId');
-    
+
     if (startApp === 'open' && gameIdFromStart) {
       return gameIdFromStart;
     }
@@ -224,10 +208,10 @@ const handleStartAppParams = async (): Promise<string | null> => {
 onMounted(async () => {
   // Проверяем пользователя при монтировании
   await userStore.checkUserOnMount(() => `/my`);
-  
+
   // Обрабатываем параметры startapp из Telegram (после авторизации, чтобы initData был доступен)
   const gameIdFromStart = await handleStartAppParams();
-  
+
   // Если есть gameId из startapp, редиректим на игру
   if (gameIdFromStart) {
     try {
@@ -240,10 +224,10 @@ onMounted(async () => {
       // Если игра не найдена, продолжаем загрузку страницы
     }
   }
-  
+
   const userId = userStore.getCurrentUserId();
   if (!userId) return;
-  
+
   // Загружаем игры, созданные пользователем
   const gamesData = await gamesApi.getActiveGameByUser(userId);
   games.value = gamesData;

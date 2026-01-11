@@ -35,3 +35,19 @@ body {
   color: var(--tg-theme-text-color);
 }
 
+/* Notivue стили для полной ширины на мобильных и центрирования */
+@media (max-width: 767px) {
+  .notivue-container {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 16px !important;
+  }
+  
+  .notivue-notification {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+

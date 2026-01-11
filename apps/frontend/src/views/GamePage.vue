@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="">
     <AssociationTextMain
       v-if="game && game.typeGame === 'association-text' && currentUser"
       :game-id="game._id"
@@ -22,14 +22,14 @@
         />
       </div>
     </div>
-    <div v-else class="min-h-screen bg-telegram-bg p-8">
+    <div v-else class="min-h-screen bg-telegram-bg">
       <div class="max-w-4xl mx-auto">
         <div class="bg-telegram-header p-4 rounded-lg mb-4">
           <h1 class="text-3xl font-bold text-white mb-2">
             Игра в слова
           </h1>
         </div>
-        <div class="bg-telegram-section rounded-lg shadow p-6 mb-4">
+        <div class="bg-telegram-section rounded-lg shadow p-2 mb-4">
           {{ JSON.stringify(game) }}
         </div>
       </div>
