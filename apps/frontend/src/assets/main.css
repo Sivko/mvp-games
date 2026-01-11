@@ -35,6 +35,11 @@ body {
   color: var(--tg-theme-text-color);
 }
 
+/* Bottom Sheet стили - используем Telegram theme */
+:root {
+  --bottom-sheet-bakground-color: var(--tg-theme-bg-color);
+}
+
 /* Notivue стили для полной ширины на мобильных и центрирования */
 @media (max-width: 767px) {
   .notivue-container {

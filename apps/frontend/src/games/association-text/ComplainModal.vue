@@ -12,7 +12,7 @@
       <button
         @click="handleComplain"
         :disabled="loading"
-        class="w-full px-4 py-3 rounded-lg bg-red-500 text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+        class="w-full px-4 py-3 rounded-lg bg-red-500 text-telegram-text hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
       >
         {{ loading ? 'Отправка...' : 'Пожаловаться' }}
       </button>

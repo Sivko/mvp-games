@@ -4,7 +4,7 @@
       <!-- Заголовок с количеством онлайн пользователей -->
       <div class="bg-telegram-header rounded-lg mb-4">
         <div class="flex items-center justify-center">
-          <h1 class="text-xl font-bold text-white flex">
+          <h1 class="text-xl font-bold text-telegram-text flex">
             <div class="flex items-center">
               <router-link to="/me" class="px-4  h-full py-4">
                 <AiOutlineArrowLeft />
@@ -14,7 +14,7 @@
               </div>
             </div>
           </h1>
-          <div class="text-white text-sm">
+          <div class="text-telegram-text text-sm">
             <button class="flex p-4" @click="showInviteModal = true">
               <AiOutlineUserAdd />
             </button>
