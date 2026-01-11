@@ -99,32 +99,6 @@ export function useUser() {
   };
 
   /**
-   * Проверяет пользователя из localStorage при монтировании компонента
-   * Если пользователь найден, делает редирект на его страницу
-   * @param redirectTo - функция, возвращающая путь для редиректа (по умолчанию `/my`)
-   */
-  const checkUserOnMount = async (redirectTo?: () => string) => {
-    const storedUser = storage.getUser();
-
-    if (storedUser && storedUser.id) {
-      try {
-        // Проверяем, существует ли пользователь
-        const user = await usersApi.findOrCreateUser({ name: storedUser.name || '' });
-
-        if (user && user.id) {
-          // Если пользователь найден, делаем редирект
-          const redirectPath = redirectTo ? redirectTo() : '/my';
-          router.push(redirectPath);
-        } else {
-          console.error('User not found in database');
-        }
-      } catch (error) {
-        console.error('Error checking user from localStorage:', error);
-      }
-    }
-  };
-
-  /**
    * Получает текущего пользователя или проверяет и создает его
    * @param autoRedirect - автоматически редиректить на страницу пользователя, если найден
    * @returns ID пользователя или null
@@ -151,7 +125,6 @@ export function useUser() {
     loading: computed(() => loading.value),
     checkAndCreateUser,
     createUserWithName,
-    checkUserOnMount,
     ensureUser,
     getCurrentUserId,
   };

@@ -16,7 +16,7 @@ export default {
           link: 'var(--tg-theme-link-color, #2481cc)',
           button: 'var(--tg-theme-button-color, #2481cc)',
           'button-text': 'var(--tg-theme-button-text-color, #ffffff)',
-          header: 'var(--tg-theme-header-bg-color, #2481cc)',
+          header: 'var(--tg-theme-button-color, #2481cc)',
           'accent-text': 'var(--tg-theme-accent-text-color, #2481cc)',
           section: 'var(--tg-theme-section-bg-color, #ffffff)',
           'section-header': 'var(--tg-theme-section-header-text-color, #2481cc)',

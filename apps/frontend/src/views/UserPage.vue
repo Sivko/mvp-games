@@ -35,7 +35,7 @@
         </div>
         <div v-else>
           <div v-for="game in participantGames" :key="game._id"
-            class="flex items-center justify-between mb-3 p-3 bg-telegram-bg rounded-lg">
+            class="flex items-center justify-between mb-3 bg-telegram-bg rounded-lg">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
               <div>
@@ -57,7 +57,7 @@
           Доступные игры
         </h2>
         <div v-for="defaultGame in defaultGames" :key="defaultGame.typeGame" class="mb-4">
-          <div class="flex items-center justify-between p-3 bg-telegram-bg rounded-lg">
+          <div class="flex items-center justify-between bg-telegram-bg rounded-lg">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
               <div class="text-telegram-text font-medium">{{ defaultGame.name }}</div>
@@ -229,7 +229,7 @@ const handleStartAppParams = async (): Promise<string | null> => {
 
 onMounted(async () => {
   // Проверяем пользователя при монтировании
-  await userStore.checkUserOnMount(() => `/my`);
+  await userStore.ensureUser();
 
   // Обрабатываем параметры startapp из Telegram (после авторизации, чтобы initData был доступен)
   const gameIdFromStart = await handleStartAppParams();

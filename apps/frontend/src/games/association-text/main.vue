@@ -6,7 +6,7 @@
         <div class="flex items-center justify-center">
           <h1 class="text-xl font-bold text-telegram-button-text flex">
             <div class="flex items-center">
-              <router-link to="/me" class="px-4  h-full py-4">
+              <router-link to="/my" class="px-4  h-full py-4">
                 <AiOutlineArrowLeft />
               </router-link>
               <div class="flex item-center gap-4">
