@@ -58,7 +58,7 @@ export class TelegramBotService implements OnModuleInit {
       this.logger.log(`Received /start command from chat ${msg.chat.id}`);
       const chatId = msg.chat.id;
       const message =
-        'Цель участников игры «Сто к одному» состоит в том, чтобы угадать наиболее распространённые ответы людей на предложенные вопросы, на которые невозможно дать однозначный объективный ответ. Начните сейчас https://t.me/top_otvet_bot?startapp=open';
+        'Цель участников игры "Сто к одному" состоит в том, чтобы угадать наиболее распространённые ответы людей на предложенные вопросы, на которые невозможно дать однозначный объективный ответ. Начните сейчас https://t.me/top_otvet_bot?startapp=open';
 
       this.bot
         .sendMessage(chatId, message)

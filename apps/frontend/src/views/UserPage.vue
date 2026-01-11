@@ -1,8 +1,8 @@
 <template>
-  <div class="max-w-4xl mx-auto min-h-screen bg-telegram-bg pt-8 flex flex-col">
+  <div class="max-w-4xl mx-auto min-h-screen bg-telegram-bg flex flex-col">
     <div class="overflow-y-auto flex-1">
-      <div class="bg-telegram-header p-4 rounded-lg mb-4">
-        <h1 class="text-xl font-bold text-telegram-button-text text-center">
+      <div class="bg-telegram-header px-4 pt-content-safe-area mb-4">
+        <h1 class="text-xl font-bold text-telegram-button-text text-center py-4">
           Список Игр
         </h1>
       </div>

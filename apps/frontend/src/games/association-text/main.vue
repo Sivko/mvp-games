@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen bg-telegram-bg">
-    <div class="max-w-4xl mx-auto h-screen overflow-hidden flex flex-col pt-8">
-      <!-- Заголовок с количеством онлайн пользователей -->
-      <div class="bg-telegram-header rounded-lg mb-4">
+    <div class="max-w-4xl mx-auto h-screen overflow-hidden flex flex-col">
+      <!-- Заголовок -->
+      <div class="bg-telegram-header pt-content-safe-area mb-4">
         <div class="flex items-center justify-center">
           <h1 class="text-xl font-bold text-telegram-button-text flex">
             <div class="flex items-center">

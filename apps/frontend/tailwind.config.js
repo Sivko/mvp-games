@@ -28,6 +28,14 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function ({ addUtilities }) {
+      addUtilities({
+        '.pt-content-safe-area': {
+          'padding-top': 'var(--tg-content-safe-area-inset-top, 0px)',
+        },
+      });
+    },
+  ],
 }
 
