@@ -4,20 +4,19 @@
       <!-- Заголовок с количеством онлайн пользователей -->
       <div class="bg-telegram-header rounded-lg mb-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-3xl font-bold text-white flex items-center">
-            <router-link to="/" class="px-4  h-full py-4">
-              <AiOutlineArrowLeft />
-            </router-link>
-            Игра в слова
-            <span class="text-lg ml-4 font-normal">Раунд {{ currentRound }}/{{ maxRounds }}</span>
+          <h1 class="text-xl font-bold text-white flex">
+            <div class="flex items-center">
+              <router-link to="/" class="px-4  h-full py-4">
+                <AiOutlineArrowLeft />
+              </router-link>
+              Игра в слова
+              <span class="text-lg ml-4 font-normal">Раунд {{ currentRound }}/{{ maxRounds }}</span>
+            </div>
           </h1>
           <div class="text-white text-sm pr-4 flex items-center gap-2">
             <span class="bg-green-500 rounded-full px-2 py-1 text-xs"> {{ onlineUsersCount }} </span>
             <button>
               <AiOutlineUserAdd />
-            </button>
-            <button>
-              <Io5SettingsOutline />
             </button>
           </div>
         </div>
@@ -37,13 +36,14 @@
 </div> -->
 
       <!-- Игроки в игре -->
-      <div v-if="uniquePlayers.length > 0" class="bg-telegram-section rounded-lg shadow p-4 mb-4">
+      <div class="bg-telegram-section rounded-lg shadow p-4 mb-4">
         <h3 class="text-sm font-semibold text-telegram-text-secondary mb-2">
           Игроки ({{ uniquePlayers.length }})
         </h3>
         <div class="flex flex-wrap gap-2">
           <PlayerAvatar v-for="player in uniquePlayers" :key="player.userId" :user-name="player.userName"
-            :initial="player.initial" :is-ready="player.isReady" :score="player.score" :telegram-photo-url="player.telegramPhotoUrl" />
+            :initial="player.initial" :is-ready="player.isReady" :score="player.score"
+            :telegram-photo-url="player.telegramPhotoUrl" />
         </div>
       </div>
 
@@ -64,7 +64,8 @@
       <Step3Finish v-if="phase === 'finish' && isGameFinished" :key="`finish-${currentRound}`" :user-scores="userScores"
         :players="finishPlayers.length > 0 ? finishPlayers : uniquePlayers" :current-round="currentRound"
         :online-users-count="onlineUsersCount" :ready-count="readyUsers.size" :ready-for-next-round="readyForNextRound"
-        :current-user-id="currentUserId" :is-game-finished="isGameFinished" :game-id="props.gameId" @ready-for-next-round="markReady" />
+        :current-user-id="currentUserId" :is-game-finished="isGameFinished" :game-id="props.gameId"
+        @ready-for-next-round="markReady" />
     </div>
   </div>
 </template>
@@ -200,17 +201,17 @@ onMounted(async () => {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const urlObj = new URL(apiUrl);
   const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-  
+
   // Socket.IO path должен включать префикс пути для production
   // Traefik удалит префикс /bff/api из пути, поэтому сервер получит правильный путь /socket.io
   let socketPath: string;
   let socketUrl: string;
-  
+
   if (urlObj.pathname && urlObj.pathname !== '/') {
     // Production: включаем префикс пути в socketPath
     // Socket.IO будет подключаться к /bff/api/socket.io, Traefik перешлет это как /socket.io на backend
-    const cleanPathname = urlObj.pathname.endsWith('/') 
-      ? urlObj.pathname.slice(0, -1) 
+    const cleanPathname = urlObj.pathname.endsWith('/')
+      ? urlObj.pathname.slice(0, -1)
       : urlObj.pathname;
     socketPath = `${cleanPathname}/socket.io`;
     socketUrl = baseUrl;
@@ -219,25 +220,25 @@ onMounted(async () => {
     socketPath = '/socket.io';
     socketUrl = baseUrl;
   }
-  
+
   socket.value = io(socketUrl, {
     path: socketPath,
     transports: ['websocket'],
     forceNew: true,
   });
-  
+
   socket.value.on('reconnect_error', (error) => {
     console.error('❌ Socket.IO reconnect error:', error);
   });
-  
+
   socket.value.on('reconnect_failed', () => {
     console.error('❌ Socket.IO reconnect failed');
   });
-  
+
   socket.value.on('error', (error) => {
     console.error('❌ Socket.IO error:', error);
   });
-  
+
   socket.value.on('connect_error', (error) => {
     console.error('❌ Socket.IO connection error:', error);
   });
@@ -443,17 +444,17 @@ onMounted(async () => {
       const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_WS_URL || 'http://localhost:3000';
       const urlObj = new URL(apiUrl);
       const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-      
+
       // Socket.IO path должен включать префикс пути для production
       // Traefik удалит префикс /bff/api из пути, поэтому сервер получит правильный путь /socket.io
       let socketPath: string;
       let socketUrl: string;
-      
+
       if (urlObj.pathname && urlObj.pathname !== '/') {
         // Production: включаем префикс пути в socketPath
         // Socket.IO будет подключаться к /bff/api/socket.io, Traefik перешлет это как /socket.io на backend
-        const cleanPathname = urlObj.pathname.endsWith('/') 
-          ? urlObj.pathname.slice(0, -1) 
+        const cleanPathname = urlObj.pathname.endsWith('/')
+          ? urlObj.pathname.slice(0, -1)
           : urlObj.pathname;
         socketPath = `${cleanPathname}/socket.io`;
         socketUrl = baseUrl;
@@ -462,25 +463,25 @@ onMounted(async () => {
         socketPath = '/socket.io';
         socketUrl = baseUrl;
       }
-      
+
       socket.value = io(socketUrl, {
         path: socketPath,
         transports: ['websocket'],
         forceNew: true,
       });
-      
+
       socket.value.on('reconnect_error', (error) => {
         console.error('❌ Socket.IO reconnect error:', error);
       });
-      
+
       socket.value.on('reconnect_failed', () => {
         console.error('❌ Socket.IO reconnect failed');
       });
-      
+
       socket.value.on('error', (error) => {
         console.error('❌ Socket.IO error:', error);
       });
-      
+
       socket.value.on('connect_error', (error) => {
         console.error('❌ Socket.IO reconnection error:', error);
       });

@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-telegram-bg p-8">
     <div class="max-w-4xl mx-auto">
       <div class="bg-telegram-header p-4 rounded-lg mb-4">
-        <h1 class="text-3xl font-bold text-telegram-button-text">
+        <h1 class="text-xl font-bold text-telegram-button-text">
           Список Игр
         </h1>
       </div>
@@ -170,7 +170,7 @@ const handleInvite = async () => {
     // Если игра найдена, редиректим
     router.push(`/my/game/${gameId}`);
   } catch {
-    inviteError.value = 'К сожалению комната не найдена';
+    inviteError.value = 'Игра не найдена';
   }
 };
 
