@@ -161,30 +161,46 @@ const handleInvite = async () => {
 
 // Обработка параметров startapp из Telegram
 const handleStartAppParams = async (): Promise<string | null> => {
+  console.log('[handleStartAppParams] Начало обработки параметров startapp');
+  
   if (!isTelegramWebApp()) {
+    console.log('[handleStartAppParams] Не является Telegram WebApp, возвращаем null');
     return null;
   }
 
   const webApp = getTelegramWebApp();
   if (!webApp) {
+    console.log('[handleStartAppParams] webApp не найден, возвращаем null');
     return null;
   }
+
+  console.log('[handleStartAppParams] webApp найден:', webApp);
 
   let gameIdFromStart: string | null = null;
 
   // Парсим initData для получения start_param
   const initData = webApp.initData;
+  console.log('[handleStartAppParams] initData:', initData);
+  
   if (initData) {
     const params = new URLSearchParams(initData);
     const startParam = params.get('start_param');
+    console.log('[handleStartAppParams] start_param из initData:', startParam);
 
     if (startParam) {
       // Парсим start_param: startapp=open&gameId=xxx
       const startParams = new URLSearchParams(startParam);
       const startApp = startParams.get('startapp');
       gameIdFromStart = startParams.get('gameId');
+      
+      console.log('[handleStartAppParams] Парсинг start_param:', {
+        startApp,
+        gameIdFromStart,
+        allParams: Object.fromEntries(startParams.entries())
+      });
 
       if (startApp === 'open' && gameIdFromStart) {
+        console.log('[handleStartAppParams] Найден gameId из initData:', gameIdFromStart);
         return gameIdFromStart;
       }
     }
@@ -192,16 +208,26 @@ const handleStartAppParams = async (): Promise<string | null> => {
 
   // Также проверяем initDataUnsafe для совместимости
   const initDataUnsafe = webApp.initDataUnsafe;
+  console.log('[handleStartAppParams] initDataUnsafe:', initDataUnsafe);
+  
   if (initDataUnsafe?.start_param) {
     const startParams = new URLSearchParams(initDataUnsafe.start_param);
     const startApp = startParams.get('startapp');
     gameIdFromStart = startParams.get('gameId');
+    
+    console.log('[handleStartAppParams] Парсинг start_param из initDataUnsafe:', {
+      startApp,
+      gameIdFromStart,
+      allParams: Object.fromEntries(startParams.entries())
+    });
 
     if (startApp === 'open' && gameIdFromStart) {
+      console.log('[handleStartAppParams] Найден gameId из initDataUnsafe:', gameIdFromStart);
       return gameIdFromStart;
     }
   }
 
+  console.log('[handleStartAppParams] gameId не найден, возвращаем null');
   return null;
 };
 
