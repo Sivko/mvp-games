@@ -40,8 +40,8 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { gamesApi, type Game } from '../api/gamesApi';
-import { onMounted, ref } from 'vue';
-import { useUser } from '../composables/useUser';
+import { onMounted, ref, computed } from 'vue';
+import { useUserStore } from '../stores/user';
 import AssociationTextMain from '../games/association-text/main.vue';
 import AddNameModal from '../components/AddNameModal.vue';
 
@@ -49,7 +49,8 @@ const route = useRoute();
 // Получаем gameId из параметров маршрута
 const gameId = ref<string>(route.params.gameId as string);
 const game = ref<Game | null>(null);
-const { currentUser, checkAndCreateUser, createUserWithName } = useUser();
+const userStore = useUserStore();
+const currentUser = computed(() => userStore.currentUser);
 const nameModalRef = ref<InstanceType<typeof AddNameModal> | null>(null);
 
 const handleSubmitName = async (name: string) => {
@@ -57,7 +58,7 @@ const handleSubmitName = async (name: string) => {
     nameModalRef.value.setLoading(true);
   }
   try {
-    await createUserWithName(name);
+    await userStore.createUserWithName(name);
     // После создания пользователя загружаем игру
     await loadGame();
   } catch (error) {
@@ -104,7 +105,7 @@ const handleNewGameId = async (newGameId: string) => {
 
 onMounted(async () => {
   // Проверяем, есть ли уже авторизованный пользователь
-  await checkAndCreateUser();
+  await userStore.checkAndCreateUser();
 
   // Если пользователь авторизован, загружаем игру
   if (currentUser.value && gameId.value) {

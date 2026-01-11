@@ -1,16 +1,15 @@
 <template>
   <div class="min-h-screen bg-telegram-bg">
-    <div class="max-w-4xl mx-auto h-screen overflow-hidden pt-4 flex flex-col">
+    <div class="max-w-4xl mx-auto h-screen overflow-hidden flex flex-col pt-8">
       <!-- Заголовок с количеством онлайн пользователей -->
       <div class="bg-telegram-header rounded-lg mb-4">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-center">
           <h1 class="text-xl font-bold text-white flex">
             <div class="flex items-center">
               <router-link to="/" class="px-4  h-full py-4">
                 <AiOutlineArrowLeft />
               </router-link>
               <div class="flex item-center gap-4">
-                <span>Игра в слова</span>
                 <span class="font-normal">Раунд {{ currentRound }}/{{ maxRounds }}</span>
               </div>
             </div>
@@ -93,11 +92,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
 import { io, Socket } from 'socket.io-client';
 import { reactionTypesApi } from '../../api/reactionTypesApi';
-import { useUser } from '../../composables/useUser';
+import { useUserStore } from '../../stores/user';
 import Step1Input from './Step1Input.vue';
 import Step2Result from './Step2Result.vue';
 import Step3Finish from './Step3Finish.vue';
@@ -120,8 +119,8 @@ const emit = defineEmits<{
 
 const currentQuestion = ref(props.question);
 
-// Используем userId из localStorage вместо props
-const { getCurrentUserId } = useUser();
+// Используем store вместо composable
+const userStore = useUserStore();
 const currentUserId = ref<string | null>(null);
 
 const socket = ref<Socket | null>(null);
@@ -138,6 +137,12 @@ const reactionsObject = computed(() => {
   });
   return obj;
 });
+
+// Объявляем переменные, используемые в uniquePlayers, до его создания
+const readyUsers = ref<Set<string>>(new Set()); // Set готовых пользователей в фазе results
+const userScores = ref<Record<string, number>>({}); // Очки пользователей
+// Список всех онлайн игроков (обновляется через WebSocket события)
+const onlinePlayers = ref<Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>>([]);
 
 // Уникальные игроки - показываем всех онлайн игроков из onlinePlayers
 const uniquePlayers = computed(() => {
@@ -169,31 +174,42 @@ const uniquePlayers = computed(() => {
   return Array.from(playersMap.values());
 });
 
+
+// Обновляем playerInitial в store при изменении uniquePlayers
+watch(
+  [uniquePlayers, currentUserId],
+  () => {
+    if (currentUserId.value) {
+      const currentPlayer = uniquePlayers.value.find(player => player.userId === currentUserId.value);
+      userStore.setPlayerInitial(currentPlayer?.initial || null);
+    } else {
+      userStore.setPlayerInitial(null);
+    }
+  },
+  { immediate: true }
+);
+
 const reactionTypes = ref<Array<{ _id: string; name: string }>>([]);
 const timerEndsAt = ref<number | null>(null);
 const currentTime = ref(Date.now());
 const readyForNextRound = ref(false);
-const readyUsers = ref<Set<string>>(new Set()); // Set готовых пользователей в фазе results
 const recentActions = ref<string[]>([]);
 const MAX_ACTIONS = 10; // Максимальное количество отображаемых событий
 const bankAssociationTextId = ref<string | undefined>(undefined);
-const userScores = ref<Record<string, number>>({}); // Очки пользователей
 const currentRound = ref<number>(1);
 const maxRounds = ref<number>(10);
 const finishPlayers = ref<Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>>([]);
 const isGameFinished = ref<boolean>(false);
 // Сохраняем список игроков из предыдущих раундов, чтобы показывать их даже когда ответов еще нет
 const savedPlayers = ref<Map<string, { userId: string; userName: string; initial: string; score: number }>>(new Map());
-// Список всех онлайн игроков (обновляется через WebSocket события)
-const onlinePlayers = ref<Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>>([]);
 // Модалка приглашения
 const showInviteModal = ref(false);
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
 onMounted(async () => {
-  // Получаем текущего пользователя из localStorage
-  const userId = getCurrentUserId();
+  // Получаем текущего пользователя из store
+  const userId = userStore.getCurrentUserId();
   if (!userId) {
     console.error('User not found in localStorage');
     return;
@@ -511,7 +527,7 @@ onMounted(async () => {
         console.error('❌ Socket.IO reconnection error:', error);
       });
 
-      const userId = getCurrentUserId();
+      const userId = userStore.getCurrentUserId();
       if (userId) {
         socket.value.emit('join-game', {
           gameId: data.newGameId,

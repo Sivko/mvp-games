@@ -106,7 +106,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { getReactionImageUrl } from '../../utils/reactions';
 import { elasticsearchApi, type WordCount } from '../../api/elasticsearchApi';
 import ComplainModal from './ComplainModal.vue';
-import { useUser } from '../../composables/useUser';
+import { useUserStore } from '../../stores/user';
 
 const props = defineProps<{
   timerEndsAt: number | null;
@@ -131,8 +131,8 @@ const lastLoadedBankAssociationTextId = ref<string | undefined>(undefined);
 const lastLoadedQuestion = ref<string | undefined>(undefined);
 
 // Состояние для модального окна жалобы
-const { getCurrentUserId } = useUser();
-const userId = ref<string | null>(getCurrentUserId());
+const userStore = useUserStore();
+const userId = ref<string | null>(userStore.getCurrentUserId());
 const showComplainModal = ref(false);
 
 // Отладка для проверки reactionTypes

@@ -26,12 +26,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUser } from '../composables/useUser';
+import { useUserStore } from '../stores/user';
 import AddNameModal from '../components/AddNameModal.vue';
 import { getReactionImageUrl } from '../utils/reactions';
 
 const router = useRouter();
-const { currentUser, checkAndCreateUser, createUserWithName } = useUser();
+const userStore = useUserStore();
+const currentUser = computed(() => userStore.currentUser);
 const loading = ref(false);
 
 const showNameModal = ref(false);
@@ -46,7 +47,7 @@ const handleSubmitName = async (name: string) => {
     nameModalRef.value.setLoading(true);
   }
   try {
-    await createUserWithName(name);
+    await userStore.createUserWithName(name);
     showNameModal.value = false;
     // После создания пользователя делаем редирект
     router.push('/my');
@@ -72,7 +73,7 @@ const handleStart = async () => {
   loading.value = true;
   try {
     // Проверяем, есть ли уже авторизованный пользователь
-    const userId = await checkAndCreateUser();
+    const userId = await userStore.checkAndCreateUser();
 
     if (userId) {
       // Если пользователь авторизован, делаем редирект

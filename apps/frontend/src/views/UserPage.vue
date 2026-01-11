@@ -98,7 +98,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { gamesApi, type Game } from '../api/gamesApi';
-import { useUser } from '../composables/useUser';
+import { useUserStore } from '../stores/user';
 import { getTelegramWebApp, isTelegramWebApp } from '../utils/telegramTheme';
 
 const games = ref<Game[]>([]);
@@ -106,7 +106,7 @@ const participantGames = ref<Game[]>([]);
 const inviteCode = ref('');
 const inviteError = ref('');
 const router = useRouter();
-const { checkUserOnMount, getCurrentUserId } = useUser();
+const userStore = useUserStore();
 
 const defaultGames = [
   {
@@ -130,7 +130,7 @@ const goToGame = (gameId: string) => {
 };
 
 const goToGameByType = async (typeGame: string) => {
-  const userId = getCurrentUserId();
+  const userId = userStore.getCurrentUserId();
   if (!userId) return;
   try {
     const game = await gamesApi.findOrCreateGameByUserAndType(userId, typeGame);
@@ -141,7 +141,7 @@ const goToGameByType = async (typeGame: string) => {
 };
 
 const createGame = async (typeGame: string) => {
-  const userId = getCurrentUserId();
+  const userId = userStore.getCurrentUserId();
   if (!userId) return;
   try {
     const game = await gamesApi.findOrCreateGameByUserAndType(userId, typeGame);
@@ -223,7 +223,7 @@ const handleStartAppParams = async (): Promise<string | null> => {
 
 onMounted(async () => {
   // Проверяем пользователя при монтировании
-  await checkUserOnMount(() => `/my`);
+  await userStore.checkUserOnMount(() => `/my`);
   
   // Обрабатываем параметры startapp из Telegram (после авторизации, чтобы initData был доступен)
   const gameIdFromStart = await handleStartAppParams();
@@ -241,7 +241,7 @@ onMounted(async () => {
     }
   }
   
-  const userId = getCurrentUserId();
+  const userId = userStore.getCurrentUserId();
   if (!userId) return;
   
   // Загружаем игры, созданные пользователем

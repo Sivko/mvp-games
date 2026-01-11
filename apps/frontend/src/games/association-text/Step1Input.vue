@@ -33,7 +33,7 @@
 import { ref, computed, watch } from 'vue';
 import { BsSend } from 'vue-icons-plus/bs';
 import ComplainModal from './ComplainModal.vue';
-import { useUser } from '../../composables/useUser';
+import { useUserStore } from '../../stores/user';
 
 const props = defineProps<{
   question: string;
@@ -44,8 +44,8 @@ const props = defineProps<{
   bankAssociationTextId?: string;
 }>();
 
-const { getCurrentUserId } = useUser();
-const userId = ref<string | null>(getCurrentUserId());
+const userStore = useUserStore();
+const userId = ref<string | null>(userStore.getCurrentUserId());
 const showComplainModal = ref(false);
 
 const emit = defineEmits<{
