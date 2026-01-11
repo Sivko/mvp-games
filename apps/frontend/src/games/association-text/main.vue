@@ -16,12 +16,33 @@
             </div>
           </h1>
           <div class="text-white text-sm">
-            <button class="flex p-4">
+            <button class="flex p-4" @click="showInviteModal = true">
               <AiOutlineUserAdd />
             </button>
           </div>
         </div>
       </div>
+
+      <!-- Модалка приглашения -->
+      <Sheet v-model:visible="showInviteModal" :snap-points="[200]" :initial-snap="0">
+        <div class="p-6 bg-telegram-section">
+          <h3 class="text-lg font-semibold text-telegram-text mb-4">Пригласить друзей</h3>
+          <div class="space-y-3">
+            <button
+              @click="copyGameLink"
+              class="w-full bg-telegram-button text-telegram-button-text py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity"
+            >
+              Скопировать ссылку
+            </button>
+            <button
+              @click="inviteToTelegram"
+              class="w-full bg-telegram-button text-telegram-button-text py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity"
+            >
+              Пригласить в Телеграмм
+            </button>
+          </div>
+        </div>
+      </Sheet>
 
       <!-- Последние события -->
       <!-- <div v-if="recentActions.length > 0" class="bg-telegram-section rounded-lg shadow p-4 mb-4">
@@ -83,6 +104,8 @@ import Step3Finish from './Step3Finish.vue';
 import PlayerAvatar from './PlayerAvatar.vue';
 import { AiOutlineArrowLeft } from 'vue-icons-plus/ai';
 import { AiOutlineUserAdd } from 'vue-icons-plus/ai';
+import { Sheet } from 'bottom-sheet-vue3';
+import { getTelegramWebApp } from '../../utils/telegramTheme';
 
 const props = defineProps<{
   gameId: string;
@@ -163,6 +186,8 @@ const isGameFinished = ref<boolean>(false);
 const savedPlayers = ref<Map<string, { userId: string; userName: string; initial: string; score: number }>>(new Map());
 // Список всех онлайн игроков (обновляется через WebSocket события)
 const onlinePlayers = ref<Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>>([]);
+// Модалка приглашения
+const showInviteModal = ref(false);
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -611,6 +636,73 @@ const markReady = () => {
     // Добавляем текущего пользователя в готовые
     readyUsers.value.add(currentUserId.value);
   }
+};
+
+// Получить bot username из переменной окружения или initData
+const getBotUsername = (): string => {
+  const botUsername = 'top_otvet_bot';
+  if (botUsername) {
+    return botUsername;
+  }
+  
+  // Дефолтное значение (можно заменить на реальное)
+  // В initData обычно нет информации о боте, поэтому используем переменную окружения
+  return 'your_bot_username';
+};
+
+// Получить ссылку на игру
+const getGameLink = (): string => {
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/my/game/${props.gameId}`;
+};
+
+// Скопировать ссылку на игру
+const copyGameLink = async () => {
+  const link = getGameLink();
+  try {
+    await navigator.clipboard.writeText(link);
+    const webApp = getTelegramWebApp();
+    if (webApp) {
+      webApp.showAlert('Ссылка скопирована!');
+    } else {
+      alert('Ссылка скопирована!');
+    }
+    showInviteModal.value = false;
+  } catch (error) {
+    console.error('Failed to copy link:', error);
+    const webApp = getTelegramWebApp();
+    if (webApp) {
+      webApp.showAlert('Не удалось скопировать ссылку');
+    } else {
+      alert('Не удалось скопировать ссылку');
+    }
+  }
+};
+
+// Пригласить в Telegram
+const inviteToTelegram = () => {
+  const botUsername = getBotUsername();
+  const inviteLink = `https://t.me/${botUsername}?startapp=open&gameId=${props.gameId}`;
+  
+  const webApp = getTelegramWebApp();
+  if (webApp && webApp.openTelegramLink) {
+    // Используем Telegram Web App API для шаринга через shared
+    // Формат: https://t.me/share/url?url={URL}&text={TEXT}
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent('Присоединяйся к игре в слова!')}`;
+    webApp.openTelegramLink(shareUrl);
+  } else if (webApp && webApp.openLink) {
+    // Fallback на openLink с share URL
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent('Присоединяйся к игре в слова!')}`;
+    webApp.openLink(shareUrl);
+  } else {
+    // Если не в Telegram, просто копируем ссылку
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      alert('Ссылка приглашения скопирована!');
+    }).catch(() => {
+      alert('Не удалось скопировать ссылку');
+    });
+  }
+  showInviteModal.value = false;
 };
 </script>
 

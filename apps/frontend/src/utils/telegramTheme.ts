@@ -59,6 +59,8 @@ declare global {
         readTextFromClipboard: () => Promise<string>;
         requestWriteAccess: () => Promise<boolean>;
         requestContact: () => Promise<boolean>;
+        openTelegramLink: (url: string) => void;
+        openLink: (url: string) => void;
       };
     };
   }

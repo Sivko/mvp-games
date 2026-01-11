@@ -46,7 +46,8 @@ import AssociationTextMain from '../games/association-text/main.vue';
 import AddNameModal from '../components/AddNameModal.vue';
 
 const route = useRoute();
-const gameId = route.params.gameId as string;
+// Получаем gameId из параметров маршрута
+const gameId = ref<string>(route.params.gameId as string);
 const game = ref<Game | null>(null);
 const { currentUser, checkAndCreateUser, createUserWithName } = useUser();
 const nameModalRef = ref<InstanceType<typeof AddNameModal> | null>(null);
@@ -77,9 +78,13 @@ const handleCloseNameModal = () => {
 };
 
 const loadGame = async () => {
+  if (!gameId.value) {
+    console.error('GameId is not available');
+    return;
+  }
   try {
     // Загружаем игру по ID
-    game.value = await gamesApi.getGameById(gameId);
+    game.value = await gamesApi.getGameById(gameId.value);
     console.log(game);
   } catch (error) {
     console.error('Error loading game:', error);
@@ -102,7 +107,7 @@ onMounted(async () => {
   await checkAndCreateUser();
 
   // Если пользователь авторизован, загружаем игру
-  if (currentUser.value) {
+  if (currentUser.value && gameId.value) {
     await loadGame();
   }
   // Если пользователь не авторизован, модалка покажется автоматически через условие в template

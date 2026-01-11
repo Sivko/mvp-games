@@ -99,6 +99,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { gamesApi, type Game } from '../api/gamesApi';
 import { useUser } from '../composables/useUser';
+import { getTelegramWebApp, isTelegramWebApp } from '../utils/telegramTheme';
 
 const games = ref<Game[]>([]);
 const participantGames = ref<Game[]>([]);
@@ -174,9 +175,71 @@ const handleInvite = async () => {
   }
 };
 
+// Обработка параметров startapp из Telegram
+const handleStartAppParams = async (): Promise<string | null> => {
+  if (!isTelegramWebApp()) {
+    return null;
+  }
+
+  const webApp = getTelegramWebApp();
+  if (!webApp) {
+    return null;
+  }
+
+  let gameIdFromStart: string | null = null;
+
+  // Парсим initData для получения start_param
+  const initData = webApp.initData;
+  if (initData) {
+    const params = new URLSearchParams(initData);
+    const startParam = params.get('start_param');
+    
+    if (startParam) {
+      // Парсим start_param: startapp=open&gameId=xxx
+      const startParams = new URLSearchParams(startParam);
+      const startApp = startParams.get('startapp');
+      gameIdFromStart = startParams.get('gameId');
+      
+      if (startApp === 'open' && gameIdFromStart) {
+        return gameIdFromStart;
+      }
+    }
+  }
+
+  // Также проверяем initDataUnsafe для совместимости
+  const initDataUnsafe = webApp.initDataUnsafe;
+  if (initDataUnsafe?.start_param) {
+    const startParams = new URLSearchParams(initDataUnsafe.start_param);
+    const startApp = startParams.get('startapp');
+    gameIdFromStart = startParams.get('gameId');
+    
+    if (startApp === 'open' && gameIdFromStart) {
+      return gameIdFromStart;
+    }
+  }
+
+  return null;
+};
+
 onMounted(async () => {
   // Проверяем пользователя при монтировании
   await checkUserOnMount(() => `/my`);
+  
+  // Обрабатываем параметры startapp из Telegram (после авторизации, чтобы initData был доступен)
+  const gameIdFromStart = await handleStartAppParams();
+  
+  // Если есть gameId из startapp, редиректим на игру
+  if (gameIdFromStart) {
+    try {
+      // Проверяем, что игра существует
+      await gamesApi.getGameById(gameIdFromStart);
+      router.push(`/my/game/${gameIdFromStart}`);
+      return; // Прерываем выполнение, так как происходит редирект
+    } catch (error) {
+      console.error('Game from startapp not found:', error);
+      // Если игра не найдена, продолжаем загрузку страницы
+    }
+  }
   
   const userId = getCurrentUserId();
   if (!userId) return;
