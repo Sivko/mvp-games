@@ -2,7 +2,7 @@
   <div class="max-w-4xl mx-auto min-h-screen bg-telegram-bg pt-8 flex flex-col">
     <div class="overflow-y-auto flex-1">
       <div class="bg-telegram-header p-4 rounded-lg mb-4">
-        <h1 class="text-xl font-bold text-telegram-button-text">
+        <h1 class="text-xl font-bold text-telegram-button-text text-center">
           Список Игр
         </h1>
       </div>
@@ -231,19 +231,28 @@ onMounted(async () => {
   // Проверяем пользователя при монтировании
   await userStore.ensureUser();
 
-  // Обрабатываем параметры startapp из Telegram (после авторизации, чтобы initData был доступен)
-  const gameIdFromStart = await handleStartAppParams();
+  // Проверяем, был ли уже обработан startapp в этой сессии
+  // Если был, пропускаем редирект (например, при переходе через router-link)
+  const startAppProcessed = sessionStorage.getItem('startAppProcessed');
+  if (startAppProcessed === 'true') {
+    console.log('[UserPage] startapp уже был обработан, пропускаем редирект');
+  } else {
+    // Обрабатываем параметры startapp из Telegram (после авторизации, чтобы initData был доступен)
+    const gameIdFromStart = await handleStartAppParams();
 
-  // Если есть gameId из startapp, редиректим на игру
-  if (gameIdFromStart) {
-    try {
-      // Проверяем, что игра существует
-      await gamesApi.getGameById(gameIdFromStart);
-      router.push(`/my/game/${gameIdFromStart}`);
-      return; // Прерываем выполнение, так как происходит редирект
-    } catch (error) {
-      console.error('Game from startapp not found:', error);
-      // Если игра не найдена, продолжаем загрузку страницы
+    // Если есть gameId из startapp, редиректим на игру
+    if (gameIdFromStart) {
+      try {
+        // Проверяем, что игра существует
+        await gamesApi.getGameById(gameIdFromStart);
+        // Сохраняем флаг, что startapp был обработан
+        sessionStorage.setItem('startAppProcessed', 'true');
+        router.push(`/my/game/${gameIdFromStart}`);
+        return; // Прерываем выполнение, так как происходит редирект
+      } catch (error) {
+        console.error('Game from startapp not found:', error);
+        // Если игра не найдена, продолжаем загрузку страницы
+      }
     }
   }
 

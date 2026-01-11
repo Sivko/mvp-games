@@ -6,7 +6,7 @@
         <div class="flex items-center justify-center">
           <h1 class="text-xl font-bold text-telegram-button-text flex">
             <div class="flex items-center">
-              <router-link to="/my" class="px-4  h-full py-4">
+              <router-link to="/my" @click="handleBackToUserPage" class="px-4  h-full py-4">
                 <AiOutlineArrowLeft />
               </router-link>
               <div class="flex item-center gap-4">
@@ -144,6 +144,13 @@ const readyUsers = ref<Set<string>>(new Set()); // Set готовых польз
 const userScores = ref<Record<string, number>>({}); // Очки пользователей
 // Список всех онлайн игроков (обновляется через WebSocket события)
 const onlinePlayers = ref<Array<{ userId: string; userName: string; initial: string; telegramPhotoUrl?: string }>>([]);
+
+// Обработчик перехода обратно на страницу пользователя
+const handleBackToUserPage = () => {
+  // Устанавливаем флаг, что это переход через router-link, чтобы редирект не срабатывал
+  // Флаг уже должен быть установлен после первого редиректа, но на всякий случай устанавливаем его здесь
+  sessionStorage.setItem('startAppProcessed', 'true');
+};
 
 // Уникальные игроки - показываем всех онлайн игроков из onlinePlayers
 const uniquePlayers = computed(() => {
