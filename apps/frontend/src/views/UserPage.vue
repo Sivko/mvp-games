@@ -80,7 +80,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { gamesApi, type Game } from '../api/gamesApi';
 import { useUserStore } from '../stores/user';
 import { getTelegramWebApp, isTelegramWebApp } from '../utils/telegramTheme';
@@ -90,6 +90,7 @@ const participantGames = ref<Game[]>([]);
 const inviteCode = ref('');
 const inviteError = ref('');
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 
 const defaultGames = [
@@ -188,18 +189,10 @@ const handleStartAppParams = async (): Promise<string | null> => {
     console.log('[handleStartAppParams] start_param из initData:', startParam);
 
     if (startParam) {
-      // Парсим start_param: startapp=open&gameId=xxx
-      const startParams = new URLSearchParams(startParam);
-      const startApp = startParams.get('startapp');
-      gameIdFromStart = startParams.get('gameId');
-      
-      console.log('[handleStartAppParams] Парсинг start_param:', {
-        startApp,
-        gameIdFromStart,
-        allParams: Object.fromEntries(startParams.entries())
-      });
-
-      if (startApp === 'open' && gameIdFromStart) {
+      // Telegram передает только значение startapp в start_param (не query string)
+      // Формат: start_param = "open_gameId" или "open"
+      if (startParam.startsWith('open_')) {
+        gameIdFromStart = startParam.substring(5); // Извлекаем gameId после "open_"
         console.log('[handleStartAppParams] Найден gameId из initData:', gameIdFromStart);
         return gameIdFromStart;
       }
@@ -211,22 +204,25 @@ const handleStartAppParams = async (): Promise<string | null> => {
   console.log('[handleStartAppParams] initDataUnsafe:', initDataUnsafe);
   
   if (initDataUnsafe?.start_param) {
-    const startParams = new URLSearchParams(initDataUnsafe.start_param);
-    const startApp = startParams.get('startapp');
-    gameIdFromStart = startParams.get('gameId');
-    
-    console.log('[handleStartAppParams] Парсинг start_param из initDataUnsafe:', {
-      startApp,
-      gameIdFromStart,
-      allParams: Object.fromEntries(startParams.entries())
-    });
-
-    if (startApp === 'open' && gameIdFromStart) {
+    const startParam = initDataUnsafe.start_param;
+    // Telegram передает только значение startapp в start_param (не query string)
+    // Формат: start_param = "open_gameId" или "open"
+    if (startParam.startsWith('open_')) {
+      gameIdFromStart = startParam.substring(5); // Извлекаем gameId после "open_"
       console.log('[handleStartAppParams] Найден gameId из initDataUnsafe:', gameIdFromStart);
       return gameIdFromStart;
     }
   }
 
+  // Fallback: проверяем URL параметр tgWebAppStartParam (согласно документации Telegram)
+  const urlStartParam = route.query.tgWebAppStartParam as string | undefined;
+  if (urlStartParam && typeof urlStartParam === 'string' && urlStartParam.startsWith('open_')) {
+    gameIdFromStart = urlStartParam.substring(5);
+    console.log('[handleStartAppParams] Найден gameId из URL параметра tgWebAppStartParam:', gameIdFromStart);
+    return gameIdFromStart;
+  }
+
+  console.log(`[handleStartAppParams] ${gameIdFromStart}`);
   console.log('[handleStartAppParams] gameId не найден, возвращаем null');
   return null;
 };

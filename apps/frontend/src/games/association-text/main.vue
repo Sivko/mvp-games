@@ -6,7 +6,7 @@
         <div class="flex items-center justify-center">
           <h1 class="text-xl font-bold text-white flex">
             <div class="flex items-center">
-              <router-link to="/" class="px-4  h-full py-4">
+              <router-link to="/me" class="px-4  h-full py-4">
                 <AiOutlineArrowLeft />
               </router-link>
               <div class="flex item-center gap-4">
@@ -695,7 +695,8 @@ const copyGameLink = async () => {
 // Пригласить в Telegram
 const inviteToTelegram = () => {
   const botUsername = getBotUsername();
-  const inviteLink = `https://t.me/${botUsername}?startapp=open&gameId=${props.gameId}`;
+  // Встраиваем gameId в значение startapp, так как Telegram передает только значение startapp в start_param
+  const inviteLink = `https://t.me/${botUsername}?startapp=open_${props.gameId}`;
   
   const webApp = getTelegramWebApp();
   if (webApp && webApp.openTelegramLink) {
