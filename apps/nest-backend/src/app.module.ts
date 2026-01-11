@@ -22,6 +22,7 @@ import { GameAssociationTextModule } from './games/game-association-text/game-as
 import { ComplainAssociationTextModule } from './games/complain-association-text/complain-association-text.module';
 import { ComplainAssociationText, ComplainAssociationTextSchema } from './games/complain-association-text/schemas/complain-association-text.schema';
 import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
+import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
     GameAssociationTextModule,
     ComplainAssociationTextModule,
     ElasticsearchModule,
+    TelegramBotModule,
   ],
   controllers: [AppController, GamesController],
   providers: [AppService, GamesService],

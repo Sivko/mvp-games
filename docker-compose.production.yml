@@ -62,6 +62,7 @@ services:
       - MONGODB_PORT=27017
       - MONGODB_LOGIN=${MONGODB_LOGIN}
       - MONGODB_PASS=${MONGODB_PASS}
+      - TG_BOT_TOKEN=${TG_BOT_TOKEN}
       - NODE_ENV=production
     volumes:
       - ./.env.production:/app/.env.production:ro
