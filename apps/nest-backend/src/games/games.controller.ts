@@ -19,6 +19,7 @@ export class GamesController {
       gamesCount: game.gamesCount,
       question: game.question,
       usedQuestions: game.usedQuestions,
+      number: game.number,
     };
   }
 
@@ -36,6 +37,7 @@ export class GamesController {
       gamesCount: game.gamesCount,
       question: game.question,
       usedQuestions: game.usedQuestions,
+      number: game.number,
     };
   }
 
@@ -50,6 +52,7 @@ export class GamesController {
       gamesCount: game.gamesCount,
       question: game.question,
       usedQuestions: game.usedQuestions,
+      number: game.number,
     }));
   }
 
@@ -68,6 +71,7 @@ export class GamesController {
       gamesCount: game.gamesCount,
       question: game.question,
       usedQuestions: game.usedQuestions,
+      number: game.number,
     };
   }
 
@@ -82,6 +86,7 @@ export class GamesController {
       gamesCount: game.gamesCount,
       question: game.question,
       usedQuestions: game.usedQuestions,
+      number: game.number,
     }));
   }
 
@@ -102,6 +107,7 @@ export class GamesController {
       gamesCount: game.gamesCount,
       question: game.question,
       usedQuestions: game.usedQuestions,
+      number: game.number,
     };
   }
 

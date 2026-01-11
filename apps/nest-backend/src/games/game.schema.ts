@@ -5,6 +5,10 @@ export type GameDocument = Game & Document;
 
 @Schema({ timestamps: true })
 export class Game {
+
+  @Prop({ type: Number, default: 1 })
+  number: string;
+
   // статус игры
   @Prop({ type: String, default: 'active' })
   status: string;

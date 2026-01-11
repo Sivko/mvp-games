@@ -14,6 +14,30 @@ export class GamesService {
   ) {}
 
   /**
+   * Получает следующий номер для новой игры (автоинкремент)
+   * @returns следующий номер в виде строки
+   */
+  private async getNextGameNumber(): Promise<string> {
+    // Получаем последнюю запись, отсортированную по полю number по убыванию
+    const lastGame = await this.gameModel
+      .findOne()
+      .sort({ number: -1 })
+      .exec();
+    
+    // Если записей нет, возвращаем 1
+    if (!lastGame || !lastGame.number) {
+      return '1';
+    }
+    
+    // Преобразуем number в число, увеличиваем на 1 и возвращаем как строку
+    const lastNumber = typeof lastGame.number === 'string' 
+      ? parseInt(lastGame.number, 10) 
+      : lastGame.number;
+    
+    return (lastNumber + 1).toString();
+  }
+
+  /**
    * Создает новую игру
    * @param gameData - данные игры (typeGame, createdBy)
    * @param usedQuestionIds - массив уже использованных ID вопросов (опционально)
@@ -44,6 +68,9 @@ export class GamesService {
       10,
     );
 
+    // Получаем следующий номер для игры (автоинкремент)
+    const nextNumber = await this.getNextGameNumber();
+
     const newGame = new this.gameModel({
       typeGame: gameData.typeGame,
       createdBy: gameData.createdBy,
@@ -52,6 +79,7 @@ export class GamesService {
       usedQuestions,
       currentRound: 1,
       maxRounds,
+      number: nextNumber,
     });
 
     return newGame.save();

@@ -39,7 +39,7 @@
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-telegram-button"></div>
               <div>
-                <div class="text-telegram-text font-medium">{{ getGameName(game.typeGame) }}</div>
+                <div class="text-telegram-text font-medium">Комната #{{ game.number || '' }}</div>
                 <div class="text-telegram-text-secondary text-sm">Количество игр: {{ game.gamesCount }}</div>
               </div>
             </div>
@@ -74,7 +74,12 @@
         </div>
       </div>
     </div>
-    <div class="bg-red-400 p-4"></div>
+    <div class="bg-telegram-section rounded-lg shadow p-4 flex justify-center">
+      <button
+        class="px-4 py-2 bg-telegram-button text-telegram-button-text rounded-lg hover:opacity-90 transition-opacity max-sm:w-full">
+        Написать нам
+      </button>
+    </div>
   </div>
 </template>
 
@@ -103,11 +108,6 @@ const defaultGames = [
 
 const hasGame = (typeGame: string): boolean => {
   return games.value.some(game => game.typeGame === typeGame);
-};
-
-const getGameName = (typeGame: string): string => {
-  const game = defaultGames.find(g => g.typeGame === typeGame);
-  return game ? game.name : typeGame;
 };
 
 const goToGame = (gameId: string) => {
@@ -163,7 +163,7 @@ const handleInvite = async () => {
 // Обработка параметров startapp из Telegram
 const handleStartAppParams = async (): Promise<string | null> => {
   console.log('[handleStartAppParams] Начало обработки параметров startapp');
-  
+
   if (!isTelegramWebApp()) {
     console.log('[handleStartAppParams] Не является Telegram WebApp, возвращаем null');
     return null;
@@ -182,7 +182,7 @@ const handleStartAppParams = async (): Promise<string | null> => {
   // Парсим initData для получения start_param
   const initData = webApp.initData;
   console.log('[handleStartAppParams] initData:', initData);
-  
+
   if (initData) {
     const params = new URLSearchParams(initData);
     const startParam = params.get('start_param');
@@ -202,7 +202,7 @@ const handleStartAppParams = async (): Promise<string | null> => {
   // Также проверяем initDataUnsafe для совместимости
   const initDataUnsafe = webApp.initDataUnsafe;
   console.log('[handleStartAppParams] initDataUnsafe:', initDataUnsafe);
-  
+
   if (initDataUnsafe?.start_param) {
     const startParam = initDataUnsafe.start_param;
     // Telegram передает только значение startapp в start_param (не query string)
