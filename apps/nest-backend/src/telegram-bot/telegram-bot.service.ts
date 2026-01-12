@@ -15,6 +15,14 @@ export class TelegramBotService implements OnModuleInit {
       'onModuleInit called - starting Telegram bot initialization',
     );
 
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    if (nodeEnv !== 'production') {
+      this.logger.log(
+        `NODE_ENV is "${nodeEnv}", not "production". Telegram bot will not be initialized.`,
+      );
+      return;
+    }
+
     const token = this.configService.get<string>('TG_BOT_TOKEN');
     this.logger.log(`TG_BOT_TOKEN exists: ${!!token}`);
 
