@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
   const envPath = resolve(rootDir, envFile)
   
   let nestUrl = 'http://localhost:3000'
+  let adminSecret = ''
   
   try {
     const envContent = readFileSync(envPath, 'utf-8')
@@ -25,7 +26,8 @@ export default defineConfig(({ mode }) => {
       const trimmedLine = line.trim()
       if (trimmedLine.startsWith('NEST_URL=')) {
         nestUrl = trimmedLine.split('=')[1].trim()
-        break
+      } else if (trimmedLine.startsWith('ADMIN_SECRET=')) {
+        adminSecret = trimmedLine.split('=')[1].trim()
       }
     }
   } catch {
@@ -46,6 +48,7 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       'import.meta.env.VITE_API_URL': JSON.stringify(nestUrl),
+      'import.meta.env.VITE_ADMIN_SECRET': JSON.stringify(adminSecret),
     },
   }
 })

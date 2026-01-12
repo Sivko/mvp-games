@@ -1,4 +1,15 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || '';
+
+const getAuthHeaders = () => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (ADMIN_SECRET) {
+    headers['X-Admin-Secret'] = ADMIN_SECRET;
+  }
+  return headers;
+};
 
 export interface ReactionType {
   _id?: string;
@@ -29,9 +40,7 @@ export const reactionTypesApi = {
   async create(data: Partial<ReactionType>): Promise<ReactionType> {
     const response = await fetch(`${API_BASE_URL}/reaction-types`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -44,9 +53,7 @@ export const reactionTypesApi = {
   async update(id: string, data: Partial<ReactionType>): Promise<ReactionType> {
     const response = await fetch(`${API_BASE_URL}/reaction-types/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -59,6 +66,7 @@ export const reactionTypesApi = {
   async delete(id: string): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/reaction-types/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     if (!response.ok) {
       const error = await response.json();

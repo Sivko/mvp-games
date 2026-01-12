@@ -63,6 +63,7 @@ services:
       - MONGODB_LOGIN=${MONGODB_LOGIN}
       - MONGODB_PASS=${MONGODB_PASS}
       - TG_BOT_TOKEN=${TG_BOT_TOKEN}
+      - ADMIN_SECRET=${ADMIN_SECRET}
       - NODE_ENV=production
     volumes:
       - ./.env.production:/app/.env.production:ro

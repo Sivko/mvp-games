@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ReactionTypesService } from './reaction-types.service';
+import { AdminAuthGuard } from '../auth/admin-auth.guard';
 
 @Controller('reaction-types')
 export class ReactionTypesController {
@@ -16,16 +17,19 @@ export class ReactionTypesController {
   }
 
   @Post()
+  @UseGuards(AdminAuthGuard)
   async create(@Body() data: { name: string; image?: string | null; textFromFinalRound?: string | null }) {
     return this.reactionTypesService.create(data);
   }
 
   @Put(':id')
+  @UseGuards(AdminAuthGuard)
   async update(@Param('id') id: string, @Body() data: Partial<{ name: string; image: string | null; textFromFinalRound: string | null }>) {
     return this.reactionTypesService.update(id, data);
   }
 
   @Delete(':id')
+  @UseGuards(AdminAuthGuard)
   async delete(@Param('id') id: string) {
     return this.reactionTypesService.delete(id);
   }
