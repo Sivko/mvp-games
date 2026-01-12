@@ -313,50 +313,7 @@ export class ElasticsearchService implements OnModuleInit {
   ): Promise<{ score: number; text?: string }> {
     try {
       // Шаг 1: Получаем топ-20 уникальных слов для данного bankAssociationTextId
-      const queryForTop20: any = {
-        bool: {
-          must: [
-            {
-              term: {
-                bankAssociationTextId: bankAssociationTextId,
-              },
-            },
-          ],
-        },
-      };
-
-      const top20Response = await this.client.search({
-        index: this.indexName,
-        size: 0,
-        query: queryForTop20,
-        aggs: {
-          top_texts: {
-            terms: {
-              field: 'text', // Агрегируем по точному полю text (keyword)
-              size: 20, // Топ-20
-              order: {
-                _count: 'desc',
-              },
-            },
-          },
-        },
-      });
-
-      const top20Buckets =
-        (top20Response.aggregations?.top_texts as any)?.buckets || [];
-
-      if (top20Buckets.length === 0) {
-        this.logger.warn(
-          `Нет результатов для bankAssociationTextId=${bankAssociationTextId}`,
-        );
-        return { score: 0, text: undefined };
-      }
-
-      // Преобразуем в массив WordCount
-      const top20: WordCount[] = top20Buckets.map((bucket: any) => ({
-        text: bucket.key,
-        count: bucket.doc_count,
-      }));
+      const top20 = await this.getUniqueWords(20, bankAssociationTextId);
 
       // Вычисляем общую сумму count для всех топ-20 вариантов
       const totalCount = top20.reduce((sum, item) => sum + item.count, 0);
