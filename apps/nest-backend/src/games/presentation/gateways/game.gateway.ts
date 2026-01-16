@@ -9,11 +9,11 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
-import { AnswersService } from '../../answers/answers.service';
-import { ReactionsService } from '../../reactions/reactions.service';
-import { GamesService } from '../games.service';
-import { UsersService } from '../../users/users.service';
-import { ElasticsearchService } from '../../elasticsearch/elasticsearch.service';
+import { AnswersService } from '../../../answers/answers.service';
+import { ReactionsService } from '../../../reactions/reactions.service';
+import { GamesService } from '../../games.service';
+import { UsersService } from '../../../users/users.service';
+import { ElasticsearchService } from '../../../elasticsearch/elasticsearch.service';
 
 interface GameRoom {
   gameId: string;
@@ -33,9 +33,7 @@ interface GameRoom {
   },
 })
 @Injectable()
-export class GameAssociationTextGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 

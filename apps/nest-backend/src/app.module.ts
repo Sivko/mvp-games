@@ -15,22 +15,21 @@ import {
 } from './answers/infrastructure/schemas/answer.schema';
 import { UsersModule } from './users/users.module';
 import { User, UserSchema } from './users/infrastructure/schemas/user.schema';
-import { BankAssociationTextModule } from './games/bank-association-text/bank-association-text.module';
+import { BankAssociationTextModule } from './bank-association-text/bank-association-text.module';
 import {
   BankAssociationText,
   BankAssociationTextSchema,
-} from './games/bank-association-text/infrastructure/schemas/bank-association-text.schema';
+} from './bank-association-text/infrastructure/schemas/bank-association-text.schema';
 import { ReactionsModule } from './reactions/reactions.module';
 import {
   Reaction,
   ReactionSchema,
 } from './reactions/infrastructure/schemas/reaction.schema';
-import { GameAssociationTextModule } from './games/game-association-text/game-association-text.module';
-import { ComplainAssociationTextModule } from './games/complain-association-text/complain-association-text.module';
+import { ComplainAssociationTextModule } from './complain-association-text/complain-association-text.module';
 import {
   ComplainAssociationText,
   ComplainAssociationTextSchema,
-} from './games/complain-association-text/schemas/complain-association-text.schema';
+} from './complain-association-text/schemas/complain-association-text.schema';
 import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
 import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
 
@@ -101,7 +100,6 @@ import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
     UsersModule,
     BankAssociationTextModule,
     ReactionsModule,
-    GameAssociationTextModule,
     ComplainAssociationTextModule,
     ElasticsearchModule,
     TelegramBotModule,

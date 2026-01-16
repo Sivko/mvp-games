@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Game, GameDocument } from './infrastructure/schemas/game.schema';
-import { BankAssociationTextService } from './bank-association-text/bank-association-text.service';
+import { BankAssociationTextService } from '../bank-association-text/bank-association-text.service';
 
 @Injectable()
 export class GamesService {

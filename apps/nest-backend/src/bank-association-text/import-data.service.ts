@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { BankAssociationTextService } from './bank-association-text.service';
-import { AnswersService } from '../../answers/answers.service';
+import { AnswersService } from '../answers/answers.service';
 
 @Injectable()
 export class ImportDataService {
