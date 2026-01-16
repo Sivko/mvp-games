@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Body, Param, Query, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { AnswersService } from './answers.service';
 
 @Controller('answers')
@@ -6,22 +15,28 @@ export class AnswersController {
   constructor(private readonly answersService: AnswersService) {}
 
   @Post()
-  async create(@Body() createDto: {
-    gameId?: string;
-    userId?: string;
-    text: string;
-    bankAssociationTextId?: string;
-  }) {
+  async create(
+    @Body()
+    createDto: {
+      gameId?: string;
+      userId?: string;
+      text: string;
+      bankAssociationTextId?: string;
+    },
+  ) {
     return this.answersService.create(createDto);
   }
 
   @Post('by-question')
-  async createByQuestion(@Body() createDto: {
-    question: string;
-    text: string;
-    bankAssociationTextId?: string;
-    score?: number;
-  }) {
+  async createByQuestion(
+    @Body()
+    createDto: {
+      question: string;
+      text: string;
+      bankAssociationTextId?: string;
+      score?: number;
+    },
+  ) {
     return this.answersService.createByQuestion(
       createDto.question,
       createDto.text,
@@ -97,4 +112,3 @@ export class AnswersController {
     return { success: true };
   }
 }
-

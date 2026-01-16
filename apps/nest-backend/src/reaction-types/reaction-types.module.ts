@@ -1,17 +1,31 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ReactionTypesService } from './reaction-types.service';
-import { ReactionTypesController } from './reaction-types.controller';
-import { ReactionType, ReactionTypeSchema } from './schemas/reaction-types.schema';
-import { AdminAuthGuard } from '../auth/admin-auth.guard';
+import {
+  ReactionType,
+  ReactionTypeSchema,
+} from './infrastructure/schemas/reaction-types.schema';
+import { ReactionTypesController } from './presentation/controllers/reaction-types.controller';
+import { ReactionTypeApplicationService } from './application/services/reaction-type.application.service';
+import { MongooseReactionTypeRepository } from './infrastructure/persistence/mongoose-reaction-type.repository';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: ReactionType.name, schema: ReactionTypeSchema }]),
+    MongooseModule.forFeature([
+      { name: 'ReactionType', schema: ReactionTypeSchema },
+    ]),
   ],
   controllers: [ReactionTypesController],
-  providers: [ReactionTypesService, AdminAuthGuard],
-  exports: [ReactionTypesService],
+  providers: [
+    ReactionTypeApplicationService,
+    {
+      provide: 'IReactionTypeRepository',
+      useClass: MongooseReactionTypeRepository,
+    },
+  ],
+  exports: [
+    ReactionTypeApplicationService,
+    'IReactionTypeRepository',
+    MongooseModule,
+  ],
 })
 export class ReactionTypesModule {}
-

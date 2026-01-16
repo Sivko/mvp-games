@@ -6,10 +6,7 @@ export class GamesController {
   constructor(private readonly gamesService: GamesService) {}
 
   @Post()
-  async createGame(@Body() gameData: {
-    typeGame: string;
-    createdBy: string;
-  }) {
+  async createGame(@Body() gameData: { typeGame: string; createdBy: string }) {
     const game = await this.gamesService.createGame(gameData);
     return {
       _id: game._id.toString(),
@@ -62,7 +59,10 @@ export class GamesController {
     @Param('typeGame') typeGame: string,
   ) {
     console.log('getGameByUserAndType', userId, typeGame);
-    const game = await this.gamesService.findOrCreateGameByUserAndType(userId, typeGame);
+    const game = await this.gamesService.findOrCreateGameByUserAndType(
+      userId,
+      typeGame,
+    );
     return {
       _id: game._id.toString(),
       typeGame: game.typeGame,
@@ -95,7 +95,10 @@ export class GamesController {
     @Param('inviteUserId') inviteUserId: string,
     @Param('typeGame') typeGame: string,
   ) {
-    const game = await this.gamesService.findActiveGameByInvite(inviteUserId, typeGame);
+    const game = await this.gamesService.findActiveGameByInvite(
+      inviteUserId,
+      typeGame,
+    );
     if (!game) {
       throw new Error('Game not found');
     }
@@ -110,6 +113,4 @@ export class GamesController {
       number: game.number,
     };
   }
-
 }
-

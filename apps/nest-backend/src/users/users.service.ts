@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserDocument } from './schemas/user.schema';
+import { User, UserDocument } from './infrastructure/schemas/user.schema';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+  constructor(@InjectModel('User') private userModel: Model<UserDocument>) {}
 
   /**
    * Находит или создает пользователя
@@ -25,7 +23,9 @@ export class UsersService {
   }): Promise<string> {
     // Если есть telegramId, ищем по нему
     if (userData.telegramId) {
-      const existingUser = await this.userModel.findOne({ telegramId: userData.telegramId }).exec();
+      const existingUser = await this.userModel
+        .findOne({ telegramId: userData.telegramId })
+        .exec();
       if (existingUser) {
         return existingUser._id.toString();
       }
@@ -33,10 +33,12 @@ export class UsersService {
 
     // Если есть name, ищем по нему (для простых пользователей без Telegram)
     if (userData.name) {
-      const existingUser = await this.userModel.findOne({ 
-        name: userData.name,
-        telegramId: { $exists: false }
-      }).exec();
+      const existingUser = await this.userModel
+        .findOne({
+          name: userData.name,
+          telegramId: { $exists: false },
+        })
+        .exec();
       if (existingUser) {
         return existingUser._id.toString();
       }
@@ -65,4 +67,3 @@ export class UsersService {
     return this.userModel.find().exec();
   }
 }
-

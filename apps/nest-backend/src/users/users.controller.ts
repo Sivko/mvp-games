@@ -52,15 +52,18 @@ export class UsersController {
   }
 
   @Post('find-or-create')
-  async findOrCreate(@Body() userData: {
-    name?: string;
-    telegramId?: number;
-    telegramUsername?: string;
-    telegramFirstName?: string;
-    telegramLastName?: string;
-    telegramPhotoUrl?: string;
-    telegramLanguageCode?: string;
-  }) {
+  async findOrCreate(
+    @Body()
+    userData: {
+      name?: string;
+      telegramId?: number;
+      telegramUsername?: string;
+      telegramFirstName?: string;
+      telegramLastName?: string;
+      telegramPhotoUrl?: string;
+      telegramLanguageCode?: string;
+    },
+  ) {
     const userId = await this.usersService.findOrCreateUser(userData);
     const user = await this.usersService.findById(userId);
     return {
@@ -71,5 +74,3 @@ export class UsersController {
     };
   }
 }
-
-

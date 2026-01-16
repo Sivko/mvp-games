@@ -1,16 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BankAssociationText, BankAssociationTextDocument } from './schemas/bank-association-text.schema';
+import {
+  BankAssociationText,
+  BankAssociationTextDocument,
+} from './infrastructure/schemas/bank-association-text.schema';
 
 @Injectable()
 export class BankAssociationTextService {
   constructor(
-    @InjectModel(BankAssociationText.name) 
+    @InjectModel('BankAssociationText')
     private bankAssociationTextModel: Model<BankAssociationTextDocument>,
   ) {}
 
-  async create(createDto: Partial<BankAssociationText>): Promise<BankAssociationTextDocument> {
+  async create(
+    createDto: Partial<BankAssociationText>,
+  ): Promise<BankAssociationTextDocument> {
     const created = new this.bankAssociationTextModel(createDto);
     return created.save();
   }
@@ -23,7 +28,10 @@ export class BankAssociationTextService {
     return this.bankAssociationTextModel.findById(id).exec();
   }
 
-  async update(id: string, updateDto: Partial<BankAssociationText>): Promise<BankAssociationTextDocument | null> {
+  async update(
+    id: string,
+    updateDto: Partial<BankAssociationText>,
+  ): Promise<BankAssociationTextDocument | null> {
     return this.bankAssociationTextModel
       .findByIdAndUpdate(id, updateDto, { new: true })
       .exec();
@@ -38,5 +46,3 @@ export class BankAssociationTextService {
     return { deletedCount: result.deletedCount || 0 };
   }
 }
-
-

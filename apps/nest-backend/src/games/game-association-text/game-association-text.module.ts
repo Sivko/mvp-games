@@ -3,9 +3,7 @@ import { GameAssociationTextGateway } from './game-association-text.gateway';
 import { AnswersModule } from '../../answers/answers.module';
 import { ReactionsModule } from '../../reactions/reactions.module';
 import { UsersModule } from '../../users/users.module';
-import { GamesService } from '../games.service';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Game, GameSchema } from '../game.schema';
+import { GameModule } from '../game.module';
 import { BankAssociationTextModule } from '../bank-association-text/bank-association-text.module';
 import { ElasticsearchModule } from '../../elasticsearch/elasticsearch.module';
 
@@ -14,11 +12,10 @@ import { ElasticsearchModule } from '../../elasticsearch/elasticsearch.module';
     AnswersModule,
     ReactionsModule,
     UsersModule,
+    GameModule,
     BankAssociationTextModule,
     ElasticsearchModule,
-    MongooseModule.forFeature([{ name: Game.name, schema: GameSchema }]),
   ],
-  providers: [GameAssociationTextGateway, GamesService],
+  providers: [GameAssociationTextGateway],
 })
 export class GameAssociationTextModule {}
-

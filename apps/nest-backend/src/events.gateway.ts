@@ -1,9 +1,6 @@
 import {
   WebSocketGateway,
   WebSocketServer,
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
@@ -20,8 +17,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(
-  ) {}
+  constructor() {}
 
   handleConnection(client: Socket) {
     console.log('=== EventsGateway Connection ===');
@@ -38,4 +34,3 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log('===================================');
   }
 }
-

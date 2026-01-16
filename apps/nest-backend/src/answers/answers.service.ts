@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Answer, AnswerDocument } from './schemas/answer.schema';
-import { Game, GameDocument } from '../games/game.schema';
+import { Answer, AnswerDocument } from './infrastructure/schemas/answer.schema';
+import { Game, GameDocument } from '../games/infrastructure/schemas/game.schema';
 
 @Injectable()
 export class AnswersService {
   constructor(
-    @InjectModel(Answer.name) private answerModel: Model<AnswerDocument>,
-    @InjectModel(Game.name) private gameModel: Model<GameDocument>,
+    @InjectModel('Answer') private answerModel: Model<AnswerDocument>,
+    @InjectModel('Game') private gameModel: Model<GameDocument>,
   ) {}
 
   async create(createDto: {
@@ -134,7 +134,9 @@ export class AnswersService {
     // Создаем запрос: ответы из игр ИЛИ ответы без gameId (но с bankAssociationTextId)
     const query: any = {
       $or: [
-        ...(matchingGameIds.length > 0 ? [{ gameId: { $in: matchingGameIds as any } }] : []),
+        ...(matchingGameIds.length > 0
+          ? [{ gameId: { $in: matchingGameIds as any } }]
+          : []),
         { gameId: { $exists: false } },
         { gameId: null },
       ],
@@ -150,9 +152,7 @@ export class AnswersService {
       .exec();
 
     // Получаем общее количество ответов
-    const total = await this.answerModel
-      .countDocuments(query)
-      .exec();
+    const total = await this.answerModel.countDocuments(query).exec();
 
     return { answers, total };
   }
@@ -217,16 +217,24 @@ export class AnswersService {
    * Удаляет все ответы, связанные с bankAssociationTextId
    * @param bankAssociationTextId - ID записи из банка
    */
-  async deleteByBankAssociationTextId(bankAssociationTextId: string): Promise<{ deletedCount: number }> {
-    const result = await this.answerModel.deleteMany({ bankAssociationTextId: bankAssociationTextId as any }).exec();
+  async deleteByBankAssociationTextId(
+    bankAssociationTextId: string,
+  ): Promise<{ deletedCount: number }> {
+    const result = await this.answerModel
+      .deleteMany({ bankAssociationTextId: bankAssociationTextId as any })
+      .exec();
     return { deletedCount: result.deletedCount || 0 };
   }
 
   /**
    * Удаляет все ответы, которые имеют bankAssociationTextId
    */
-  async deleteAllWithBankAssociationTextId(): Promise<{ deletedCount: number }> {
-    const result = await this.answerModel.deleteMany({ bankAssociationTextId: { $exists: true, $ne: null } }).exec();
+  async deleteAllWithBankAssociationTextId(): Promise<{
+    deletedCount: number;
+  }> {
+    const result = await this.answerModel
+      .deleteMany({ bankAssociationTextId: { $exists: true, $ne: null } })
+      .exec();
     return { deletedCount: result.deletedCount || 0 };
   }
 
@@ -255,4 +263,3 @@ export class AnswersService {
     return created.save();
   }
 }
-

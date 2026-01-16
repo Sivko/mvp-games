@@ -5,7 +5,6 @@ export type GameDocument = Game & Document;
 
 @Schema({ timestamps: true })
 export class Game {
-
   @Prop({ type: Number, default: 1 })
   number: number;
 
@@ -69,4 +68,3 @@ export class Game {
 }
 
 export const GameSchema = SchemaFactory.createForClass(Game);
-

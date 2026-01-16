@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 
-export type ComplainAssociationTextDocument = ComplainAssociationText & Document;
+export type ComplainAssociationTextDocument = ComplainAssociationText &
+  Document;
 
 @Schema({ timestamps: true })
 export class ComplainAssociationText {
@@ -30,7 +31,6 @@ export class ComplainAssociationText {
   updatedAt?: Date;
 }
 
-export const ComplainAssociationTextSchema = SchemaFactory.createForClass(ComplainAssociationText);
-
-
-
+export const ComplainAssociationTextSchema = SchemaFactory.createForClass(
+  ComplainAssociationText,
+);

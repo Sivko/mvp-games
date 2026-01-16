@@ -1,18 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Body,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
 import { ReactionsService } from './reactions.service';
 
 @Controller('reactions')
 export class ReactionsController {
   constructor(private readonly reactionsService: ReactionsService) {}
-
 
   @Get()
   async findAll() {
@@ -51,7 +42,6 @@ export class ReactionsController {
     return this.reactionsService.create(createDto);
   }
 
-  
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return this.reactionsService.delete(id);
@@ -70,4 +60,3 @@ export class ReactionsController {
     );
   }
 }
-

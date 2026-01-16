@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Reaction, ReactionDocument } from './schemas/reaction.schema';
+import { Reaction, ReactionDocument } from './infrastructure/schemas/reaction.schema';
 
 @Injectable()
 export class ReactionsService {
   constructor(
-    @InjectModel(Reaction.name) private reactionModel: Model<ReactionDocument>,
+    @InjectModel('Reaction') private reactionModel: Model<ReactionDocument>,
   ) {}
 
   async create(createDto: {
@@ -20,11 +20,11 @@ export class ReactionsService {
       userId: new Types.ObjectId(createDto.userId),
       reactionId: new Types.ObjectId(createDto.reactionId),
     };
-    
+
     if (createDto.gameId) {
       reactionData.gameId = new Types.ObjectId(createDto.gameId);
     }
-    
+
     const created = new this.reactionModel(reactionData);
     return created.save();
   }
@@ -38,15 +38,11 @@ export class ReactionsService {
   }
 
   async findByAnswerId(answerId: string): Promise<ReactionDocument[]> {
-    return this.reactionModel
-      .find({ answerId: answerId as any })
-      .exec();
+    return this.reactionModel.find({ answerId: answerId as any }).exec();
   }
 
   async findByUserId(userId: string): Promise<ReactionDocument[]> {
-    return this.reactionModel
-      .find({ userId: userId as any })
-      .exec();
+    return this.reactionModel.find({ userId: userId as any }).exec();
   }
 
   async findByGameId(gameId: string): Promise<ReactionDocument[]> {
@@ -101,4 +97,3 @@ export class ReactionsService {
       .exec();
   }
 }
-

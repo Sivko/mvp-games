@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -8,7 +13,7 @@ export class AdminAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const adminSecret = this.configService.get<string>('ADMIN_SECRET');
-    
+
     // Если ADMIN_SECRET не установлен, разрешаем доступ (для разработки)
     if (!adminSecret) {
       console.warn('ADMIN_SECRET not set, allowing access (development mode)');
@@ -17,7 +22,7 @@ export class AdminAuthGuard implements CanActivate {
 
     // Проверяем заголовок X-Admin-Secret
     const providedSecret = request.headers['x-admin-secret'];
-    
+
     if (!providedSecret) {
       throw new UnauthorizedException('Admin authorization required');
     }

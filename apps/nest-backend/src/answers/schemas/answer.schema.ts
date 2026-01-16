@@ -52,4 +52,3 @@ export class Answer {
 }
 
 export const AnswerSchema = SchemaFactory.createForClass(Answer);
-

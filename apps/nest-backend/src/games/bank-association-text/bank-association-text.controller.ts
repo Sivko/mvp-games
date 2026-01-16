@@ -51,4 +51,3 @@ export class BankAssociationTextController {
     return this.importDataService.importFromFile();
   }
 }
-

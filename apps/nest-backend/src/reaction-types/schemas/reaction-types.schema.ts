@@ -17,4 +17,3 @@ export class ReactionType {
 }
 
 export const ReactionTypeSchema = SchemaFactory.createForClass(ReactionType);
-

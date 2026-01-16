@@ -19,7 +19,8 @@ export class ElasticsearchController {
 
   @Post('calculate-score')
   async calculateScore(
-    @Body() body: {
+    @Body()
+    body: {
       bankAssociationTextId: string;
       text: string;
       answerId?: string;
@@ -38,4 +39,3 @@ export class ElasticsearchController {
     return { message: 'Elasticsearch index initialized successfully' };
   }
 }
-

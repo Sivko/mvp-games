@@ -20,7 +20,7 @@ interface GameRoom {
   users: Map<string, { userId: string; socketId: string }>; // Map<socketId, { userId, socketId }>
   uniqueUserIds: Set<string>; // Set уникальных userId для правильного подсчета пользователей
   phase: 'input' | 'results' | 'finish'; // Фрейм 1, Фрейм 2 или Фрейм 3 (финал раунда)
-  timer: NodeJS.Timeout | null;
+  timer: ReturnType<typeof setTimeout> | null;
   timerEndsAt: number | null;
   readyUsers: Set<string>; // Set of userIds who are ready
   userScores: Map<string, number>; // Map<userId, totalScore> - общие очки пользователей
@@ -49,7 +49,7 @@ export class GameAssociationTextGateway
     private elasticsearchService: ElasticsearchService,
   ) {}
 
-  handleConnection(client: Socket) {
+  handleConnection(_client: Socket) {
     // Connection handled
   }
 
@@ -61,7 +61,7 @@ export class GameAssociationTextGateway
         room.users.delete(client.id);
         // Проверяем, остались ли еще соединения для этого userId
         const hasOtherConnections = Array.from(room.users.values()).some(
-          (u) => u.userId === userInfo.userId
+          (u) => u.userId === userInfo.userId,
         );
         // Если больше нет соединений для этого userId, удаляем его из уникальных пользователей
         if (!hasOtherConnections) {
@@ -88,14 +88,14 @@ export class GameAssociationTextGateway
       // Загружаем игру для получения сохраненных очков
       const game = await this.gamesService.findById(gameId);
       const userScores = new Map<string, number>();
-      
+
       // Загружаем очки из game.stats, если они есть
       if (game?.stats) {
         game.stats.forEach((score, userId) => {
           userScores.set(userId, score);
         });
       }
-      
+
       this.gameRooms.set(gameId, {
         gameId,
         users: new Map(),
@@ -139,14 +139,18 @@ export class GameAssociationTextGateway
       const playersWithNames = await Promise.all(
         Array.from(room.userScores.keys()).map(async (userId) => {
           const user = await this.usersService.findById(userId);
-          const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+          const userName =
+            user?.name ||
+            user?.telegramFirstName ||
+            user?.telegramUsername ||
+            'Неизвестный';
           return {
             userId,
             userName,
             initial: userName.charAt(0).toUpperCase(),
             telegramPhotoUrl: user?.telegramPhotoUrl,
           };
-        })
+        }),
       );
 
       // Получаем информацию о раундах из игры
@@ -172,7 +176,7 @@ export class GameAssociationTextGateway
     // Если комната в фазе results, загружаем ответы и реакции
     else if (room.phase === 'results') {
       const answers = await this.answersService.findByGameId(gameId);
-      
+
       // Пересчитываем очки всех пользователей из их ответов текущего раунда
       // Это гарантирует правильность очков при присоединении к игре
       const userScoresMap = new Map<string, number>();
@@ -183,17 +187,17 @@ export class GameAssociationTextGateway
           userScoresMap.set(userId, currentScore + (a.score || 0));
         }
       });
-      
+
       // Получаем игру для получения очков из предыдущих раундов
       const gameForStats = await this.gamesService.findById(gameId);
-      
+
       // Обновляем очки в комнате, суммируя очки из предыдущих раундов и текущего раунда
       userScoresMap.forEach((currentRoundScore, userId) => {
         const previousRoundsScore = gameForStats?.stats?.get(userId) || 0;
         const totalScore = previousRoundsScore + currentRoundScore;
         room.userScores.set(userId, totalScore);
       });
-      
+
       // Также добавляем пользователей, которые есть в game.stats, но нет в текущих ответах
       if (gameForStats?.stats) {
         gameForStats.stats.forEach((previousScore, userId) => {
@@ -203,12 +207,16 @@ export class GameAssociationTextGateway
           }
         });
       }
-      
+
       // Загружаем имена пользователей для ответов
       const answersWithUserNames = await Promise.all(
         answers.map(async (a) => {
           const user = await this.usersService.findById(a.user.toString());
-          const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+          const userName =
+            user?.name ||
+            user?.telegramFirstName ||
+            user?.telegramUsername ||
+            'Неизвестный';
           return {
             id: a._id.toString(),
             userId: a.user.toString(),
@@ -216,9 +224,9 @@ export class GameAssociationTextGateway
             userName,
             score: a.score || 0,
           };
-        })
+        }),
       );
-      
+
       // Преобразуем Map очков в объект для отправки клиентам
       const userScoresObject: Record<string, number> = {};
       room.userScores.forEach((score, userId) => {
@@ -226,8 +234,9 @@ export class GameAssociationTextGateway
       });
 
       // Получаем информацию о раундах из игры (используем gameForStats, если он уже загружен, иначе загружаем заново)
-      const gameForRounds = gameForStats || await this.gamesService.findById(gameId);
-      
+      const gameForRounds =
+        gameForStats || (await this.gamesService.findById(gameId));
+
       // Отправляем текущую фазу с ответами
       client.emit('game-state', {
         phase: room.phase,
@@ -292,9 +301,10 @@ export class GameAssociationTextGateway
 
     // Получаем игру для получения bankAssociationTextId
     const game = await this.gamesService.findById(gameId);
-    const bankAssociationTextId = game?.usedQuestions && game.usedQuestions.length > 0
-      ? game.usedQuestions[game.usedQuestions.length - 1]
-      : undefined;
+    const bankAssociationTextId =
+      game?.usedQuestions && game.usedQuestions.length > 0
+        ? game.usedQuestions[game.usedQuestions.length - 1]
+        : undefined;
 
     // Проверяем, не отправил ли пользователь уже ответ
     const existingAnswer = await this.answersService.findByGameIdAndUserId(
@@ -325,26 +335,26 @@ export class GameAssociationTextGateway
     // Вычисляем и сохраняем score, если есть bankAssociationTextId
     if (bankAssociationTextId) {
       try {
-        const scoreResult = await this.elasticsearchService.calculateScore(
+        await this.elasticsearchService.calculateScore(
           bankAssociationTextId.toString(),
           text,
           answerId,
         );
-        
+
         // Пересчитываем очки пользователя из всех его ответов в текущем раунде
         // Это гарантирует правильность очков даже при множественных обновлениях
         const userAnswers = await this.answersService.findByGameId(gameId);
         const currentRoundScore = userAnswers
           .filter((a) => a.user?.toString() === userId)
           .reduce((sum, a) => sum + (a.score || 0), 0);
-        
+
         // Получаем очки из предыдущих раундов из game.stats
         const game = await this.gamesService.findById(gameId);
         const previousRoundsScore = game?.stats?.get(userId) || 0;
-        
+
         // Суммируем очки из предыдущих раундов и текущего раунда
         const userTotalScore = previousRoundsScore + currentRoundScore;
-        
+
         // Обновляем очки пользователя в комнате
         room.userScores.set(userId, userTotalScore);
 
@@ -421,8 +431,10 @@ export class GameAssociationTextGateway
     }
 
     // Проверяем, не отправил ли пользователь уже эту реакцию
-    const existingReactions =
-      await this.reactionsService.findByAnswerAndUser(answerId, userId);
+    const existingReactions = await this.reactionsService.findByAnswerAndUser(
+      answerId,
+      userId,
+    );
 
     const hasReaction = existingReactions.some(
       (r) => r.reactionId.toString() === reactionId,
@@ -495,13 +507,13 @@ export class GameAssociationTextGateway
         clearTimeout(room.timer);
         room.timer = null;
       }
-      
+
       // Проверяем, будет ли следующий раунд последним
       const game = await this.gamesService.findById(gameId);
       const currentRound = game?.currentRound || 1;
       const maxRounds = game?.maxRounds || 10;
       const isNextRoundLast = currentRound >= maxRounds;
-      
+
       // Если следующий раунд будет последним - показываем итоги игры
       if (isNextRoundLast) {
         await this.switchToFinishPhase(gameId);
@@ -519,7 +531,7 @@ export class GameAssociationTextGateway
         clearTimeout(room.timer);
         room.timer = null;
       }
-      
+
       // Всегда переходим к новому раунду (startNewRound сам сбросит раунд к 1, если достигнут максимум)
       await this.startNewRound(gameId);
       return;
@@ -577,7 +589,11 @@ export class GameAssociationTextGateway
       answers.map(async (a) => {
         const userId = a.user?.toString() || null;
         const user = userId ? await this.usersService.findById(userId) : null;
-        const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+        const userName =
+          user?.name ||
+          user?.telegramFirstName ||
+          user?.telegramUsername ||
+          'Неизвестный';
         return {
           id: a._id.toString(),
           userId: userId || '',
@@ -585,7 +601,7 @@ export class GameAssociationTextGateway
           userName,
           score: a.score || 0,
         };
-      })
+      }),
     );
 
     // Преобразуем Map очков в объект для отправки клиентам
@@ -637,7 +653,7 @@ export class GameAssociationTextGateway
       const currentRound = game?.currentRound || 1;
       const maxRounds = game?.maxRounds || 10;
       const isNextRoundLast = currentRound >= maxRounds;
-      
+
       // Если следующий раунд будет последним - показываем итоги игры
       if (isNextRoundLast) {
         await this.switchToFinishPhase(gameId);
@@ -678,20 +694,24 @@ export class GameAssociationTextGateway
     const playersWithNames = await Promise.all(
       Array.from(room.userScores.keys()).map(async (userId) => {
         const user = await this.usersService.findById(userId);
-        const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+        const userName =
+          user?.name ||
+          user?.telegramFirstName ||
+          user?.telegramUsername ||
+          'Неизвестный';
         return {
           userId,
           userName,
           initial: userName.charAt(0).toUpperCase(),
         };
-      })
+      }),
     );
 
     // Получаем информацию о раундах из игры
     const game = await this.gamesService.findById(gameId);
     const currentRound = game?.currentRound || 1;
     const maxRounds = game?.maxRounds || 10;
-    
+
     // Проверяем, был ли это последний раунд
     const isGameFinished = currentRound >= maxRounds;
 
@@ -736,7 +756,7 @@ export class GameAssociationTextGateway
     // Вычисляем очки текущего раунда из ответов перед их удалением
     const answers = await this.answersService.findByGameId(gameId);
     const currentRoundScores: Record<string, number> = {};
-    
+
     answers.forEach((a) => {
       const userId = a.user?.toString();
       if (userId) {
@@ -744,7 +764,7 @@ export class GameAssociationTextGateway
         currentRoundScores[userId] = currentScore + (a.score || 0);
       }
     });
-    
+
     // Сохраняем очки текущего раунда в game.stats перед удалением ответов
     if (Object.keys(currentRoundScores).length > 0) {
       await this.gamesService.updateStats(gameId, currentRoundScores);
@@ -811,7 +831,6 @@ export class GameAssociationTextGateway
     this.server.to(gameId).emit('game-state', gameStateData);
   }
 
-
   private broadcastOnlineUsers(gameId: string) {
     const room = this.gameRooms.get(gameId);
     if (room) {
@@ -836,14 +855,18 @@ export class GameAssociationTextGateway
       const onlinePlayers = await Promise.all(
         Array.from(room.uniqueUserIds).map(async (userId) => {
           const user = await this.usersService.findById(userId);
-          const userName = user?.name || user?.telegramFirstName || user?.telegramUsername || 'Неизвестный';
+          const userName =
+            user?.name ||
+            user?.telegramFirstName ||
+            user?.telegramUsername ||
+            'Неизвестный';
           return {
             userId,
             userName,
             initial: userName.charAt(0).toUpperCase(),
             telegramPhotoUrl: user?.telegramPhotoUrl,
           };
-        })
+        }),
       );
 
       // Отправляем список онлайн игроков
@@ -878,5 +901,3 @@ export class GameAssociationTextGateway
     }
   }
 }
-
-

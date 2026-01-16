@@ -1,16 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ComplainAssociationText, ComplainAssociationTextDocument } from './schemas/complain-association-text.schema';
+import {
+  ComplainAssociationText,
+  ComplainAssociationTextDocument,
+} from './schemas/complain-association-text.schema';
 
 @Injectable()
 export class ComplainAssociationTextService {
   constructor(
-    @InjectModel(ComplainAssociationText.name) 
+    @InjectModel(ComplainAssociationText.name)
     private complainAssociationTextModel: Model<ComplainAssociationTextDocument>,
   ) {}
 
-  async create(createDto: Partial<ComplainAssociationText>): Promise<ComplainAssociationTextDocument> {
+  async create(
+    createDto: Partial<ComplainAssociationText>,
+  ): Promise<ComplainAssociationTextDocument> {
     const created = new this.complainAssociationTextModel(createDto);
     return created.save();
   }
@@ -23,7 +28,10 @@ export class ComplainAssociationTextService {
     return this.complainAssociationTextModel.findById(id).exec();
   }
 
-  async update(id: string, updateDto: Partial<ComplainAssociationText>): Promise<ComplainAssociationTextDocument | null> {
+  async update(
+    id: string,
+    updateDto: Partial<ComplainAssociationText>,
+  ): Promise<ComplainAssociationTextDocument | null> {
     return this.complainAssociationTextModel
       .findByIdAndUpdate(id, updateDto, { new: true })
       .exec();
@@ -33,6 +41,3 @@ export class ComplainAssociationTextService {
     return this.complainAssociationTextModel.findByIdAndDelete(id).exec();
   }
 }
-
-
-

@@ -32,23 +32,31 @@ export class ImportDataService {
 
     try {
       // Удаляем все старые записи
-      const deleteBankResult = await this.bankAssociationTextService.deleteAll();
+      const deleteBankResult =
+        await this.bankAssociationTextService.deleteAll();
       deletedBankAssociationTexts = deleteBankResult.deletedCount;
 
-      const deleteAnswersResult = await this.answersService.deleteAllWithBankAssociationTextId();
+      const deleteAnswersResult =
+        await this.answersService.deleteAllWithBankAssociationTextId();
       deletedAnswers = deleteAnswersResult.deletedCount;
       // Читаем файл data.json из папки public
       // Пробуем разные пути для dev и production режимов
       let filePath = join(__dirname, '..', '..', '..', 'public', 'data.json');
       if (!existsSync(filePath)) {
         // Если не нашли, пробуем относительно корня проекта
-        filePath = join(process.cwd(), 'apps', 'nest-backend', 'public', 'data.json');
+        filePath = join(
+          process.cwd(),
+          'apps',
+          'nest-backend',
+          'public',
+          'data.json',
+        );
       }
       if (!existsSync(filePath)) {
         // Последняя попытка - относительно текущей директории
         filePath = join(process.cwd(), 'public', 'data.json');
       }
-      
+
       if (!existsSync(filePath)) {
         return {
           success: false,
@@ -57,31 +65,39 @@ export class ImportDataService {
             bankAssociationTexts: deletedBankAssociationTexts,
             answers: deletedAnswers,
           },
-          errors: [`Файл data.json не найден. Проверенные пути: ${join(__dirname, '..', '..', '..', 'public', 'data.json')}, ${join(process.cwd(), 'apps', 'nest-backend', 'public', 'data.json')}, ${join(process.cwd(), 'public', 'data.json')}`],
+          errors: [
+            `Файл data.json не найден. Проверенные пути: ${join(__dirname, '..', '..', '..', 'public', 'data.json')}, ${join(process.cwd(), 'apps', 'nest-backend', 'public', 'data.json')}, ${join(process.cwd(), 'public', 'data.json')}`,
+          ],
         };
       }
-      
+
       const fileContent = readFileSync(filePath, 'utf-8');
       const data: string[] = JSON.parse(fileContent);
 
       const BATCH_SIZE = 30;
-      
+
       // Обрабатываем данные батчами по 30 записей
-      for (let batchStart = 0; batchStart < data.length; batchStart += BATCH_SIZE) {
+      for (
+        let batchStart = 0;
+        batchStart < data.length;
+        batchStart += BATCH_SIZE
+      ) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, data.length);
         const batch = data.slice(batchStart, batchEnd);
-        
+
         // Обрабатываем каждый элемент в батче
         for (let batchIndex = 0; batchIndex < batch.length; batchIndex++) {
           const i = batchStart + batchIndex;
           try {
             const line = batch[batchIndex];
-            
+
             // Разделяем по <br><br>
             const parts = line.split('<br><br>');
-            
+
             if (parts.length !== 2) {
-              errors.push(`Строка ${i + 1}: неверный формат (должно быть разделение по <br><br>)`);
+              errors.push(
+                `Строка ${i + 1}: неверный формат (должно быть разделение по <br><br>)`,
+              );
               continue;
             }
 
@@ -94,16 +110,17 @@ export class ImportDataService {
             }
 
             // Создаем запись в bank-association-text
-            const bankAssociationText = await this.bankAssociationTextService.create({
-              question,
-              status: true,
-            });
+            const bankAssociationText =
+              await this.bankAssociationTextService.create({
+                question,
+                status: true,
+              });
 
             const bankAssociationTextId = bankAssociationText._id.toString();
 
             // Парсим ответы
             const answerLines = answersPart.split('<br>');
-            
+
             for (const answerLine of answerLines) {
               const trimmedLine = answerLine.trim();
               if (!trimmedLine) {
@@ -112,9 +129,11 @@ export class ImportDataService {
 
               // Парсим формат "число | текст"
               const match = trimmedLine.match(/^(\d+)\s*\|\s*(.+)$/);
-              
+
               if (!match) {
-                errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": неверный формат (должно быть "число | текст")`);
+                errors.push(
+                  `Строка ${i + 1}, ответ "${trimmedLine}": неверный формат (должно быть "число | текст")`,
+                );
                 continue;
               }
 
@@ -122,12 +141,16 @@ export class ImportDataService {
               const answerText = match[2].trim();
 
               if (isNaN(count) || count <= 0) {
-                errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": неверное число повторений`);
+                errors.push(
+                  `Строка ${i + 1}, ответ "${trimmedLine}": неверное число повторений`,
+                );
                 continue;
               }
 
               if (!answerText) {
-                errors.push(`Строка ${i + 1}, ответ "${trimmedLine}": текст ответа пустой`);
+                errors.push(
+                  `Строка ${i + 1}, ответ "${trimmedLine}": текст ответа пустой`,
+                );
                 continue;
               }
 
@@ -143,7 +166,9 @@ export class ImportDataService {
 
             imported++;
           } catch (error) {
-            errors.push(`Строка ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
+            errors.push(
+              `Строка ${i + 1}: ${error instanceof Error ? error.message : String(error)}`,
+            );
           }
         }
       }
@@ -165,9 +190,10 @@ export class ImportDataService {
           bankAssociationTexts: deletedBankAssociationTexts,
           answers: deletedAnswers,
         },
-        errors: [`Ошибка чтения файла: ${error instanceof Error ? error.message : String(error)}`],
+        errors: [
+          `Ошибка чтения файла: ${error instanceof Error ? error.message : String(error)}`,
+        ],
       };
     }
   }
 }
-

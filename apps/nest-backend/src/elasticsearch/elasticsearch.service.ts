@@ -113,7 +113,9 @@ export class ElasticsearchService implements OnModuleInit {
         },
       });
 
-      this.logger.log(`Индекс ${this.indexName} создан с настройками для русского языка`);
+      this.logger.log(
+        `Индекс ${this.indexName} создан с настройками для русского языка`,
+      );
 
       // Получаем все answers из MongoDB
       const answers = await this.answerModel.find({}).exec();
@@ -160,7 +162,10 @@ export class ElasticsearchService implements OnModuleInit {
         `Успешно индексировано ${answers.length} ответов в Elasticsearch`,
       );
     } catch (error) {
-      this.logger.error(`Ошибка при инициализации Elasticsearch: ${error.message}`, error.stack);
+      this.logger.error(
+        `Ошибка при инициализации Elasticsearch: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -171,10 +176,7 @@ export class ElasticsearchService implements OnModuleInit {
    * с фильтром bankAssociationTextId=bankAssociationTextId (строгая проверка)
    * и text (не строгая проверка с fuzzy)
    */
-  async count(
-    text: string,
-    bankAssociationTextId: string,
-  ): Promise<number> {
+  async count(text: string, bankAssociationTextId: string): Promise<number> {
     try {
       const query: any = {
         bool: {
@@ -205,7 +207,10 @@ export class ElasticsearchService implements OnModuleInit {
 
       return response.count;
     } catch (error) {
-      this.logger.error(`Ошибка при подсчете в Elasticsearch: ${error.message}`, error.stack);
+      this.logger.error(
+        `Ошибка при подсчете в Elasticsearch: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -265,7 +270,8 @@ export class ElasticsearchService implements OnModuleInit {
         },
       });
 
-      const buckets = (response.aggregations?.unique_words as any)?.buckets || [];
+      const buckets =
+        (response.aggregations?.unique_words as any)?.buckets || [];
 
       // Используем Map для дедупликации по исходному тексту
       const uniqueTextsMap = new Map<string, number>();
@@ -407,11 +413,9 @@ export class ElasticsearchService implements OnModuleInit {
       // Если указан answerId, обновляем запись в БД
       if (answerId) {
         try {
-          await this.answerModel.findByIdAndUpdate(
-            answerId,
-            { score: finalScore },
-            { new: true },
-          ).exec();
+          await this.answerModel
+            .findByIdAndUpdate(answerId, { score: finalScore }, { new: true })
+            .exec();
           // this.logger.log(`Score ${finalScore} сохранен для answerId: ${answerId}`);
         } catch (dbError) {
           this.logger.warn(

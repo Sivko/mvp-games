@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
-import { Game, GameDocument } from './game.schema';
+import { Game, GameDocument } from './infrastructure/schemas/game.schema';
 import { BankAssociationTextService } from './bank-association-text/bank-association-text.service';
 
 @Injectable()
 export class GamesService {
   constructor(
-    @InjectModel(Game.name) private gameModel: Model<GameDocument>,
+    @InjectModel('Game') private gameModel: Model<GameDocument>,
     private bankAssociationTextService: BankAssociationTextService,
     private configService: ConfigService,
   ) {}
@@ -19,21 +19,19 @@ export class GamesService {
    */
   private async getNextGameNumber(): Promise<string> {
     // Получаем последнюю запись, отсортированную по полю number по убыванию
-    const lastGame = await this.gameModel
-      .findOne()
-      .sort({ number: -1 })
-      .exec();
-    
+    const lastGame = await this.gameModel.findOne().sort({ number: -1 }).exec();
+
     // Если записей нет, возвращаем 1
     if (!lastGame || !lastGame.number) {
       return '1';
     }
-    
+
     // Преобразуем number в число, увеличиваем на 1 и возвращаем как строку
-    const lastNumber = typeof lastGame.number === 'string' 
-      ? parseInt(lastGame.number, 10) 
-      : lastGame.number;
-    
+    const lastNumber =
+      typeof lastGame.number === 'string'
+        ? parseInt(lastGame.number, 10)
+        : lastGame.number;
+
     return (lastNumber + 1).toString();
   }
 
@@ -55,7 +53,8 @@ export class GamesService {
 
     // Если тип игры - association-text, выбираем случайную запись из банка
     if (gameData.typeGame === 'association-text') {
-      const randomQuestion = await this.getRandomAssociationText(usedQuestionIds);
+      const randomQuestion =
+        await this.getRandomAssociationText(usedQuestionIds);
       if (randomQuestion) {
         question = randomQuestion.question;
         usedQuestions.push(randomQuestion._id.toString());
@@ -313,7 +312,10 @@ export class GamesService {
   /**
    * Добавляет пользователя в массив users игры, если его там еще нет
    */
-  async addUserToGame(gameId: string, userId: string): Promise<GameDocument | null> {
+  async addUserToGame(
+    gameId: string,
+    userId: string,
+  ): Promise<GameDocument | null> {
     const game = await this.findById(gameId);
     if (!game) {
       return null;
@@ -354,7 +356,10 @@ export class GamesService {
    * Проверяет существование активной игры по invite-коду (формат: userId/game/typeGame)
    * Возвращает игру, если она существует и активна
    */
-  async findActiveGameByInvite(inviteUserId: string, typeGame: string): Promise<GameDocument | null> {
+  async findActiveGameByInvite(
+    inviteUserId: string,
+    typeGame: string,
+  ): Promise<GameDocument | null> {
     return this.gameModel
       .findOne({
         createdBy: inviteUserId as any,
@@ -365,4 +370,3 @@ export class GamesService {
       .exec();
   }
 }
-

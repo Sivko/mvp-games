@@ -12,7 +12,7 @@ export function validateTelegramInitData(
     // Парсим initData, сохраняя оригинальные URL-encoded значения
     const params = new URLSearchParams(initData);
     const hash = params.get('hash');
-    
+
     if (!hash) {
       return { isValid: false };
     }
@@ -21,7 +21,7 @@ export function validateTelegramInitData(
     // Разбираем initData вручную, чтобы сохранить оригинальные encoded значения
     const pairs: Array<[string, string]> = [];
     const parts = initData.split('&');
-    
+
     for (const part of parts) {
       const [key, ...valueParts] = part.split('=');
       if (key === 'hash') continue;
@@ -50,7 +50,12 @@ export function validateTelegramInitData(
       .digest('hex');
 
     // Сравниваем hash (используем timing-safe сравнение для безопасности)
-    if (!crypto.timingSafeEqual(Buffer.from(calculatedHash, 'hex'), Buffer.from(hash, 'hex'))) {
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(calculatedHash, 'hex'),
+        Buffer.from(hash, 'hex'),
+      )
+    ) {
       return { isValid: false };
     }
 
@@ -60,7 +65,7 @@ export function validateTelegramInitData(
     if (userParam) {
       try {
         userData = JSON.parse(decodeURIComponent(userParam));
-      } catch (e) {
+      } catch (_e) {
         // Если не удалось распарсить, это не критично
       }
     }

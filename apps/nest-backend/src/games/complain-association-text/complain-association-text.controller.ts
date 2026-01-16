@@ -44,6 +44,3 @@ export class ComplainAssociationTextController {
     return this.complainAssociationTextService.delete(id);
   }
 }
-
-
-
