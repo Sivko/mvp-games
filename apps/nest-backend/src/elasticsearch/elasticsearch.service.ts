@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Client } from '@elastic/elasticsearch';
-import { Answer, AnswerDocument } from '../answers/schemas/answer.schema';
+import { Answer, AnswerDocument } from '../answers/infrastructure/schemas/answer.schema';
 
 export interface WordCount {
   text: string;
