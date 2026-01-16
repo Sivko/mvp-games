@@ -17,6 +17,7 @@ import { ReactionsModule } from '../reactions/reactions.module';
 import { UsersModule } from '../users/users.module';
 import { ElasticsearchModule } from '../elasticsearch/elasticsearch.module';
 import { GameGateway } from './presentation/gateways/game.gateway';
+import { GameSessionService } from './application/services/game-session.service';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { GameGateway } from './presentation/gateways/game.gateway';
   controllers: [GamesController],
   providers: [
     GameApplicationService,
+    GameSessionService,
     QuestionSelectorService,
     GameGateway,
     {
