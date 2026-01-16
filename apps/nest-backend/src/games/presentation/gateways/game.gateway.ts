@@ -9,10 +9,10 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
-import { AnswersService } from '../../../answers/answers.service';
-import { ReactionsService } from '../../../reactions/reactions.service';
-import { GamesService } from '../../games.service';
-import { UsersService } from '../../../users/users.service';
+import { AnswerApplicationService } from '../../../answers/application/services/answer.application.service';
+import { ReactionApplicationService } from '../../../reactions/application/services/reaction.application.service';
+import { GameApplicationService } from '../../application/services/game.application.service';
+import { UserApplicationService } from '../../../users/application/services/user.application.service';
 import { ElasticsearchService } from '../../../elasticsearch/elasticsearch.service';
 
 interface GameRoom {
@@ -40,10 +40,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private gameRooms = new Map<string, GameRoom>();
 
   constructor(
-    private answersService: AnswersService,
-    private reactionsService: ReactionsService,
-    private gamesService: GamesService,
-    private usersService: UsersService,
+    private answerApplicationService: AnswerApplicationService,
+    private reactionApplicationService: ReactionApplicationService,
+    private gameApplicationService: GameApplicationService,
+    private userApplicationService: UserApplicationService,
     private elasticsearchService: ElasticsearchService,
   ) {}
 
@@ -84,12 +84,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Инициализируем комнату, если её нет
     if (!this.gameRooms.has(gameId)) {
       // Загружаем игру для получения сохраненных очков
-      const game = await this.gamesService.findById(gameId);
+      const game = await this.gameApplicationService.findById(gameId);
       const userScores = new Map<string, number>();
 
       // Загружаем очки из game.stats, если они есть
       if (game?.stats) {
-        game.stats.forEach((score, userId) => {
+        Object.entries(game.stats).forEach(([userId, score]) => {
           userScores.set(userId, score);
         });
       }
@@ -114,7 +114,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     room.uniqueUserIds.add(userId);
 
     // Добавляем пользователя в массив users игры в базе данных
-    await this.gamesService.addUserToGame(gameId, userId);
+    await this.gameApplicationService.addUserToGame(gameId, userId);
 
     // Отправляем событие о присоединении пользователя только если это новый пользователь
     if (isNewUser) {
@@ -136,7 +136,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Загружаем имена всех игроков из userScores
       const playersWithNames = await Promise.all(
         Array.from(room.userScores.keys()).map(async (userId) => {
-          const user = await this.usersService.findById(userId);
+          const user = await this.userApplicationService.findById(userId);
           const userName =
             user?.name ||
             user?.telegramFirstName ||
@@ -152,7 +152,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       // Получаем информацию о раундах из игры
-      const game = await this.gamesService.findById(gameId);
+      const game = await this.gameApplicationService.findById(gameId);
 
       const currentRound = game?.currentRound || 1;
       const maxRounds = game?.maxRounds || 4;
@@ -173,13 +173,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     // Если комната в фазе results, загружаем ответы и реакции
     else if (room.phase === 'results') {
-      const answers = await this.answersService.findByGameId(gameId);
+      const answers = await this.answerApplicationService.findByGameId(gameId);
 
       // Пересчитываем очки всех пользователей из их ответов текущего раунда
       // Это гарантирует правильность очков при присоединении к игре
       const userScoresMap = new Map<string, number>();
       answers.forEach((a) => {
-        const userId = a.user?.toString();
+        const userId = a.userId;
         if (userId) {
           const currentScore = userScoresMap.get(userId) || 0;
           userScoresMap.set(userId, currentScore + (a.score || 0));
@@ -187,18 +187,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       // Получаем игру для получения очков из предыдущих раундов
-      const gameForStats = await this.gamesService.findById(gameId);
+      const gameForStats = await this.gameApplicationService.findById(gameId);
 
       // Обновляем очки в комнате, суммируя очки из предыдущих раундов и текущего раунда
       userScoresMap.forEach((currentRoundScore, userId) => {
-        const previousRoundsScore = gameForStats?.stats?.get(userId) || 0;
+        const previousRoundsScore = gameForStats?.stats?.[userId] || 0;
         const totalScore = previousRoundsScore + currentRoundScore;
         room.userScores.set(userId, totalScore);
       });
 
       // Также добавляем пользователей, которые есть в game.stats, но нет в текущих ответах
       if (gameForStats?.stats) {
-        gameForStats.stats.forEach((previousScore, userId) => {
+        Object.entries(gameForStats.stats).forEach(([userId, previousScore]) => {
           if (!userScoresMap.has(userId)) {
             // Если пользователь есть в предыдущих раундах, но нет в текущем раунде
             room.userScores.set(userId, previousScore);
@@ -209,15 +209,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Загружаем имена пользователей для ответов
       const answersWithUserNames = await Promise.all(
         answers.map(async (a) => {
-          const user = await this.usersService.findById(a.user.toString());
+          const user = a.userId
+            ? await this.userApplicationService.findById(a.userId)
+            : null;
           const userName =
             user?.name ||
             user?.telegramFirstName ||
             user?.telegramUsername ||
             'Неизвестный';
           return {
-            id: a._id.toString(),
-            userId: a.user.toString(),
+            id: a._id,
+            userId: a.userId || '',
             text: a.text,
             userName,
             score: a.score || 0,
@@ -233,7 +235,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Получаем информацию о раундах из игры (используем gameForStats, если он уже загружен, иначе загружаем заново)
       const gameForRounds =
-        gameForStats || (await this.gamesService.findById(gameId));
+        gameForStats || (await this.gameApplicationService.findById(gameId));
 
       // Отправляем текущую фазу с ответами
       client.emit('game-state', {
@@ -250,14 +252,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Загружаем и отправляем все существующие реакции для каждого ответа
       for (const answer of answers) {
-        const answerId = answer._id.toString();
-        const reactions = await this.reactionsService.findByAnswerId(answerId);
+        const answerId = answer._id;
+        const reactions = await this.reactionApplicationService.findByAnswerId(
+          answerId,
+        );
         client.emit('reactions-updated', {
           answerId,
           reactions: reactions.map((r) => ({
-            id: r._id.toString(),
-            userId: r.userId.toString(),
-            reactionId: r.reactionId.toString(),
+            id: r._id,
+            userId: r.userId,
+            reactionId: r.reactionId,
           })),
         });
       }
@@ -269,7 +273,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       // Получаем информацию о раундах из игры
-      const game = await this.gamesService.findById(gameId);
+      const game = await this.gameApplicationService.findById(gameId);
 
       // Отправляем текущую фазу и количество онлайн пользователей
       this.server.to(gameId).emit('game-state', {
@@ -298,36 +302,35 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // Получаем игру для получения bankAssociationTextId
-    const game = await this.gamesService.findById(gameId);
+    const game = await this.gameApplicationService.findById(gameId);
     const bankAssociationTextId =
       game?.usedQuestions && game.usedQuestions.length > 0
         ? game.usedQuestions[game.usedQuestions.length - 1]
         : undefined;
 
     // Проверяем, не отправил ли пользователь уже ответ
-    const existingAnswer = await this.answersService.findByGameIdAndUserId(
-      gameId,
-      userId,
-    );
+    const existingAnswer =
+      await this.answerApplicationService.findByGameIdAndUserId(
+        gameId,
+        userId,
+      );
 
     let answerId: string;
     if (existingAnswer) {
       // Обновляем существующий ответ
-      existingAnswer.text = text;
-      if (bankAssociationTextId) {
-        existingAnswer.bankAssociationTextId = bankAssociationTextId as any;
-      }
-      await existingAnswer.save();
-      answerId = existingAnswer._id.toString();
+      await this.answerApplicationService.update(existingAnswer._id, {
+        text,
+      });
+      answerId = existingAnswer._id;
     } else {
       // Создаем новый ответ
-      const newAnswer = await this.answersService.create({
+      const newAnswer = await this.answerApplicationService.create({
         gameId,
         userId,
         text,
         bankAssociationTextId,
       });
-      answerId = newAnswer._id.toString();
+      answerId = newAnswer._id;
     }
 
     // Вычисляем и сохраняем score, если есть bankAssociationTextId
@@ -341,14 +344,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         // Пересчитываем очки пользователя из всех его ответов в текущем раунде
         // Это гарантирует правильность очков даже при множественных обновлениях
-        const userAnswers = await this.answersService.findByGameId(gameId);
+        const userAnswers = await this.answerApplicationService.findByGameId(
+          gameId,
+        );
         const currentRoundScore = userAnswers
-          .filter((a) => a.user?.toString() === userId)
+          .filter((a) => a.userId === userId)
           .reduce((sum, a) => sum + (a.score || 0), 0);
 
         // Получаем очки из предыдущих раундов из game.stats
-        const game = await this.gamesService.findById(gameId);
-        const previousRoundsScore = game?.stats?.get(userId) || 0;
+        const game = await this.gameApplicationService.findById(gameId);
+        const previousRoundsScore = game?.stats?.[userId] || 0;
 
         // Суммируем очки из предыдущих раундов и текущего раунда
         const userTotalScore = previousRoundsScore + currentRoundScore;
@@ -429,18 +434,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // Проверяем, не отправил ли пользователь уже эту реакцию
-    const existingReactions = await this.reactionsService.findByAnswerAndUser(
-      answerId,
-      userId,
-    );
+    const existingReactions =
+      await this.reactionApplicationService.findByAnswerAndUser(
+        answerId,
+        userId,
+      );
 
     const hasReaction = existingReactions.some(
-      (r) => r.reactionId.toString() === reactionId,
+      (r) => r.reactionId === reactionId,
     );
 
     if (!hasReaction) {
       // Создаем реакцию с gameId
-      await this.reactionsService.create({
+      await this.reactionApplicationService.create({
         answerId,
         userId,
         reactionId,
@@ -450,7 +456,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       await this.sendNewAction(data.gameId, userId, 'поставил реакцию');
     } else {
       // Удаляем реакцию (toggle)
-      await this.reactionsService.deleteByAnswerAndUserAndReaction(
+      await this.reactionApplicationService.deleteByAnswerAndUserAndReaction(
         answerId,
         userId,
         reactionId,
@@ -460,13 +466,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // Отправляем обновленные реакции для этого ответа
-    const reactions = await this.reactionsService.findByAnswerId(answerId);
+    const reactions = await this.reactionApplicationService.findByAnswerId(
+      answerId,
+    );
     this.server.to(data.gameId).emit('reactions-updated', {
       answerId,
       reactions: reactions.map((r) => ({
-        id: r._id.toString(),
-        userId: r.userId.toString(),
-        reactionId: r.reactionId.toString(),
+        id: r._id,
+        userId: r.userId,
+        reactionId: r.reactionId,
       })),
     });
   }
@@ -507,7 +515,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Проверяем, будет ли следующий раунд последним
-      const game = await this.gamesService.findById(gameId);
+      const game = await this.gameApplicationService.findById(gameId);
       const currentRound = game?.currentRound || 1;
       const maxRounds = game?.maxRounds || 10;
       const isNextRoundLast = currentRound >= maxRounds;
@@ -578,22 +586,22 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     room.readyUsers.clear();
 
     // Получаем все ответы для этой игры
-    const answers = await this.answersService.findByGameId(gameId);
+    const answers = await this.answerApplicationService.findByGameId(gameId);
 
     // Очки уже суммируются при отправке ответов, поэтому здесь просто отправляем текущие очки
 
     // Загружаем имена пользователей для ответов
     const answersWithUserNames = await Promise.all(
       answers.map(async (a) => {
-        const userId = a.user?.toString() || null;
-        const user = userId ? await this.usersService.findById(userId) : null;
+        const userId = a.userId || null;
+        const user = userId ? await this.userApplicationService.findById(userId) : null;
         const userName =
           user?.name ||
           user?.telegramFirstName ||
           user?.telegramUsername ||
           'Неизвестный';
         return {
-          id: a._id.toString(),
+          id: a._id,
           userId: userId || '',
           text: a.text,
           userName,
@@ -609,7 +617,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     // Получаем информацию о раундах из игры
-    const game = await this.gamesService.findById(gameId);
+    const game = await this.gameApplicationService.findById(gameId);
 
     // Отправляем результаты всем в комнате
     this.server.to(gameId).emit('game-state', {
@@ -625,14 +633,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Загружаем и отправляем все существующие реакции для каждого ответа
     for (const answer of answers) {
-      const answerId = answer._id.toString();
-      const reactions = await this.reactionsService.findByAnswerId(answerId);
+      const answerId = answer._id;
+      const reactions = await this.reactionApplicationService.findByAnswerId(
+        answerId,
+      );
       this.server.to(gameId).emit('reactions-updated', {
         answerId,
         reactions: reactions.map((r) => ({
-          id: r._id.toString(),
-          userId: r.userId.toString(),
-          reactionId: r.reactionId.toString(),
+          id: r._id,
+          userId: r.userId,
+          reactionId: r.reactionId,
         })),
       });
     }
@@ -647,7 +657,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     room.timer = setTimeout(async () => {
       // Проверяем, будет ли следующий раунд последним
-      const game = await this.gamesService.findById(gameId);
+      const game = await this.gameApplicationService.findById(gameId);
       const currentRound = game?.currentRound || 1;
       const maxRounds = game?.maxRounds || 10;
       const isNextRoundLast = currentRound >= maxRounds;
@@ -688,25 +698,25 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userScoresObject[userId] = score;
     });
 
-    // Загружаем имена всех игроков из userScores
-    const playersWithNames = await Promise.all(
-      Array.from(room.userScores.keys()).map(async (userId) => {
-        const user = await this.usersService.findById(userId);
-        const userName =
-          user?.name ||
-          user?.telegramFirstName ||
-          user?.telegramUsername ||
-          'Неизвестный';
-        return {
-          userId,
-          userName,
-          initial: userName.charAt(0).toUpperCase(),
-        };
-      }),
-    );
+      // Загружаем имена всех игроков из userScores
+      const playersWithNames = await Promise.all(
+        Array.from(room.userScores.keys()).map(async (userId) => {
+          const user = await this.userApplicationService.findById(userId);
+          const userName =
+            user?.name ||
+            user?.telegramFirstName ||
+            user?.telegramUsername ||
+            'Неизвестный';
+          return {
+            userId,
+            userName,
+            initial: userName.charAt(0).toUpperCase(),
+          };
+        }),
+      );
 
-    // Получаем информацию о раундах из игры
-    const game = await this.gamesService.findById(gameId);
+      // Получаем информацию о раундах из игры
+      const game = await this.gameApplicationService.findById(gameId);
     const currentRound = game?.currentRound || 1;
     const maxRounds = game?.maxRounds || 10;
 
@@ -741,7 +751,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // Получаем игру для проверки раундов
-    const game = await this.gamesService.findById(gameId);
+    const game = await this.gameApplicationService.findById(gameId);
     if (!game) {
       console.error('[startNewRound] Игра не найдена:', gameId);
       return;
@@ -752,11 +762,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const maxRounds = game.maxRounds || 10;
 
     // Вычисляем очки текущего раунда из ответов перед их удалением
-    const answers = await this.answersService.findByGameId(gameId);
+    const answers = await this.answerApplicationService.findByGameId(gameId);
     const currentRoundScores: Record<string, number> = {};
 
     answers.forEach((a) => {
-      const userId = a.user?.toString();
+      const userId = a.userId;
       if (userId) {
         const currentScore = currentRoundScores[userId] || 0;
         currentRoundScores[userId] = currentScore + (a.score || 0);
@@ -765,13 +775,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Сохраняем очки текущего раунда в game.stats перед удалением ответов
     if (Object.keys(currentRoundScores).length > 0) {
-      await this.gamesService.updateStats(gameId, currentRoundScores);
+      await this.gameApplicationService.updateStats(gameId, {
+        userScores: currentRoundScores,
+      });
     }
 
     // Загружаем очки из game.stats обратно в room.userScores для нового раунда
     room.userScores.clear();
-    if (game?.stats) {
-      game.stats.forEach((score, userId) => {
+    const updatedGame = await this.gameApplicationService.findById(gameId);
+    if (updatedGame?.stats) {
+      Object.entries(updatedGame.stats).forEach(([userId, score]) => {
         room.userScores.set(userId, score);
       });
     }
@@ -779,25 +792,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Если текущий раунд уже равен или больше максимального, сбрасываем счетчик раундов к 1
     if (currentRound >= maxRounds) {
       // Увеличиваем счетчик завершенных игр (циклов раундов)
-      await this.gamesService.incrementGamesCount(gameId);
-      // Сбрасываем раунд к 1 и сохраняем статус active
-      game.currentRound = 1;
-      game.status = 'active'; // Явно сохраняем статус active
-      // Очищаем статистику очков для нового цикла раундов
-      game.stats = new Map<string, number>();
-      await game.save();
+      await this.gameApplicationService.incrementGamesCount(gameId);
+      // Очищаем статистику очков для нового цикла раундов через updateStats с пустым объектом
+      await this.gameApplicationService.updateStats(gameId, {
+        userScores: {},
+      });
       // Очищаем очки в комнате для нового цикла раундов
       room.userScores.clear();
     } else {
       // Увеличиваем раунд в базе данных
-      await this.gamesService.incrementRound(gameId);
+      await this.gameApplicationService.incrementRound(gameId);
     }
 
     // Обновляем вопрос в игре
-    await this.gamesService.updateQuestion(gameId);
+    await this.gameApplicationService.updateQuestion(gameId);
 
     // Удаляем все ответы для этой игры
-    await this.answersService.deleteByGameId(gameId);
+    await this.answerApplicationService.deleteByGameId(gameId);
 
     // Переключаемся обратно на фазу input
     room.phase = 'input';
@@ -805,7 +816,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     room.readyUsers.clear();
 
     // Загружаем финальную версию игры после всех обновлений
-    const finalGame = await this.gamesService.findById(gameId);
+    const finalGame = await this.gameApplicationService.findById(gameId);
 
     // Преобразуем Map очков в объект
     const userScoresObject: Record<string, number> = {};
@@ -852,7 +863,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Загружаем имена всех онлайн игроков
       const onlinePlayers = await Promise.all(
         Array.from(room.uniqueUserIds).map(async (userId) => {
-          const user = await this.usersService.findById(userId);
+          const user = await this.userApplicationService.findById(userId);
           const userName =
             user?.name ||
             user?.telegramFirstName ||
@@ -888,7 +899,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     action: string,
   ): Promise<void> {
     try {
-      const user = await this.usersService.findById(userId);
+      const user = await this.userApplicationService.findById(userId);
       if (user) {
         const userName = user.name || user.telegramFirstName || 'Неизвестный';
         const message = `<strong>${userName}</strong> ${action}`;

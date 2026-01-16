@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { BankAssociationTextService } from './bank-association-text.service';
-import { AnswersService } from '../answers/answers.service';
+import { BankAssociationTextApplicationService } from './application/services/bank-association-text.application.service';
+import { AnswerApplicationService } from '../answers/application/services/answer.application.service';
 
 @Injectable()
 export class ImportDataService {
   constructor(
-    private readonly bankAssociationTextService: BankAssociationTextService,
-    private readonly answersService: AnswersService,
+    private readonly bankAssociationTextApplicationService: BankAssociationTextApplicationService,
+    private readonly answerApplicationService: AnswerApplicationService,
   ) {}
 
   /**
@@ -33,11 +33,11 @@ export class ImportDataService {
     try {
       // Удаляем все старые записи
       const deleteBankResult =
-        await this.bankAssociationTextService.deleteAll();
+        await this.bankAssociationTextApplicationService.deleteAll();
       deletedBankAssociationTexts = deleteBankResult.deletedCount;
 
       const deleteAnswersResult =
-        await this.answersService.deleteAllWithBankAssociationTextId();
+        await this.answerApplicationService.deleteAllWithBankAssociationTextId();
       deletedAnswers = deleteAnswersResult.deletedCount;
       // Читаем файл data.json из папки public
       // Пробуем разные пути для dev и production режимов
@@ -111,12 +111,12 @@ export class ImportDataService {
 
             // Создаем запись в bank-association-text
             const bankAssociationText =
-              await this.bankAssociationTextService.create({
+              await this.bankAssociationTextApplicationService.create({
                 question,
                 status: true,
               });
 
-            const bankAssociationTextId = bankAssociationText._id.toString();
+            const bankAssociationTextId = bankAssociationText._id;
 
             // Парсим ответы
             const answerLines = answersPart.split('<br>');
@@ -156,11 +156,10 @@ export class ImportDataService {
 
               // Создаем N записей в answers
               for (let j = 0; j < count; j++) {
-                await this.answersService.createByQuestion(
-                  question,
-                  answerText,
+                await this.answerApplicationService.create({
+                  text: answerText,
                   bankAssociationTextId,
-                );
+                });
               }
             }
 

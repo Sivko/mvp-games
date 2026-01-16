@@ -22,4 +22,9 @@ export interface IAnswerRepository {
   ): Promise<{ answers: Answer[]; total: number }>;
   save(answer: Answer): Promise<Answer>;
   delete(id: string): Promise<void>;
+  deleteByGameId(gameId: string): Promise<void>;
+  deleteByBankAssociationTextId(
+    bankAssociationTextId: string,
+  ): Promise<{ deletedCount: number }>;
+  deleteAllWithBankAssociationTextId(): Promise<{ deletedCount: number }>;
 }

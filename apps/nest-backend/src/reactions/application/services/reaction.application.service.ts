@@ -52,6 +52,17 @@ export class ReactionApplicationService {
     return reactions.map((reaction) => this.toResponseDto(reaction));
   }
 
+  async findByAnswerAndUser(
+    answerId: string,
+    userId: string,
+  ): Promise<ReactionResponseDto[]> {
+    const reactions = await this.reactionRepository.findByAnswerAndUser(
+      answerId,
+      userId,
+    );
+    return reactions.map((reaction) => this.toResponseDto(reaction));
+  }
+
   async delete(id: string): Promise<void> {
     await this.reactionRepository.delete(id);
   }

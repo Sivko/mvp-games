@@ -11,7 +11,6 @@ import { GameApplicationService } from './application/services/game.application.
 import { MongooseGameRepository } from './infrastructure/persistence/mongoose-game.repository';
 import { MongooseBankAssociationTextRepository } from './infrastructure/persistence/mongoose-bank-association-text.repository';
 import { QuestionSelectorService } from './domain/services/question-selector.service';
-import { GamesService } from './games.service';
 import { BankAssociationTextModule } from '../bank-association-text/bank-association-text.module';
 import { AnswersModule } from '../answers/answers.module';
 import { ReactionsModule } from '../reactions/reactions.module';
@@ -35,7 +34,6 @@ import { GameGateway } from './presentation/gateways/game.gateway';
   controllers: [GamesController],
   providers: [
     GameApplicationService,
-    GamesService,
     QuestionSelectorService,
     GameGateway,
     {
@@ -49,7 +47,6 @@ import { GameGateway } from './presentation/gateways/game.gateway';
   ],
   exports: [
     GameApplicationService,
-    GamesService,
     'IGameRepository',
     'IBankAssociationTextRepository',
     MongooseModule,

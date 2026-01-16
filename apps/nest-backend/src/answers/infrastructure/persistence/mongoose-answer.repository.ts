@@ -180,6 +180,28 @@ export class MongooseAnswerRepository implements IAnswerRepository {
     await this.answerModel.findByIdAndDelete(id).exec();
   }
 
+  async deleteByGameId(gameId: string): Promise<void> {
+    await this.answerModel.deleteMany({ gameId: gameId as any }).exec();
+  }
+
+  async deleteByBankAssociationTextId(
+    bankAssociationTextId: string,
+  ): Promise<{ deletedCount: number }> {
+    const result = await this.answerModel
+      .deleteMany({ bankAssociationTextId: bankAssociationTextId as any })
+      .exec();
+    return { deletedCount: result.deletedCount || 0 };
+  }
+
+  async deleteAllWithBankAssociationTextId(): Promise<{
+    deletedCount: number;
+  }> {
+    const result = await this.answerModel
+      .deleteMany({ bankAssociationTextId: { $exists: true, $ne: null } })
+      .exec();
+    return { deletedCount: result.deletedCount || 0 };
+  }
+
   private toDomain(doc: AnswerDocument): Answer {
     return Answer.reconstitute(
       doc._id.toString(),

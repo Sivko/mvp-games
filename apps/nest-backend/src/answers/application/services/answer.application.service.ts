@@ -127,6 +127,24 @@ export class AnswerApplicationService {
     await this.answerRepository.delete(id);
   }
 
+  async deleteByGameId(gameId: string): Promise<void> {
+    await this.answerRepository.deleteByGameId(gameId);
+  }
+
+  async deleteByBankAssociationTextId(
+    bankAssociationTextId: string,
+  ): Promise<{ deletedCount: number }> {
+    return this.answerRepository.deleteByBankAssociationTextId(
+      bankAssociationTextId,
+    );
+  }
+
+  async deleteAllWithBankAssociationTextId(): Promise<{
+    deletedCount: number;
+  }> {
+    return this.answerRepository.deleteAllWithBankAssociationTextId();
+  }
+
   private toResponseDto(answer: Answer): AnswerResponseDto {
     return {
       _id: answer.id || '',

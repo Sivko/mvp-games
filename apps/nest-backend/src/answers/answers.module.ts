@@ -5,7 +5,6 @@ import { Game, GameSchema } from '../games/infrastructure/schemas/game.schema';
 import { AnswersController } from './presentation/controllers/answers.controller';
 import { AnswerApplicationService } from './application/services/answer.application.service';
 import { MongooseAnswerRepository } from './infrastructure/persistence/mongoose-answer.repository';
-import { AnswersService } from './answers.service';
 
 @Module({
   imports: [
@@ -17,7 +16,6 @@ import { AnswersService } from './answers.service';
   controllers: [AnswersController],
   providers: [
     AnswerApplicationService,
-    AnswersService,
     {
       provide: 'IAnswerRepository',
       useClass: MongooseAnswerRepository,
@@ -25,7 +23,6 @@ import { AnswersService } from './answers.service';
   ],
   exports: [
     AnswerApplicationService,
-    AnswersService,
     'IAnswerRepository',
     MongooseModule,
   ],

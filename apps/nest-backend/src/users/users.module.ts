@@ -4,14 +4,12 @@ import { User, UserSchema } from './infrastructure/schemas/user.schema';
 import { UsersController } from './presentation/controllers/users.controller';
 import { UserApplicationService } from './application/services/user.application.service';
 import { MongooseUserRepository } from './infrastructure/persistence/mongoose-user.repository';
-import { UsersService } from './users.service';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: 'User', schema: UserSchema }])],
   controllers: [UsersController],
   providers: [
     UserApplicationService,
-    UsersService,
     {
       provide: 'IUserRepository',
       useClass: MongooseUserRepository,
@@ -19,7 +17,6 @@ import { UsersService } from './users.service';
   ],
   exports: [
     UserApplicationService,
-    UsersService,
     'IUserRepository',
     MongooseModule,
   ],

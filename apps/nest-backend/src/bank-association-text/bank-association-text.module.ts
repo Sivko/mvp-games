@@ -4,7 +4,6 @@ import { BankAssociationTextSchema } from './infrastructure/schemas/bank-associa
 import { BankAssociationTextController } from './presentation/controllers/bank-association-text.controller';
 import { BankAssociationTextApplicationService } from './application/services/bank-association-text.application.service';
 import { MongooseBankAssociationTextRepository } from './infrastructure/persistence/mongoose-bank-association-text.repository';
-import { BankAssociationTextService } from './bank-association-text.service';
 
 @Module({
   imports: [
@@ -15,7 +14,6 @@ import { BankAssociationTextService } from './bank-association-text.service';
   controllers: [BankAssociationTextController],
   providers: [
     BankAssociationTextApplicationService,
-    BankAssociationTextService,
     {
       provide: 'IBankAssociationTextRepository',
       useClass: MongooseBankAssociationTextRepository,
@@ -23,7 +21,6 @@ import { BankAssociationTextService } from './bank-association-text.service';
   ],
   exports: [
     BankAssociationTextApplicationService,
-    BankAssociationTextService,
     'IBankAssociationTextRepository',
     MongooseModule,
   ],
